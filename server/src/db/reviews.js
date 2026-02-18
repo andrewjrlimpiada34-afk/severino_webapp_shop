@@ -22,8 +22,8 @@ export const getReviewById = async (id) => {
 export const deleteReview = async (id) => {
   const db = await getDb()
   if (!ObjectId.isValid(id)) return null
-  const result = await db.collection('reviews').findOneAndDelete({
+  const removed = await db.collection('reviews').findOneAndDelete({
     _id: new ObjectId(id),
   })
-  return result.value
+  return removed
 }

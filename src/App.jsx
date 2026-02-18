@@ -40,21 +40,23 @@ function AppLayout({ children }) {
 
   useEffect(() => {
     if (!user || user.role === 'admin') return
-    const shouldShow = sessionStorage.getItem('severino_login_popup')
-    if (!shouldShow) return
+    const popupSeenKey = `severino_login_popup_seen_${user.id}`
+    const alreadyShown = sessionStorage.getItem(popupSeenKey)
+    if (alreadyShown === '1') return
     let active = true
     api
       .loginPopup()
       .then((data) => {
         if (!active) return
         if (data?.image) {
+          sessionStorage.setItem(popupSeenKey, '1')
           setPopup({ open: true, image: data.image })
         } else {
-          sessionStorage.removeItem('severino_login_popup')
+          sessionStorage.setItem(popupSeenKey, '1')
         }
       })
       .catch(() => {
-        sessionStorage.removeItem('severino_login_popup')
+        sessionStorage.setItem(popupSeenKey, '1')
       })
     return () => {
       active = false
@@ -79,7 +81,6 @@ function AppLayout({ children }) {
               aria-label="Close"
               onClick={() => {
                 setPopup({ open: false, image: '' })
-                sessionStorage.removeItem('severino_login_popup')
               }}
             >
               X

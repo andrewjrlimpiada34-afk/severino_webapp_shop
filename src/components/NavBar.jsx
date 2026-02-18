@@ -133,7 +133,7 @@ function NavBar() {
               </button>
               {notifOpen && (
                 <div className="modal-backdrop" role="presentation">
-                  <div className="modal-card modal-card--wide" role="dialog" aria-modal="true">
+                  <div className="modal-card modal-card--wide notif-modal" role="dialog" aria-modal="true">
                     <button
                       className="modal-close"
                       type="button"

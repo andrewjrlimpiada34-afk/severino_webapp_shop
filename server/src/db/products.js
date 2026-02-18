@@ -80,36 +80,36 @@ export const updateProduct = async (id, data) => {
   const db = await getDb()
   const products = db.collection('products')
   if (ObjectId.isValid(id)) {
-    const result = await products.findOneAndUpdate(
+    const updated = await products.findOneAndUpdate(
       { $or: [{ _id: new ObjectId(id) }, { id }] },
       { $set: data },
       { returnDocument: 'after' }
     )
-    return result.value
+    return updated
   }
-  const result = await products.findOneAndUpdate(
+  const updated = await products.findOneAndUpdate(
     { id },
     { $set: data },
     { returnDocument: 'after' }
   )
-  return result.value
+  return updated
 }
 
 export const decrementStock = async (id, quantity) => {
   const db = await getDb()
   const products = db.collection('products')
   if (ObjectId.isValid(id)) {
-    const result = await products.findOneAndUpdate(
+    const updated = await products.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $inc: { stock: -quantity } },
       { returnDocument: 'after' }
     )
-    return result.value
+    return updated
   }
-  const result = await products.findOneAndUpdate(
+  const updated = await products.findOneAndUpdate(
     { id },
     { $inc: { stock: -quantity } },
     { returnDocument: 'after' }
   )
-  return result.value
+  return updated
 }

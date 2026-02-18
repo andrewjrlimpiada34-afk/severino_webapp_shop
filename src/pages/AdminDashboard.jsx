@@ -40,11 +40,19 @@ function AdminDashboard() {
     load()
   }, [])
 
-  const handleBannerFile = (event, index) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleBannerFiles = (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+    if (files.length > 5) {
+      setBannerStatus({
+        loading: false,
+        error: 'You can upload up to 5 banners at a time.',
+        success: '',
+      })
+      return
+    }
     const maxSize = 20 * 1024 * 1024
-    if (file.size > maxSize) {
+    if (files.some((file) => file.size > maxSize)) {
       setBannerStatus({
         loading: false,
         error: 'Image too large. Please upload a banner under 20MB.',
@@ -52,10 +60,24 @@ function AdminDashboard() {
       })
       return
     }
-    const reader = new FileReader()
-    reader.onload = () =>
-      setBanners((prev) => prev.map((item, i) => (i === index ? String(reader.result) : item)))
-    reader.readAsDataURL(file)
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(String(reader.result || ''))
+            reader.readAsDataURL(file)
+          })
+      )
+    ).then((images) => {
+      const cleaned = images.filter(Boolean).slice(0, 5)
+      setBanners((prev) => {
+        const next = [...cleaned]
+        while (next.length < 5) next.push(prev[next.length] || '')
+        return next
+      })
+      setBannerStatus({ loading: false, error: '', success: 'Loaded banner files.' })
+    })
   }
 
   const handlePopupFile = (event) => {
@@ -117,6 +139,16 @@ function AdminDashboard() {
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Edit Banner
         </h2>
+        <div>
+          <div className="label">Upload up to 5 banners at once</div>
+          <input
+            className="input"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleBannerFiles}
+          />
+        </div>
         {bannerStatus.error && <div className="card">Error: {bannerStatus.error}</div>}
         {bannerStatus.success && <div className="card">{bannerStatus.success}</div>}
         {banners.map((value, index) => (
@@ -131,12 +163,6 @@ function AdminDashboard() {
                   prev.map((item, i) => (i === index ? event.target.value : item))
                 )
               }
-            />
-            <input
-              className="input"
-              type="file"
-              accept="image/*"
-              onChange={(event) => handleBannerFile(event, index)}
             />
             {value && (
               <div className="banner-preview" style={{ backgroundImage: `url(${value})` }} />

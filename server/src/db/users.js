@@ -79,19 +79,19 @@ export const createUser = async (data) => {
 export const updateUser = async (id, data) => {
   const db = await getDb()
   const users = db.collection('users')
-  const result = await users.findOneAndUpdate(
+  const updated = await users.findOneAndUpdate(
     { _id: new ObjectId(id) },
     { $set: data },
     { returnDocument: 'after' }
   )
-  return result.value
+  return updated
 }
 
 export const removeUser = async (id) => {
   const db = await getDb()
   const users = db.collection('users')
-  const result = await users.findOneAndDelete({ _id: new ObjectId(id) })
-  return result.value
+  const removed = await users.findOneAndDelete({ _id: new ObjectId(id) })
+  return removed
 }
 
 export const sanitizeUser = (user) => {

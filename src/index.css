@@ -153,6 +153,7 @@ body {
   --footer-bg: #0f0e0b;
   --footer-text: #f0efe9;
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --glass: rgba(31, 29, 23, 0.9);
 }
 
 a {
@@ -200,6 +201,46 @@ img {
 .section-subtitle {
   margin: 0;
   color: rgba(26, 31, 20, 0.68);
+}
+
+[data-theme='Shadow Dark Mode'] .section-subtitle,
+[data-theme='Shadow Dark Mode'] .label,
+[data-theme='Shadow Dark Mode'] .tag,
+[data-theme='Shadow Dark Mode'] .table td,
+[data-theme='Shadow Dark Mode'] .table th,
+[data-theme='Shadow Dark Mode'] .pill,
+[data-theme='Shadow Dark Mode'] .notif-item,
+[data-theme='Shadow Dark Mode'] .nav-links a,
+[data-theme='Shadow Dark Mode'] .icon,
+[data-theme='Shadow Dark Mode'] .card p,
+[data-theme='Shadow Dark Mode'] .card li,
+[data-theme='Shadow Dark Mode'] strong,
+[data-theme='Shadow Dark Mode'] span {
+  color: #f4ead5;
+}
+
+[data-theme='Shadow Dark Mode'] .card,
+[data-theme='Shadow Dark Mode'] .product-card,
+[data-theme='Shadow Dark Mode'] .hero-card,
+[data-theme='Shadow Dark Mode'] .modal-card,
+[data-theme='Shadow Dark Mode'] .nav-toggle,
+[data-theme='Shadow Dark Mode'] .avatar-button {
+  background: rgba(30, 27, 21, 0.94);
+  border-color: rgba(229, 206, 162, 0.28);
+}
+
+[data-theme='Shadow Dark Mode'] .input {
+  background: rgba(47, 42, 33, 0.95);
+  border-color: rgba(229, 206, 162, 0.28);
+  color: #f8eed9;
+}
+
+[data-theme='Luxurious Gold'] .button {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 18px rgba(212, 163, 56, 0.35);
+}
+
+[data-theme='Luxurious Gold'] .button:hover {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 28px rgba(212, 163, 56, 0.55);
 }
 
 .card {
@@ -494,7 +535,8 @@ img {
 }
 
 .modal-card--wide {
-  width: min(92vw, 640px);
+  width: min(94vw, 920px);
+  max-height: 82vh;
   padding: 12px;
 }
 
@@ -530,6 +572,11 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.notif-modal .notif-item {
+  font-size: 15px;
+  padding: 12px 0;
 }
 
 .notif-actions {
@@ -701,7 +748,7 @@ img {
 .product-image-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .product-actions {

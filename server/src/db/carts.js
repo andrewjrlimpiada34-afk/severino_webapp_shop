@@ -15,12 +15,12 @@ export const createCart = async (userId) => {
 
 export const updateCart = async (userId, items) => {
   const db = await getDb()
-  const result = await db.collection('carts').findOneAndUpdate(
+  const updated = await db.collection('carts').findOneAndUpdate(
     { userId },
     { $set: { items } },
     { returnDocument: 'after' }
   )
-  return result.value
+  return updated
 }
 
 export const removeCartByUserId = async (userId) => {

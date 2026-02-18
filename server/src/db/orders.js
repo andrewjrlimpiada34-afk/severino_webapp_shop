@@ -24,18 +24,18 @@ export const createOrder = async (data) => {
 
 export const updateOrderStatus = async (id, status) => {
   const db = await getDb()
-  const result = await db.collection('orders').findOneAndUpdate(
+  const updated = await db.collection('orders').findOneAndUpdate(
     { _id: new ObjectId(id) },
     { $set: { status } },
     { returnDocument: 'after' }
   )
-  return result.value
+  return updated
 }
 
 export const removeOrderById = async (id) => {
   const db = await getDb()
-  const result = await db.collection('orders').findOneAndDelete({ _id: new ObjectId(id) })
-  return result.value
+  const removed = await db.collection('orders').findOneAndDelete({ _id: new ObjectId(id) })
+  return removed
 }
 
 export const removeOrdersByUserId = async (userId) => {

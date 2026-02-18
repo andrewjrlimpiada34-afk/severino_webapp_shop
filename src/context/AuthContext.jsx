@@ -61,9 +61,6 @@ export function AuthProvider({ children }) {
     const resolved = await resolveUserTheme(data)
     setUser(resolved)
     setLocalProfile(resolved)
-    if (resolved?.role !== 'admin') {
-      sessionStorage.setItem('severino_login_popup', '1')
-    }
     if (resolved?.id) {
       const pending = JSON.parse(localStorage.getItem('severino_pending_buy_now') || '[]')
       if (pending.length) {
@@ -101,7 +98,9 @@ export function AuthProvider({ children }) {
     clearLocalProfile()
     document.documentElement.removeAttribute('data-theme')
     sessionStorage.removeItem('admin_session')
-    sessionStorage.removeItem('severino_login_popup')
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith('severino_login_popup_seen_'))
+      .forEach((key) => sessionStorage.removeItem(key))
   }
 
   const value = useMemo(

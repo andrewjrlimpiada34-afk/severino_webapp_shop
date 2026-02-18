@@ -6,7 +6,6 @@ import { api } from '../lib/api.js'
 function NavBar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
@@ -21,13 +20,11 @@ function NavBar() {
       if (!user) return
       try {
         const orders = await api.orders()
-        const readIds = JSON.parse(
-          localStorage.getItem(`severino_notif_read_${user.id}`) || '[]'
-        )
+        const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
         const list = orders.slice(0, 5).map((order) => ({
           id: order.id,
           text: `Order ${order.id} is ${order.status}`,
-          read: readIds.includes(order.id),
+          opened: openedIds.includes(order.id),
         }))
         setNotifications(list)
         const profile = await api.profile().catch(() => null)
@@ -110,7 +107,7 @@ function NavBar() {
                 className="icon-button"
                 type="button"
                 aria-label="Notifications"
-                onClick={() => setNotifOpen(true)}
+                onClick={() => navigate('/notifications')}
               >
                 <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -129,64 +126,8 @@ function NavBar() {
                     strokeLinecap="round"
                   />
                 </svg>
-                {notifications.some((item) => !item.read) && <span className="badge-dot" />}
+                {notifications.some((item) => !item.opened) && <span className="badge-dot" />}
               </button>
-              {notifOpen && (
-                <div className="modal-backdrop" role="presentation">
-                  <div className="modal-card modal-card--wide notif-modal" role="dialog" aria-modal="true">
-                    <button
-                      className="modal-close"
-                      type="button"
-                      aria-label="Close"
-                      onClick={() => setNotifOpen(false)}
-                    >
-                      X
-                    </button>
-                    <div className="notif-header">
-                      <div className="tag">Order Updates</div>
-                      <div className="notif-actions">
-                        <button
-                          className="button ghost"
-                          type="button"
-                          onClick={() => {
-                            const ids = notifications.map((item) => item.id)
-                            localStorage.setItem(
-                              `severino_notif_read_${user.id}`,
-                              JSON.stringify(ids)
-                            )
-                            setNotifications((prev) =>
-                              prev.map((item) => ({ ...item, read: true }))
-                            )
-                          }}
-                        >
-                          Mark as Read
-                        </button>
-                        <button
-                          className="button ghost"
-                          type="button"
-                          onClick={() => {
-                            localStorage.setItem(
-                              `severino_notif_read_${user.id}`,
-                              JSON.stringify([])
-                            )
-                            setNotifications([])
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                    {notifications.length === 0 && (
-                      <p className="section-subtitle">No updates yet.</p>
-                    )}
-                    {notifications.map((item) => (
-                      <div key={item.id} className={`notif-item ${item.read ? 'read' : ''}`}>
-                        {item.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </>
         )}
@@ -212,8 +153,21 @@ function NavBar() {
             )}
           </button>
         )}
-        <button className="nav-toggle" onClick={() => setOpen((prev) => !prev)} type="button">
-          Menu
+        <button
+          className="nav-toggle"
+          onClick={() => setOpen((prev) => !prev)}
+          type="button"
+          aria-label="Open menu"
+        >
+          <svg className="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M4 7h16M4 12h16M4 17h16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
       </div>
     </nav>

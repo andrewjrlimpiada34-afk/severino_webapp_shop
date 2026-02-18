@@ -16,6 +16,7 @@ import Account from './pages/Account.jsx'
 import Feedback from './pages/Feedback.jsx'
 import ProductDetail from './pages/ProductDetail.jsx'
 import Favorites from './pages/Favorites.jsx'
+import Notifications from './pages/Notifications.jsx'
 import EmailConfirmation from './pages/EmailConfirmation.jsx'
 import Login from './pages/Login.jsx'
 import CreateAccount from './pages/CreateAccount.jsx'
@@ -185,6 +186,16 @@ function App() {
           <AppLayout>
             <ProtectedRoute>
               <Favorites />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           </AppLayout>
         }

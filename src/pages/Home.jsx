@@ -93,8 +93,8 @@ function Home() {
           <div className="tag">Severino Collection</div>
           <h1 className="section-title">Scent stories crafted for calm confidence.</h1>
           <p className="section-subtitle">
-            Discover a boutique line of long-lasting fragrances with botanical notes, created for
-            everyday elegance. COD only, verified deliveries, and careful packaging for every order.
+            Discover a boutique line of fragrances with luxurious notes, created for everyday
+            elegance. COD only, verified deliveries, and careful packaging for every order.
           </p>
           <div style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <a className="button" href="/shop">

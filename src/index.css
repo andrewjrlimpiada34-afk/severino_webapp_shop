@@ -235,6 +235,32 @@ img {
   color: #f8eed9;
 }
 
+[data-theme='Shadow Dark Mode'] .button {
+  color: #fff7e2;
+  box-shadow: 0 0 20px rgba(214, 182, 104, 0.26);
+}
+
+[data-theme='Shadow Dark Mode'] .button.secondary,
+[data-theme='Shadow Dark Mode'] .button.ghost {
+  color: #f4ead5;
+  border-color: rgba(229, 206, 162, 0.35);
+}
+
+[data-theme='Shadow Dark Mode'] .nav-links.open {
+  background: rgba(24, 20, 16, 0.92);
+  border-color: rgba(229, 206, 162, 0.35);
+}
+
+[data-theme='Shadow Dark Mode'] .nav-links a,
+[data-theme='Shadow Dark Mode'] .nav-links .button.ghost,
+[data-theme='Shadow Dark Mode'] .nav-links .icon-button {
+  color: #f4ead5;
+}
+
+[data-theme='Shadow Dark Mode'] .nav-links a.active {
+  color: #fff7e2;
+}
+
 [data-theme='Luxurious Gold'] .button {
   box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 18px rgba(212, 163, 56, 0.35);
 }
@@ -515,12 +541,14 @@ img {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 18, 12, 0.55);
+  background: rgba(10, 10, 12, 0.62);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  z-index: 60;
+  z-index: 9999;
+  animation: modalFadeIn 0.26s ease;
 }
 
 .modal-card {
@@ -532,12 +560,20 @@ img {
   padding: 18px;
   box-shadow: 0 30px 60px rgba(15, 18, 12, 0.35);
   overflow: auto;
+  animation: modalScaleIn 0.26s ease;
 }
 
 .modal-card--wide {
   width: min(94vw, 920px);
   max-height: 82vh;
   padding: 12px;
+}
+
+.notif-modal {
+  width: min(96vw, 980px);
+  min-height: min(64vh, 560px);
+  max-height: 86vh;
+  padding: 24px;
 }
 
 .login-popup {
@@ -618,6 +654,26 @@ img {
   }
 }
 
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .nav-logo {
   font-family: 'Leyton', 'Playfair Display', serif;
   font-size: 26px;
@@ -666,7 +722,7 @@ img {
 }
 
 .footer {
-  padding: 36px clamp(18px, 3vw, 52px);
+  padding: 26px clamp(18px, 3vw, 52px);
   background: var(--footer-bg, rgba(26, 31, 20, 0.92));
   color: var(--footer-text, #f6f3ea);
 }
@@ -677,7 +733,7 @@ img {
 
 .footer-grid {
   display: grid;
-  gap: 24px;
+  gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 

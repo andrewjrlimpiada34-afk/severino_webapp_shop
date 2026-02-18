@@ -5,8 +5,7 @@ function Footer() {
         <div>
           <div className="nav-logo">Severino</div>
           <p>
-            Premium scent studio blending botanical elegance with modern
-            craftsmanship.
+            Premium scent studio blending elegance with modern craftsmanship.
           </p>
         </div>
         <div>

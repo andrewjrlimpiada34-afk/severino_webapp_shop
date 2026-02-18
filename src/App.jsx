@@ -38,6 +38,7 @@ function AppLayout({ children }) {
   const publicPaths = ['/login', '/create-account']
   const shouldRedirectAdmin =
     !loading && user?.role === 'admin' && !publicPaths.includes(location.pathname)
+  const showFooter = ['/', '/shop', '/login'].includes(location.pathname)
 
   useEffect(() => {
     if (!user || user.role === 'admin') return
@@ -72,7 +73,7 @@ function AppLayout({ children }) {
     <div className="app-shell">
       <NavBar />
       <main className="page">{children}</main>
-      <Footer />
+      {showFooter && <Footer />}
       {popup.open && (
         <div className="modal-backdrop" role="presentation">
           <div className="modal-card modal-card--wide" role="dialog" aria-modal="true">

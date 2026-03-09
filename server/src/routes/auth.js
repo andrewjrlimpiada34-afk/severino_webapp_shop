@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
-import nodemailer from 'nodemailer'
 import { z } from 'zod'
+import { send_otp } from '../mailer.js'
 import {
   createUser,
   getUserByEmail,
@@ -50,49 +50,7 @@ const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
   return parsed.error.issues[0]?.message || fallback
 }
 
-const parseSmtpSecure = (value, port) => {
-  if (typeof value === 'string') {
-    return value.toLowerCase() === 'true'
-  }
-  return Number(port) === 465
-}
-
-const getMailConfig = () => {
-  const smtpHost = process.env.SMTP_HOST
-  const smtpPort = process.env.SMTP_PORT
-  const smtpUser = process.env.SMTP_USER
-  const smtpPass = process.env.SMTP_PASS
-
-  if (smtpHost && smtpPort && smtpUser && smtpPass) {
-    return {
-      transport: {
-        host: smtpHost,
-        port: Number(smtpPort),
-        secure: parseSmtpSecure(process.env.SMTP_SECURE, smtpPort),
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      },
-      from: process.env.EMAIL_FROM || `"Severino" <${smtpUser}>`,
-    }
-  }
-
-  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    return {
-      transport: {
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM || `"Severino" <${process.env.GMAIL_USER}>`,
-    }
-  }
-
-  return null
-}
+const isMailConfigured = () => !!(process.env.SMTP_EMAIL && process.env.SMTP_PASS)
 
 const googleConfigReady =
   process.env.GOOGLE_CLIENT_ID &&
@@ -123,16 +81,6 @@ const clearAuthCookies = (res) => {
   res.clearCookie('oauth_state', options)
 }
 
-const sendOtpEmail = async ({ mailConfig, to, code }) => {
-  const transporter = nodemailer.createTransport(mailConfig.transport)
-  await transporter.sendMail({
-    from: mailConfig.from,
-    to,
-    subject: 'Verify your Severino account',
-    text: `Your verification code is ${code}. It expires in 10 minutes.`,
-  })
-}
-
 if (googleConfigReady) {
   passport.use(
     new GoogleStrategy(
@@ -154,8 +102,7 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
-  const mailConfig = getMailConfig()
-  if (!mailConfig) {
+  if (!isMailConfigured()) {
     return res.status(500).json({ message: 'Email service not configured' })
   }
 
@@ -190,7 +137,14 @@ router.post('/register', async (req, res) => {
   })
 
   try {
-    await sendOtpEmail({ mailConfig, to: user.email, code })
+    const result = await send_otp({
+      to: user.email,
+      subject: 'Verify your Severino account',
+      text: `Your verification code is ${code}. It expires in 10 minutes.`,
+    })
+    if (!result.success) {
+      throw result.error || new Error('SMTP send failed')
+    }
   } catch (error) {
     await consumeOtp(challenge.id)
     await removeUser(user._id.toString())
@@ -285,8 +239,7 @@ router.post('/verify/resend', async (req, res) => {
     return res.status(409).json({ message: 'Email already verified' })
   }
 
-  const mailConfig = getMailConfig()
-  if (!mailConfig) {
+  if (!isMailConfigured()) {
     return res.status(500).json({ message: 'Email service not configured' })
   }
 
@@ -301,7 +254,14 @@ router.post('/verify/resend', async (req, res) => {
   })
 
   try {
-    await sendOtpEmail({ mailConfig, to: user.email, code })
+    const result = await send_otp({
+      to: user.email,
+      subject: 'Verify your Severino account',
+      text: `Your verification code is ${code}. It expires in 10 minutes.`,
+    })
+    if (!result.success) {
+      throw result.error || new Error('SMTP send failed')
+    }
     await consumeOtp(parsed.data.challengeId)
     return res.json({ challengeId: challenge.id, email: user.email })
   } catch {

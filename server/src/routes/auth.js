@@ -33,6 +33,50 @@ const verifySchema = z.object({
   code: z.string().min(6),
 })
 
+const parseSmtpSecure = (value, port) => {
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true'
+  }
+  return Number(port) === 465
+}
+
+const getMailConfig = () => {
+  const smtpHost = process.env.SMTP_HOST
+  const smtpPort = process.env.SMTP_PORT
+  const smtpUser = process.env.SMTP_USER
+  const smtpPass = process.env.SMTP_PASS
+
+  if (smtpHost && smtpPort && smtpUser && smtpPass) {
+    return {
+      transport: {
+        host: smtpHost,
+        port: Number(smtpPort),
+        secure: parseSmtpSecure(process.env.SMTP_SECURE, smtpPort),
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      },
+      from: process.env.EMAIL_FROM || `"Severino" <${smtpUser}>`,
+    }
+  }
+
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    return {
+      transport: {
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+      },
+      from: process.env.EMAIL_FROM || `"Severino" <${process.env.GMAIL_USER}>`,
+    }
+  }
+
+  return null
+}
+
 const googleConfigReady =
   process.env.GOOGLE_CLIENT_ID &&
   process.env.GOOGLE_CLIENT_SECRET &&
@@ -79,7 +123,8 @@ router.post('/register', async (req, res) => {
     address: `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`,
   })
 
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+  const mailConfig = getMailConfig()
+  if (!mailConfig) {
     return res.status(500).json({ message: 'Email service not configured' })
   }
 
@@ -93,16 +138,10 @@ router.post('/register', async (req, res) => {
     expiresAt,
   })
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  })
+  const transporter = nodemailer.createTransport(mailConfig.transport)
 
   await transporter.sendMail({
-    from: `"Severino" <${process.env.GMAIL_USER}>`,
+    from: mailConfig.from,
     to: user.email,
     subject: 'Verify your Severino account',
     text: `Your verification code is ${code}. It expires in 10 minutes.`,

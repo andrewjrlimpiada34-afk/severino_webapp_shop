@@ -7,6 +7,7 @@ function VerifyEmail() {
   const navigate = useNavigate()
   const [code, setCode] = useState('')
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
+  const [resending, setResending] = useState(false)
 
   const challengeId = searchParams.get('challengeId') || ''
   const email = searchParams.get('email') || ''
@@ -38,6 +39,27 @@ function VerifyEmail() {
     }
   }
 
+  const handleResend = async () => {
+    if (!challengeId) {
+      setStatus({ loading: false, error: 'Missing verification challenge. Register again.', success: '' })
+      return
+    }
+    try {
+      setResending(true)
+      const data = await api.resendVerifyOtp({ challengeId })
+      const params = new URLSearchParams({
+        challengeId: data.challengeId,
+        email: data.email || email,
+      }).toString()
+      navigate(`/verify-email?${params}`, { replace: true })
+      setStatus({ loading: false, error: '', success: 'A new OTP was sent to your email.' })
+    } catch (error) {
+      setStatus({ loading: false, error: error.message, success: '' })
+    } finally {
+      setResending(false)
+    }
+  }
+
   return (
     <section className="grid" style={{ gap: '24px', maxWidth: '620px', margin: '0 auto' }}>
       <div>
@@ -55,7 +77,7 @@ function VerifyEmail() {
             maxLength={6}
             placeholder="6-digit code"
             value={code}
-            onChange={(event) => setCode(event.target.value.replace(/\\D/g, ''))}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
           />
         </div>
         {status.error && <div className="card">Error: {status.error}</div>}
@@ -65,6 +87,9 @@ function VerifyEmail() {
         </button>
         <button className="button secondary" type="button" onClick={() => navigate('/create-account', { replace: true })}>
           Back to Create Account
+        </button>
+        <button className="button secondary" type="button" onClick={handleResend} disabled={resending || status.loading}>
+          {resending ? 'Sending...' : 'Resend OTP'}
         </button>
       </form>
     </section>

@@ -23,6 +23,8 @@ async function request(path, options = {}) {
 export const api = {
   login: (data) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   verify2fa: (data) => request('/api/auth/verify', { method: 'POST', body: JSON.stringify(data) }),
+  resendVerifyOtp: (data) =>
+    request('/api/auth/verify/resend', { method: 'POST', body: JSON.stringify(data) }),
   register: (data) => request('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   me: () => request('/api/auth/me'),

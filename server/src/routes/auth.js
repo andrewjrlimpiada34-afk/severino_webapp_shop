@@ -6,7 +6,14 @@ import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import nodemailer from 'nodemailer'
 import { z } from 'zod'
-import { createUser, getUserByEmail, getUserById, updateUser, sanitizeUser } from '../db/users.js'
+import {
+  createUser,
+  getUserByEmail,
+  getUserById,
+  removeUser,
+  updateUser,
+  sanitizeUser,
+} from '../db/users.js'
 import { consumeOtp, createOtp, getOtpById } from '../db/otps.js'
 
 const router = express.Router()
@@ -32,6 +39,10 @@ const loginSchema = z.object({
 const verifySchema = z.object({
   challengeId: z.string().min(8),
   code: z.string().min(6),
+})
+
+const resendSchema = z.object({
+  challengeId: z.string().min(8),
 })
 
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
@@ -91,9 +102,15 @@ const googleConfigReady =
 const getClientOrigin = () => process.env.CLIENT_ORIGIN || '/'
 
 const buildLoginRedirect = (reason) => {
-  const base = getClientOrigin().replace(/\/+$/, '')
-  if (!reason) return `${base}/login`
-  return `${base}/login?oauth=${encodeURIComponent(reason)}`
+  let root = getClientOrigin()
+  try {
+    const parsed = new URL(getClientOrigin())
+    root = `${parsed.protocol}//${parsed.host}`
+  } catch {
+    root = getClientOrigin().replace(/\/+$/, '')
+  }
+  if (!reason) return `${root}/login`
+  return `${root}/login?oauth=${encodeURIComponent(reason)}`
 }
 
 const clearAuthCookies = (res) => {
@@ -104,6 +121,16 @@ const clearAuthCookies = (res) => {
   }
   res.clearCookie('token', options)
   res.clearCookie('oauth_state', options)
+}
+
+const sendOtpEmail = async ({ mailConfig, to, code }) => {
+  const transporter = nodemailer.createTransport(mailConfig.transport)
+  await transporter.sendMail({
+    from: mailConfig.from,
+    to,
+    subject: 'Verify your Severino account',
+    text: `Your verification code is ${code}. It expires in 10 minutes.`,
+  })
 }
 
 if (googleConfigReady) {
@@ -162,14 +189,16 @@ router.post('/register', async (req, res) => {
     expiresAt,
   })
 
-  const transporter = nodemailer.createTransport(mailConfig.transport)
-
-  await transporter.sendMail({
-    from: mailConfig.from,
-    to: user.email,
-    subject: 'Verify your Severino account',
-    text: `Your verification code is ${code}. It expires in 10 minutes.`,
-  })
+  try {
+    await sendOtpEmail({ mailConfig, to: user.email, code })
+  } catch (error) {
+    await consumeOtp(challenge.id)
+    await removeUser(user._id.toString())
+    return res.status(502).json({
+      message:
+        'Unable to send OTP email. Please verify SMTP settings and try again.',
+    })
+  }
 
   return res.status(201).json({
     id: user._id.toString(),
@@ -233,6 +262,55 @@ router.post('/verify', async (req, res) => {
   }
   await updateUser(entry.userId, { verified: true })
   return res.json({ success: true })
+})
+
+router.post('/verify/resend', async (req, res) => {
+  const parsed = resendSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
+  }
+
+  const entry = await getOtpById(parsed.data.challengeId)
+  if (!entry) {
+    return res.status(400).json({ message: 'Challenge not found. Register again.' })
+  }
+
+  const user = await getUserById(entry.userId)
+  if (!user) {
+    await consumeOtp(parsed.data.challengeId)
+    return res.status(404).json({ message: 'User not found' })
+  }
+  if (user.verified) {
+    await consumeOtp(parsed.data.challengeId)
+    return res.status(409).json({ message: 'Email already verified' })
+  }
+
+  const mailConfig = getMailConfig()
+  if (!mailConfig) {
+    return res.status(500).json({ message: 'Email service not configured' })
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString()
+  const expiresAt = Date.now() + 10 * 60 * 1000
+  const challenge = await createOtp({
+    id: `${entry.userId}-${Date.now()}`,
+    userId: entry.userId,
+    email: user.email,
+    code,
+    expiresAt,
+  })
+
+  try {
+    await sendOtpEmail({ mailConfig, to: user.email, code })
+    await consumeOtp(parsed.data.challengeId)
+    return res.json({ challengeId: challenge.id, email: user.email })
+  } catch {
+    await consumeOtp(challenge.id)
+    return res.status(502).json({
+      message:
+        'Unable to resend OTP email. Please verify SMTP settings and try again.',
+    })
+  }
 })
 
 router.get('/google', (req, res, next) => {

@@ -11,16 +11,16 @@ import { consumeOtp, createOtp, getOtpById } from '../db/otps.js'
 const router = express.Router()
 
 const registerSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().trim().min(2, 'Name is required'),
   email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().min(7),
-  addressLine: z.string().optional(),
-  barangay: z.string().min(2),
-  city: z.string().min(2),
-  province: z.string().min(2),
-  zip: z.string().min(3),
-  country: z.string().min(2),
+  phone: z.string().trim().min(7, 'Phone number is too short'),
+  addressLine: z.string().trim().optional(),
+  barangay: z.string().trim().min(2, 'Barangay is required'),
+  city: z.string().trim().min(2, 'City is required'),
+  province: z.string().trim().min(2, 'Province is required'),
+  zip: z.string().trim().min(3, 'ZIP is required'),
+  country: z.string().trim().min(2, 'Country is required'),
 })
 
 const loginSchema = z.object({
@@ -32,6 +32,11 @@ const verifySchema = z.object({
   challengeId: z.string().min(8),
   code: z.string().min(6),
 })
+
+const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
+  if (parsed.success) return ''
+  return parsed.error.issues[0]?.message || fallback
+}
 
 const parseSmtpSecure = (value, port) => {
   if (typeof value === 'string') {
@@ -100,7 +105,7 @@ if (googleConfigReady) {
 router.post('/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
   const existing = await getUserByEmail(parsed.data.email)
@@ -158,7 +163,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
   const user = await getUserByEmail(parsed.data.email)
@@ -188,7 +193,7 @@ router.post('/login', async (req, res) => {
 router.post('/verify', async (req, res) => {
   const parsed = verifySchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
   const entry = await getOtpById(parsed.data.challengeId)
   if (!entry) {

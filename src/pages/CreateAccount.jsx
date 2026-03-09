@@ -30,34 +30,49 @@ function CreateAccount() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    const firstName = form.firstName.trim()
+    const lastName = form.lastName.trim()
+    const email = form.email.trim()
+    const mobile = form.mobile.trim()
+    const addressLine = form.addressLine.trim()
+    const barangay = form.barangay.trim()
+    const city = form.city.trim()
+    const province = form.province.trim()
+    const zip = form.zip.trim()
+    const country = form.country.trim()
+
     if (form.password !== form.confirmPassword) {
       setStatus({ loading: false, error: 'Passwords do not match.', success: '' })
       return
     }
+    if (form.password.length < 8) {
+      setStatus({ loading: false, error: 'Password must be at least 8 characters.', success: '' })
+      return
+    }
     if (
-      !form.firstName ||
-      !form.lastName ||
-      !form.email ||
-      !form.mobile ||
-      !form.barangay ||
-      !form.city ||
-      !form.province ||
-      !form.zip ||
-      !form.country
+      !firstName ||
+      !lastName ||
+      !email ||
+      !mobile ||
+      !barangay ||
+      !city ||
+      !province ||
+      !zip ||
+      !country
     ) {
       setStatus({ loading: false, error: 'Please complete all fields.', success: '' })
       return
     }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      const result = await register(`${form.firstName} ${form.lastName}`.trim(), form.email, form.password, {
-        phone: form.mobile,
-        addressLine: form.addressLine,
-        barangay: form.barangay,
-        city: form.city,
-        province: form.province,
-        zip: form.zip,
-        country: form.country,
+      const result = await register(`${firstName} ${lastName}`, email, form.password, {
+        phone: mobile,
+        addressLine,
+        barangay,
+        city,
+        province,
+        zip,
+        country,
       })
       if (result?.challengeId) {
         setChallengeId(result.challengeId)
@@ -80,9 +95,13 @@ function CreateAccount() {
 
   const handleVerify = async (event) => {
     event.preventDefault()
+    if (!code.trim()) {
+      setStatus({ loading: false, error: 'Please enter the verification code.', success: '' })
+      return
+    }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      await api.verify2fa({ challengeId, code })
+      await api.verify2fa({ challengeId, code: code.trim() })
       setStatus({
         loading: false,
         error: '',

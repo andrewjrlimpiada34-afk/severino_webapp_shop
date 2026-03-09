@@ -128,6 +128,20 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function PublicOnlyRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return <div className="page card">Checking session...</div>
+  }
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />
+  }
+  if (user) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
 function AdminRoute({ children }) {
   const { user, loading, logout } = useAuth()
   if (loading) {
@@ -273,7 +287,9 @@ function App() {
         path="/login"
         element={
           <AppLayout>
-            <Login />
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
           </AppLayout>
         }
       />
@@ -281,7 +297,9 @@ function App() {
         path="/create-account"
         element={
           <MinimalLayout>
-            <CreateAccount />
+            <PublicOnlyRoute>
+              <CreateAccount />
+            </PublicOnlyRoute>
           </MinimalLayout>
         }
       />

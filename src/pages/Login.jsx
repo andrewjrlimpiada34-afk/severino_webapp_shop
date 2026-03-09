@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -14,6 +14,15 @@ function Login() {
       : 'https://severino-backend.onrender.com'
   const apiBase = import.meta.env.VITE_API_URL || defaultApi
   const googleUrl = `${apiBase}/api/auth/google`
+
+  useEffect(() => {
+    const oauthStatus = new URLSearchParams(window.location.search).get('oauth')
+    if (oauthStatus === 'cancelled') {
+      setStatus({ loading: false, error: 'Google sign-in was cancelled or not completed.', success: '' })
+    } else if (oauthStatus === 'failed') {
+      setStatus({ loading: false, error: 'Google sign-in failed. Please try again.', success: '' })
+    }
+  }, [])
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))

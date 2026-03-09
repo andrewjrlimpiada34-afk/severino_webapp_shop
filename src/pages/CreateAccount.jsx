@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { api } from '../lib/api.js'
 
 function CreateAccount() {
   const [form, setForm] = useState({
@@ -17,12 +17,11 @@ function CreateAccount() {
     zip: '',
     country: '',
   })
-  const [challengeId, setChallengeId] = useState('')
-  const [code, setCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const { register } = useAuth()
+  const navigate = useNavigate()
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -75,12 +74,11 @@ function CreateAccount() {
         country,
       })
       if (result?.challengeId) {
-        setChallengeId(result.challengeId)
-        setStatus({
-          loading: false,
-          error: '',
-          success: 'Account created. Verification code sent to your email.',
-        })
+        const query = new URLSearchParams({
+          challengeId: result.challengeId,
+          email,
+        }).toString()
+        navigate(`/verify-email?${query}`, { replace: true })
       } else {
         setStatus({
           loading: false,
@@ -88,25 +86,6 @@ function CreateAccount() {
           success: 'Account created. Please contact support to verify.',
         })
       }
-    } catch (error) {
-      setStatus({ loading: false, error: error.message, success: '' })
-    }
-  }
-
-  const handleVerify = async (event) => {
-    event.preventDefault()
-    if (!code.trim()) {
-      setStatus({ loading: false, error: 'Please enter the verification code.', success: '' })
-      return
-    }
-    try {
-      setStatus({ loading: true, error: '', success: '' })
-      await api.verify2fa({ challengeId, code: code.trim() })
-      setStatus({
-        loading: false,
-        error: '',
-        success: 'Email verified. You can now log in.',
-      })
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
     }
@@ -123,7 +102,7 @@ function CreateAccount() {
         </p>
       </div>
 
-      <form className="card form" onSubmit={challengeId ? handleVerify : handleSubmit}>
+      <form className="card form" onSubmit={handleSubmit}>
         <div className="grid two">
           <div>
             <div className="label">First Name</div>
@@ -288,21 +267,10 @@ function CreateAccount() {
           onChange={(event) => updateField('country', event.target.value)}
         />
         <div className="pill">Data is encrypted at rest</div>
-        {challengeId && (
-          <div>
-            <div className="label">Verification Code</div>
-            <input
-              className="input"
-              placeholder="6-digit code"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-            />
-          </div>
-        )}
         {status.error && <div className="card">Error: {status.error}</div>}
         {status.success && <div className="card">{status.success}</div>}
         <button className="button" type="submit" disabled={status.loading}>
-          {status.loading ? 'Please wait...' : challengeId ? 'Verify Email' : 'Create Account'}
+          {status.loading ? 'Please wait...' : 'Create Account'}
         </button>
       </form>
     </section>

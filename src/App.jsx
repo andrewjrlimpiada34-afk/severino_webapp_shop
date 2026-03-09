@@ -20,6 +20,7 @@ import Notifications from './pages/Notifications.jsx'
 import EmailConfirmation from './pages/EmailConfirmation.jsx'
 import Login from './pages/Login.jsx'
 import CreateAccount from './pages/CreateAccount.jsx'
+import VerifyEmail from './pages/VerifyEmail.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
 import AdminSalesReport from './pages/AdminSalesReport.jsx'
@@ -299,6 +300,16 @@ function App() {
           <MinimalLayout>
             <PublicOnlyRoute>
               <CreateAccount />
+            </PublicOnlyRoute>
+          </MinimalLayout>
+        }
+      />
+      <Route
+        path="/verify-email"
+        element={
+          <MinimalLayout>
+            <PublicOnlyRoute>
+              <VerifyEmail />
             </PublicOnlyRoute>
           </MinimalLayout>
         }

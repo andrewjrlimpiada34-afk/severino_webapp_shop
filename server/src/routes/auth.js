@@ -1,4 +1,5 @@
-﻿import express from 'express'
+import express from 'express'
+import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import passport from 'passport'
@@ -87,6 +88,24 @@ const googleConfigReady =
   process.env.GOOGLE_CLIENT_SECRET &&
   process.env.GOOGLE_REDIRECT_URL
 
+const getClientOrigin = () => process.env.CLIENT_ORIGIN || '/'
+
+const buildLoginRedirect = (reason) => {
+  const base = getClientOrigin().replace(/\/+$/, '')
+  if (!reason) return `${base}/login`
+  return `${base}/login?oauth=${encodeURIComponent(reason)}`
+}
+
+const clearAuthCookies = (res) => {
+  const options = {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  }
+  res.clearCookie('token', options)
+  res.clearCookie('oauth_state', options)
+}
+
 if (googleConfigReady) {
   passport.use(
     new GoogleStrategy(
@@ -108,6 +127,11 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
+  const mailConfig = getMailConfig()
+  if (!mailConfig) {
+    return res.status(500).json({ message: 'Email service not configured' })
+  }
+
   const existing = await getUserByEmail(parsed.data.email)
   if (existing) {
     return res.status(409).json({ message: 'Email already registered' })
@@ -127,11 +151,6 @@ router.post('/register', async (req, res) => {
     country: parsed.data.country || '',
     address: `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`,
   })
-
-  const mailConfig = getMailConfig()
-  if (!mailConfig) {
-    return res.status(500).json({ message: 'Email service not configured' })
-  }
 
   const code = Math.floor(100000 + Math.random() * 900000).toString()
   const expiresAt = Date.now() + 10 * 60 * 1000
@@ -216,31 +235,50 @@ router.post('/verify', async (req, res) => {
   return res.json({ success: true })
 })
 
-router.get(
-  '/google',
-  (req, res, next) => {
-    if (!googleConfigReady) {
-      return res.status(500).json({ message: 'Google OAuth not configured' })
-    }
-    return next()
-  },
-  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
-)
+router.get('/google', (req, res, next) => {
+  if (!googleConfigReady) {
+    return res.status(500).json({ message: 'Google OAuth not configured' })
+  }
 
-router.get(
-  '/google/callback',
-  (req, res, next) => {
-    if (!googleConfigReady) {
-      return res.status(500).send('Google OAuth not configured')
+  clearAuthCookies(res)
+  const state = crypto.randomBytes(24).toString('hex')
+  res.cookie('oauth_state', state, {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 10 * 60 * 1000,
+  })
+
+  return passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false,
+    prompt: 'select_account',
+    state,
+  })(req, res, next)
+})
+
+router.get('/google/callback', async (req, res, next) => {
+  if (!googleConfigReady) {
+    return res.status(500).send('Google OAuth not configured')
+  }
+
+  const expectedState = req.cookies?.oauth_state
+  const actualState = typeof req.query?.state === 'string' ? req.query.state : ''
+  if (!expectedState || !actualState || expectedState !== actualState) {
+    clearAuthCookies(res)
+    return res.redirect(buildLoginRedirect('cancelled'))
+  }
+
+  return passport.authenticate('google', { session: false }, async (error, profile) => {
+    clearAuthCookies(res)
+    if (error || !profile) {
+      return res.redirect(buildLoginRedirect('cancelled'))
     }
-    return next()
-  },
-  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
-  async (req, res) => {
-    const profile = req.user
+
     const email = profile?.emails?.[0]?.value
-    if (!email) {
-      return res.redirect(process.env.CLIENT_ORIGIN || '/')
+    const emailVerified = profile?._json?.email_verified
+    if (!email || emailVerified === false) {
+      return res.redirect(buildLoginRedirect('failed'))
     }
 
     let user = await getUserByEmail(email)
@@ -263,9 +301,9 @@ router.get(
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
     })
-    return res.redirect(process.env.CLIENT_ORIGIN || '/')
-  }
-)
+    return res.redirect(getClientOrigin())
+  })(req, res, next)
+})
 
 router.post('/logout', (req, res) => {
   res.clearCookie('token', {

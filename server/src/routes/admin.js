@@ -3,7 +3,14 @@ import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { getSalesSummary } from '../db/inventory.js'
 import { getUserById, getUsers, removeUser } from '../db/users.js'
 import { getProducts } from '../db/products.js'
-import { getBanners, updateBanners, getLoginPopup, updateLoginPopup } from '../db/banners.js'
+import {
+  getBanners,
+  updateBanners,
+  getLoginPopup,
+  updateLoginPopup,
+  getHeroImage,
+  updateHeroImage,
+} from '../db/banners.js'
 import { removeCartByUserId } from '../db/carts.js'
 import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
@@ -78,6 +85,24 @@ router.put('/login-popup', async (req, res) => {
     return res.status(400).json({ message: 'Invalid input' })
   }
   const updated = await updateLoginPopup(parsed.data.image || '')
+  return res.json({ image: updated })
+})
+
+const heroImageSchema = z.object({
+  image: z.string().optional(),
+})
+
+router.get('/hero-image', async (req, res) => {
+  const image = await getHeroImage()
+  res.json({ image: image || '' })
+})
+
+router.put('/hero-image', async (req, res) => {
+  const parsed = heroImageSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: 'Invalid input' })
+  }
+  const updated = await updateHeroImage(parsed.data.image || '')
   return res.json({ image: updated })
 })
 

@@ -57,3 +57,28 @@ export const updateLoginPopup = async (image) => {
   )
   return image || ''
 }
+
+const ensureHeroImage = async () => {
+  const db = await getDb()
+  const collection = db.collection('banners')
+  const existing = await collection.findOne({ key: 'hero_image' })
+  if (!existing) {
+    await collection.insertOne({ key: 'hero_image', image: '' })
+    return ''
+  }
+  return existing.image || ''
+}
+
+export const getHeroImage = async () => {
+  return ensureHeroImage()
+}
+
+export const updateHeroImage = async (image) => {
+  const db = await getDb()
+  await db.collection('banners').updateOne(
+    { key: 'hero_image' },
+    { $set: { image } },
+    { upsert: true }
+  )
+  return image || ''
+}

@@ -22,6 +22,9 @@
   --header-bg: rgba(255, 255, 255, 0.92);
   --footer-bg: rgba(26, 31, 20, 0.92);
   --footer-text: #f6f3ea;
+  --hero-image: url('/hero/hero-default.svg');
+  --hero-overlay: linear-gradient(120deg, rgba(7, 8, 6, 0.75), rgba(20, 22, 18, 0.55));
+  --hero-text: #f7f3ea;
 }
 
 * {
@@ -806,8 +809,53 @@ img {
 .hero {
   display: grid;
   gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   align-items: center;
+  justify-items: center;
+  text-align: center;
+  position: relative;
+  width: 100%;
+  padding: clamp(32px, 6vw, 64px);
+  border-radius: 32px;
+  min-height: clamp(320px, 48vw, 520px);
+  background-image: var(--hero-overlay), var(--hero-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: var(--shadow);
+  color: var(--hero-text);
+}
+
+.hero-content {
+  max-width: 720px;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.hero-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero .section-subtitle {
+  color: rgba(247, 243, 234, 0.82);
+}
+
+.hero .tag {
+  color: rgba(247, 243, 234, 0.8);
+}
+
+.hero .section-title {
+  text-shadow: 0 14px 30px rgba(8, 8, 8, 0.35);
+}
+
+.hero .button.secondary {
+  border-color: rgba(247, 243, 234, 0.55);
+  color: var(--hero-text);
+  background: transparent;
 }
 
 .hero-card {
@@ -816,6 +864,7 @@ img {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.85), rgba(229, 236, 214, 0.75));
   border: 1px solid rgba(43, 52, 34, 0.15);
   box-shadow: var(--shadow);
+  width: min(720px, 100%);
 }
 
 .hero-banner {
@@ -1057,7 +1106,8 @@ img {
     display: flex;
   }
   .hero {
-    grid-template-columns: 1fr;
+    padding: 28px 22px 32px;
+    min-height: unset;
   }
 }
 

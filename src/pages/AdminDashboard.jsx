@@ -8,16 +8,19 @@ function AdminDashboard() {
   const [bannerStatus, setBannerStatus] = useState({ loading: false, error: '', success: '' })
   const [loginPopup, setLoginPopup] = useState('')
   const [popupStatus, setPopupStatus] = useState({ loading: false, error: '', success: '' })
+  const [heroImage, setHeroImage] = useState('')
+  const [heroStatus, setHeroStatus] = useState({ loading: false, error: '', success: '' })
 
   useEffect(() => {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [sales, inventory, bannerImages, popup] = await Promise.all([
+        const [sales, inventory, bannerImages, popup, hero] = await Promise.all([
           api.adminSales(),
           api.adminInventory(),
           api.adminBanners().catch(() => []),
           api.adminLoginPopup().catch(() => ({ image: '' })),
+          api.adminHeroImage().catch(() => ({ image: '' })),
         ])
         const lowStock = inventory.filter((item) => item.stock < 12).length
         setStats([
@@ -31,6 +34,9 @@ function AdminDashboard() {
         }
         if (popup?.image) {
           setLoginPopup(popup.image)
+        }
+        if (hero?.image) {
+          setHeroImage(hero.image)
         }
         setStatus({ loading: false, error: '' })
       } catch (error) {
@@ -94,6 +100,23 @@ function AdminDashboard() {
     }
     const reader = new FileReader()
     reader.onload = () => setLoginPopup(String(reader.result))
+    reader.readAsDataURL(file)
+  }
+
+  const handleHeroFile = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const maxSize = 20 * 1024 * 1024
+    if (file.size > maxSize) {
+      setHeroStatus({
+        loading: false,
+        error: 'Image too large. Please upload a hero image under 20MB.',
+        success: '',
+      })
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setHeroImage(String(reader.result))
     reader.readAsDataURL(file)
   }
 
@@ -183,6 +206,43 @@ function AdminDashboard() {
           }}
         >
           Save Banners
+        </button>
+      </div>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>
+          Hero Header Image
+        </h2>
+        <p className="section-subtitle">This is the full-width header background on the homepage.</p>
+        {heroStatus.error && <div className="card">Error: {heroStatus.error}</div>}
+        {heroStatus.success && <div className="card">{heroStatus.success}</div>}
+        <div>
+          <div className="label">Hero Image URL</div>
+          <input
+            className="input"
+            placeholder="https://... or /hero/hero-default.svg"
+            value={heroImage}
+            onChange={(event) => setHeroImage(event.target.value)}
+          />
+          <input className="input" type="file" accept="image/*" onChange={handleHeroFile} />
+          {heroImage && (
+            <div className="banner-preview" style={{ backgroundImage: `url(${heroImage})` }} />
+          )}
+        </div>
+        <button
+          className="button"
+          type="button"
+          onClick={async () => {
+            try {
+              setHeroStatus({ loading: true, error: '', success: '' })
+              await api.updateHeroImage(heroImage)
+              setHeroStatus({ loading: false, error: '', success: 'Hero image updated.' })
+            } catch (error) {
+              setHeroStatus({ loading: false, error: error.message, success: '' })
+            }
+          }}
+        >
+          Save Hero Image
         </button>
       </div>
 

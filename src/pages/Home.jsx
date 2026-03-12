@@ -13,16 +13,19 @@ function Home() {
   const bannerRef = useRef(null)
   const [bannerIndex, setBannerIndex] = useState(0)
   const [favorites, setFavorites] = useState([])
+  const [heroImage, setHeroImage] = useState('')
 
   useEffect(() => {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [data, bannerImages] = await Promise.all([
+        const [data, bannerImages, hero] = await Promise.all([
           api.products(),
           api.banners().catch(() => []),
+          api.heroImage().catch(() => ({ image: '' })),
         ])
         setItems(data)
+        setHeroImage(hero?.image || '')
         setBanners(
           bannerImages.length
             ? bannerImages.map((image, index) => ({ title: `Banner ${index + 1}`, image }))
@@ -88,15 +91,18 @@ function Home() {
 
   return (
     <section className="grid" style={{ gap: '32px' }}>
-      <div className="hero">
-        <div>
+      <div
+        className="hero"
+        style={heroImage ? { '--hero-image': `url(${heroImage})` } : undefined}
+      >
+        <div className="hero-content">
           <div className="tag">Severino Collection</div>
           <h1 className="section-title">Scent stories crafted for calm confidence.</h1>
           <p className="section-subtitle">
             Discover a boutique line of fragrances with luxurious notes, created for everyday
             elegance. COD only, verified deliveries, and careful packaging for every order.
           </p>
-          <div style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="hero-actions">
             <a className="button" href="/shop">
               Explore Collection
             </a>

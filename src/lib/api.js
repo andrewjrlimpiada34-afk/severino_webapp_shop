@@ -62,7 +62,11 @@ export const api = {
   adminLoginPopup: () => request('/api/admin/login-popup'),
   updateLoginPopup: (image) =>
     request('/api/admin/login-popup', { method: 'PUT', body: JSON.stringify({ image }) }),
+  adminHeroImage: () => request('/api/admin/hero-image'),
+  updateHeroImage: (image) =>
+    request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
   loginPopup: () => request('/api/public/login-popup'),
+  heroImage: () => request('/api/public/hero-image'),
   banners: () => request('/api/public/banners'),
   productReviews: (productId) => request(`/api/reviews/${productId}`),
   addReview: (productId, data) =>

@@ -132,11 +132,17 @@ function Account() {
 
   return (
     <section className="grid" style={{ gap: '24px' }}>
-      <div>
-        <h1 className="section-title">Account Page</h1>
+      <div className="account-hero">
+        <div className="tag">Severino Account</div>
+        <h1 className="section-title">Account</h1>
         <p className="section-subtitle">
           Manage your profile, delivery addresses, and security settings.
         </p>
+      </div>
+
+      <div>
+        <h2 className="section-title" style={{ fontSize: '26px' }}>Profile & Contacts</h2>
+        <p className="section-subtitle">Keep your details up to date for faster deliveries.</p>
       </div>
 
       <div className="card form">
@@ -269,17 +275,20 @@ function Account() {
             value={form.country}
             onChange={(event) => updateField('country', event.target.value)}
           />
-          <div className="label">Security</div>
-          <div className="pill">Two-factor verification enabled</div>
-          <button
-            className="button secondary"
-            type="button"
-            onClick={() => setSecurityOpen((prev) => !prev)}
-          >
-            {securityOpen ? 'Hide Security' : 'Manage Security'}
-          </button>
         </div>
       </form>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>Security</h2>
+        <div className="pill">Two-factor verification enabled</div>
+        <button
+          className="button secondary"
+          type="button"
+          onClick={() => setSecurityOpen((prev) => !prev)}
+        >
+          {securityOpen ? 'Hide Security' : 'Manage Security'}
+        </button>
+      </div>
 
       {securityOpen && (
         <form className="card form" onSubmit={handlePasswordChange}>

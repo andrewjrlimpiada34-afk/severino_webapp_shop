@@ -1065,6 +1065,20 @@ img {
   display: grid;
 }
 
+.account-hero {
+  padding: clamp(22px, 4vw, 36px);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 60%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(226, 236, 214, 0.7));
+  border: 1px solid rgba(43, 52, 34, 0.12);
+  box-shadow: var(--shadow);
+}
+
+.nav-bottom-bar {
+  display: none;
+}
+
 .price-range {
   display: grid;
   gap: 12px;
@@ -1120,6 +1134,10 @@ img {
 @media (max-width: 640px) {
   .nav-toggle {
     display: inline-flex;
+  }
+
+  .page {
+    padding: 24px 16px 110px;
   }
 
   .nav-links {
@@ -1186,6 +1204,36 @@ img {
   .banner-card {
     min-width: 80vw;
     height: 150px;
+  }
+
+  .nav-links .nav-utility {
+    display: none;
+  }
+
+  .nav-bottom-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(24, 23, 18, 0.92);
+    border: 1px solid rgba(229, 206, 162, 0.35);
+    box-shadow: 0 18px 36px rgba(12, 12, 10, 0.35);
+    z-index: 6;
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-bottom-bar .icon {
+    color: #f4ead5;
+  }
+
+  .nav-bottom-bar .icon-button {
+    padding: 10px;
+    border-radius: 999px;
+    background: transparent;
   }
 }
 

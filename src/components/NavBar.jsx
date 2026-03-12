@@ -37,9 +37,10 @@ function NavBar() {
   }, [user])
 
   return (
-    <nav className="nav">
-      <div className="nav-logo">Severino</div>
-      <div className={`nav-links ${open ? 'open' : ''}`}>
+    <>
+      <nav className="nav">
+        <div className="nav-logo">Severino</div>
+        <div className={`nav-links ${open ? 'open' : ''}`}>
         <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
         <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
         {user && (
@@ -51,7 +52,7 @@ function NavBar() {
         {user && (
           <>
             <button
-              className="icon-button"
+              className="icon-button nav-utility"
               type="button"
               aria-label="Search"
               onClick={() => navigate('/search')}
@@ -68,7 +69,7 @@ function NavBar() {
               </svg>
             </button>
             <button
-              className="icon-button"
+              className="icon-button nav-utility"
               type="button"
               aria-label="Favorites"
               onClick={() => navigate('/favorites')}
@@ -84,7 +85,7 @@ function NavBar() {
               </svg>
             </button>
             <button
-              className="icon-button"
+              className="icon-button nav-utility"
               type="button"
               aria-label="Cart"
               onClick={() => navigate('/cart')}
@@ -137,8 +138,8 @@ function NavBar() {
             Logout
           </button>
         )}
-      </div>
-      <div className="nav-actions">
+        </div>
+        <div className="nav-actions">
         {user && (
           <button
             className="avatar-button"
@@ -169,8 +170,65 @@ function NavBar() {
             />
           </svg>
         </button>
-      </div>
-    </nav>
+        </div>
+      </nav>
+      {user && (
+        <div className="nav-bottom-bar">
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Favorites"
+            onClick={() => navigate('/favorites')}
+          >
+            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Search"
+            onClick={() => navigate('/search')}
+          >
+            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <path
+                d="M16.5 16.5L21 21"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Cart"
+            onClick={() => navigate('/cart')}
+          >
+            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+              <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </>
   )
 }
 

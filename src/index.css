@@ -1065,6 +1065,12 @@ img {
   display: grid;
 }
 
+.price-range {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
 .tag {
   font-size: 12px;
   color: var(--olive-600);

@@ -8,7 +8,8 @@ function Shop() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('featured')
   const [category, setCategory] = useState('all')
-  const [maxPrice, setMaxPrice] = useState(3500)
+  const [minPrice, setMinPrice] = useState('1500')
+  const [maxPrice, setMaxPrice] = useState('3500')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [filtersOpen, setFiltersOpen] = useState(true)
@@ -26,7 +27,13 @@ function Shop() {
         ? base
         : base.filter((product) => (product.category || 'Unisex') === category)
 
-    const priceFiltered = categoryFiltered.filter((product) => product.price <= maxPrice)
+    const minValue = Number(minPrice)
+    const maxValue = Number(maxPrice)
+    const resolvedMin = Number.isFinite(minValue) ? minValue : 0
+    const resolvedMax = Number.isFinite(maxValue) ? maxValue : Number.POSITIVE_INFINITY
+    const priceFiltered = categoryFiltered.filter(
+      (product) => product.price >= resolvedMin && product.price <= resolvedMax
+    )
 
     if (sort === 'price-low') {
       return [...priceFiltered].sort((a, b) => a.price - b.price)
@@ -35,7 +42,7 @@ function Shop() {
       return [...priceFiltered].sort((a, b) => b.price - a.price)
     }
     return priceFiltered
-  }, [items, query, sort, maxPrice, category])
+  }, [items, query, sort, maxPrice, minPrice, category])
 
   const loadProducts = async () => {
     try {
@@ -136,17 +143,29 @@ function Shop() {
               <option value="Unisex">Unisex</option>
             </select>
           </div>
-          <div>
-            <div className="label">Max Price (₱{maxPrice})</div>
-            <input
-              className="input"
-              type="range"
-              min="1500"
-              max="3500"
-              step="100"
-              value={maxPrice}
-              onChange={(event) => setMaxPrice(Number(event.target.value))}
-            />
+          <div className="price-range">
+            <div>
+              <div className="label">Min. Price</div>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={minPrice}
+                onChange={(event) => setMinPrice(event.target.value)}
+              />
+            </div>
+            <div>
+              <div className="label">Max. Price</div>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                placeholder="3500"
+                value={maxPrice}
+                onChange={(event) => setMaxPrice(event.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>

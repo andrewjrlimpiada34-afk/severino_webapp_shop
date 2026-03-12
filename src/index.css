@@ -25,6 +25,8 @@
   --hero-image: url('/hero/hero-default.svg');
   --hero-overlay: linear-gradient(120deg, rgba(7, 8, 6, 0.75), rgba(20, 22, 18, 0.55));
   --hero-text: #f7f3ea;
+  --account-hero-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(226, 236, 214, 0.7));
+  --account-hero-border: rgba(43, 52, 34, 0.12);
 }
 
 * {
@@ -157,6 +159,8 @@ body {
   --footer-text: #f0efe9;
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   --glass: rgba(31, 29, 23, 0.9);
+  --account-hero-bg: linear-gradient(135deg, rgba(26, 24, 18, 0.94), rgba(18, 16, 12, 0.9));
+  --account-hero-border: rgba(229, 206, 162, 0.22);
 }
 
 a {
@@ -1070,8 +1074,8 @@ img {
   border-radius: 26px;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 60%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(226, 236, 214, 0.7));
-  border: 1px solid rgba(43, 52, 34, 0.12);
+    var(--account-hero-bg);
+  border: 1px solid var(--account-hero-border);
   box-shadow: var(--shadow);
 }
 
@@ -1234,6 +1238,13 @@ img {
     padding: 10px;
     border-radius: 999px;
     background: transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .nav-bottom-bar .icon-button.active {
+    transform: scale(1.12);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 18px rgba(10, 10, 10, 0.28);
   }
 }
 

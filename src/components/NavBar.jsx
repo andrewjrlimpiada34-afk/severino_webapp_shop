@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
 
@@ -9,6 +9,9 @@ function NavBar() {
   const [notifications, setNotifications] = useState([])
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const isActivePath = (path) => location.pathname === path
 
   const handleLogout = async () => {
     await logout()
@@ -175,7 +178,7 @@ function NavBar() {
       {user && (
         <div className="nav-bottom-bar">
           <button
-            className="icon-button"
+            className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
             type="button"
             aria-label="Favorites"
             onClick={() => navigate('/favorites')}
@@ -191,7 +194,7 @@ function NavBar() {
             </svg>
           </button>
           <button
-            className="icon-button"
+            className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
             type="button"
             aria-label="Search"
             onClick={() => navigate('/search')}
@@ -208,7 +211,7 @@ function NavBar() {
             </svg>
           </button>
           <button
-            className="icon-button"
+            className={`icon-button ${isActivePath('/cart') ? 'active' : ''}`}
             type="button"
             aria-label="Cart"
             onClick={() => navigate('/cart')}

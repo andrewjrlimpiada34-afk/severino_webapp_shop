@@ -192,25 +192,28 @@ function NavBar() {
         </div>
       </nav>
       {user && (
-        <div className={`nav-mobile-float ${mobileQuickOpen ? 'open' : ''}`}>
-          <button
-            className="icon-button nav-mobile-toggle"
-            type="button"
-            aria-label="Toggle quick actions"
-            onClick={() => setMobileQuickOpen((prev) => !prev)}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M6 9l6 6 6-6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <div className="nav-mobile-actions">
+        <>
+          <div className={`nav-mobile-toggle-row ${mobileQuickOpen ? 'open' : ''}`}>
+            <button
+              className="icon-button nav-mobile-toggle"
+              type="button"
+              aria-label="Toggle quick actions"
+              onClick={() => setMobileQuickOpen((prev) => !prev)}
+            >
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6 9l6 6 6-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className={`nav-mobile-float ${mobileQuickOpen ? 'open' : ''}`}>
+            <div className="nav-mobile-actions">
             <button
               className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
               type="button"
@@ -273,7 +276,8 @@ function NavBar() {
               </svg>
             </button>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </>
   )

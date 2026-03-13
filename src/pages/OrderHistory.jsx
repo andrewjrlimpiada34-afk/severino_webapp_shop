@@ -38,8 +38,9 @@ function OrderHistory() {
 
   return (
     <section className="grid" style={{ gap: '24px' }}>
-      <div>
-        <h1 className="section-title">Order History</h1>
+      <div className="page-hero">
+        <div className="tag">Severino Delivery</div>
+        <h1 className="section-title">Order Tacking</h1>
         <p className="section-subtitle">
           View COD orders and delivery status with secure confirmations.
         </p>

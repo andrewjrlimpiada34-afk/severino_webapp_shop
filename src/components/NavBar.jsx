@@ -6,12 +6,28 @@ import { api } from '../lib/api.js'
 function NavBar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
 
   const isActivePath = (path) => location.pathname === path
+
+  const triggerSpray = (event) => {
+    const target = event.currentTarget
+    if (!target) return
+    const count = 10
+    for (let i = 0; i < count; i += 1) {
+      const particle = document.createElement('span')
+      particle.className = 'spray-particle'
+      particle.style.setProperty('--x', `${(Math.random() * 2 - 1).toFixed(2)}`)
+      particle.style.setProperty('--y', `${(Math.random() * -1 - 0.2).toFixed(2)}`)
+      particle.style.setProperty('--s', `${(Math.random() * 0.6 + 0.4).toFixed(2)}`)
+      target.appendChild(particle)
+      setTimeout(() => particle.remove(), 750)
+    }
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -176,59 +192,87 @@ function NavBar() {
         </div>
       </nav>
       {user && (
-        <div className="nav-bottom-bar">
+        <div className={`nav-mobile-float ${mobileQuickOpen ? 'open' : ''}`}>
           <button
-            className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
+            className="icon-button nav-mobile-toggle"
             type="button"
-            aria-label="Favorites"
-            onClick={() => navigate('/favorites')}
+            aria-label="Toggle quick actions"
+            onClick={() => setMobileQuickOpen((prev) => !prev)}
           >
             <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
-                d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
+                d="M6 9l6 6 6-6"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-          <button
-            className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
-            type="button"
-            aria-label="Search"
-            onClick={() => navigate('/search')}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <path
-                d="M16.5 16.5L21 21"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-          <button
-            className={`icon-button ${isActivePath('/cart') ? 'active' : ''}`}
-            type="button"
-            aria-label="Cart"
-            onClick={() => navigate('/cart')}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              <circle cx="9" cy="19" r="1.4" fill="currentColor" />
-              <circle cx="17" cy="19" r="1.4" fill="currentColor" />
             </svg>
           </button>
+          <div className="nav-mobile-actions">
+            <button
+              className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
+              type="button"
+              aria-label="Favorites"
+              onClick={(event) => {
+                triggerSpray(event)
+                navigate('/favorites')
+              }}
+            >
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            <button
+              className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
+              type="button"
+              aria-label="Search"
+              onClick={(event) => {
+                triggerSpray(event)
+                navigate('/search')
+              }}
+            >
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path
+                  d="M16.5 16.5L21 21"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <button
+              className={`icon-button ${isActivePath('/cart') ? 'active' : ''}`}
+              type="button"
+              aria-label="Cart"
+              onClick={(event) => {
+                triggerSpray(event)
+                navigate('/cart')
+              }}
+            >
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
     </>

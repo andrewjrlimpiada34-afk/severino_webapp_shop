@@ -25,7 +25,8 @@ function Feedback() {
   }
   return (
     <section className="grid" style={{ gap: '24px' }}>
-      <div>
+      <div className="page-hero">
+        <div className="tag">Severino Care</div>
         <h1 className="section-title">Feedback Area</h1>
         <p className="section-subtitle">
           Share your experience so we can refine every detail.

@@ -8,8 +8,8 @@ function Shop() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('featured')
   const [category, setCategory] = useState('all')
-  const [minPrice, setMinPrice] = useState('1500')
-  const [maxPrice, setMaxPrice] = useState('3500')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [filtersOpen, setFiltersOpen] = useState(true)
@@ -94,7 +94,8 @@ function Shop() {
 
   return (
     <section className="grid" style={{ gap: '28px' }}>
-      <div>
+      <div className="page-hero">
+        <div className="tag">Severino Collection</div>
         <h1 className="section-title">Shop the Collection</h1>
         <p className="section-subtitle">
           Full lineup of signature scents, inspired with luxurious brands.

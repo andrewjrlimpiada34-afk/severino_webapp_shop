@@ -1101,6 +1101,10 @@ img {
   display: none;
 }
 
+.nav-mobile-toggle-row {
+  display: none;
+}
+
 .price-range {
   display: grid;
   gap: 12px;
@@ -1159,7 +1163,12 @@ img {
   }
 
   .page {
-    padding: 84px 16px 56px;
+    padding: 96px 16px 56px;
+    transition: padding-top 0.25s ease;
+  }
+
+  body.nav-quick-open .page {
+    padding-top: 160px;
   }
 
   .nav-links {
@@ -1232,25 +1241,15 @@ img {
     display: none;
   }
 
-  .nav-mobile-float {
+  .nav-mobile-toggle-row {
     position: fixed;
     top: 72px;
-    left: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.62);
-    border: 1px solid rgba(43, 52, 34, 0.18);
-    box-shadow: 0 18px 36px rgba(12, 12, 10, 0.22);
-    z-index: 6;
-    backdrop-filter: blur(10px);
-  }
-
-  [data-theme='Shadow Dark Mode'] .nav-mobile-float {
-    background: rgba(24, 23, 18, 0.9);
-    border-color: rgba(229, 206, 162, 0.3);
+    justify-content: center;
+    z-index: 7;
   }
 
   .nav-mobile-toggle {
@@ -1268,12 +1267,34 @@ img {
     border-color: rgba(229, 206, 162, 0.3);
   }
 
-  .nav-mobile-toggle .icon {
+  .nav-mobile-toggle-row .nav-mobile-toggle .icon {
     transition: transform 0.2s ease;
   }
 
-  .nav-mobile-float.open .nav-mobile-toggle .icon {
-    transform: rotate(90deg);
+  .nav-mobile-toggle-row.open .nav-mobile-toggle .icon {
+    transform: rotate(180deg);
+  }
+
+  .nav-mobile-float {
+    position: fixed;
+    top: 114px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(43, 52, 34, 0.18);
+    box-shadow: 0 18px 36px rgba(12, 12, 10, 0.22);
+    z-index: 6;
+    backdrop-filter: blur(10px);
+  }
+
+  [data-theme='Shadow Dark Mode'] .nav-mobile-float {
+    background: rgba(24, 23, 18, 0.9);
+    border-color: rgba(229, 206, 162, 0.3);
   }
 
   .nav-mobile-actions {
@@ -1283,14 +1304,14 @@ img {
     overflow: hidden;
     max-width: 0;
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateY(-6px);
     transition: max-width 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
   }
 
   .nav-mobile-float.open .nav-mobile-actions {
     max-width: 220px;
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 
   .nav-mobile-float .icon-button {

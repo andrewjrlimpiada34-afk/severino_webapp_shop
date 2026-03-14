@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { compressImage } from '../lib/image.js'
+import { compressImageFile } from '../lib/image.js'
 
 function Account() {
   const [form, setForm] = useState({
@@ -184,12 +184,17 @@ function Account() {
               onChange={(event) => {
                 const file = event.target.files?.[0]
                 if (!file) return
-                compressImage(file, { maxSize: 800, quality: 0.8 })
-                  .then((dataUrl) =>
-                    setForm((prev) => ({ ...prev, profileImage: String(dataUrl) }))
+                compressImageFile(file, { maxSize: 800, quality: 0.8 })
+                  .then((compressed) => api.uploadImage(compressed))
+                  .then((upload) =>
+                    setForm((prev) => ({ ...prev, profileImage: String(upload.url) }))
                   )
-                  .catch(() =>
-                    setStatus({ loading: false, error: 'Failed to process image.', success: '' })
+                  .catch((error) =>
+                    setStatus({
+                      loading: false,
+                      error: error?.message || 'Failed to process image.',
+                      success: '',
+                    })
                   )
               }}
             />

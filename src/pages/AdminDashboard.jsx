@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { compressImage } from '../lib/image.js'
+import { compressImageFile } from '../lib/image.js'
 
 function AdminDashboard() {
   const [stats, setStats] = useState([])
@@ -68,10 +68,14 @@ function AdminDashboard() {
       return
     }
     Promise.all(
-      files.map((file) => compressImage(file, { maxSize: 1600, quality: 0.8 }))
+      files.map(async (file) => {
+        const compressed = await compressImageFile(file, { maxSize: 1600, quality: 0.8 })
+        const upload = await api.uploadImage(compressed)
+        return upload.url
+      })
     )
-      .then((images) => {
-        const cleaned = images.filter(Boolean).slice(0, 5)
+      .then((urls) => {
+        const cleaned = urls.filter(Boolean).slice(0, 5)
         setBanners((prev) => {
           const next = [...cleaned]
           while (next.length < 5) next.push(prev[next.length] || '')
@@ -79,8 +83,12 @@ function AdminDashboard() {
         })
         setBannerStatus({ loading: false, error: '', success: 'Loaded banner files.' })
       })
-      .catch(() => {
-        setBannerStatus({ loading: false, error: 'Failed to process images.', success: '' })
+      .catch((error) => {
+        setBannerStatus({
+          loading: false,
+          error: error?.message || 'Failed to process images.',
+          success: '',
+        })
       })
   }
 
@@ -96,10 +104,15 @@ function AdminDashboard() {
       })
       return
     }
-    compressImage(file, { maxSize: 1200, quality: 0.82 })
-      .then((dataUrl) => setLoginPopup(String(dataUrl)))
-      .catch(() =>
-        setPopupStatus({ loading: false, error: 'Failed to process image.', success: '' })
+    compressImageFile(file, { maxSize: 1200, quality: 0.82 })
+      .then((compressed) => api.uploadImage(compressed))
+      .then((upload) => setLoginPopup(upload.url))
+      .catch((error) =>
+        setPopupStatus({
+          loading: false,
+          error: error?.message || 'Failed to process image.',
+          success: '',
+        })
       )
   }
 
@@ -115,10 +128,15 @@ function AdminDashboard() {
       })
       return
     }
-    compressImage(file, { maxSize: 1800, quality: 0.82 })
-      .then((dataUrl) => setHeroImage(String(dataUrl)))
-      .catch(() =>
-        setHeroStatus({ loading: false, error: 'Failed to process image.', success: '' })
+    compressImageFile(file, { maxSize: 1800, quality: 0.82 })
+      .then((compressed) => api.uploadImage(compressed))
+      .then((upload) => setHeroImage(upload.url))
+      .catch((error) =>
+        setHeroStatus({
+          loading: false,
+          error: error?.message || 'Failed to process image.',
+          success: '',
+        })
       )
   }
 

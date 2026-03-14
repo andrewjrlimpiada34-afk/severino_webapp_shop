@@ -1,4 +1,4 @@
-export const compressImage = async (
+export const compressImageFile = async (
   file,
   { maxSize = 1600, quality = 0.82, outputType = 'image/jpeg' } = {}
 ) => {
@@ -29,11 +29,7 @@ export const compressImage = async (
   canvas.height = targetHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.readAsDataURL(file)
-    })
+    return file
   }
 
   ctx.drawImage(image, 0, 0, targetWidth, targetHeight)
@@ -41,17 +37,5 @@ export const compressImage = async (
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, outputType, quality)
   )
-  if (!blob) {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(String(reader.result))
-      reader.readAsDataURL(file)
-    })
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result))
-    reader.readAsDataURL(blob)
-  })
+  return blob || file
 }

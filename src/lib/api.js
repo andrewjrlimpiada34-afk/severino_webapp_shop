@@ -20,6 +20,25 @@ async function request(path, options = {}) {
   return response.json()
 }
 
+async function upload(path, file) {
+  const formData = new FormData()
+  const filename = file?.name || 'upload.jpg'
+  formData.append('image', file, filename)
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}))
+    const message = payload.message || 'Upload failed'
+    const error = new Error(message)
+    error.status = response.status
+    throw error
+  }
+  return response.json()
+}
+
 export const api = {
   login: (data) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   verify2fa: (data) => request('/api/auth/verify', { method: 'POST', body: JSON.stringify(data) }),
@@ -65,6 +84,7 @@ export const api = {
   adminHeroImage: () => request('/api/admin/hero-image'),
   updateHeroImage: (image) =>
     request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
+  uploadImage: (file) => upload('/api/uploads/image', file),
   loginPopup: () => request('/api/public/login-popup'),
   heroImage: () => request('/api/public/hero-image'),
   banners: () => request('/api/public/banners'),

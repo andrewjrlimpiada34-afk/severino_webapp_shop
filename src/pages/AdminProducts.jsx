@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { compressImage } from '../lib/image.js'
+import { compressImageFile } from '../lib/image.js'
 
 function AdminProducts() {
   const [items, setItems] = useState([])
@@ -55,16 +55,19 @@ function AdminProducts() {
   const handleFile = (event, index) => {
     const file = event.target.files?.[0]
     if (!file) return
-    compressImage(file, { maxSize: 1400, quality: 0.82 })
-      .then((dataUrl) =>
+    compressImageFile(file, { maxSize: 1400, quality: 0.82 })
+      .then((compressed) => api.uploadImage(compressed))
+      .then((upload) =>
         setForm((prev) => {
-          if (index === 3) return { ...prev, imageUrl4: String(dataUrl) }
-          if (index === 2) return { ...prev, imageUrl3: String(dataUrl) }
-          if (index === 1) return { ...prev, imageUrl2: String(dataUrl) }
-          return { ...prev, imageUrl1: String(dataUrl) }
+          if (index === 3) return { ...prev, imageUrl4: String(upload.url) }
+          if (index === 2) return { ...prev, imageUrl3: String(upload.url) }
+          if (index === 1) return { ...prev, imageUrl2: String(upload.url) }
+          return { ...prev, imageUrl1: String(upload.url) }
         })
       )
-      .catch(() => setStatus({ loading: false, error: 'Failed to process image.', success: '' }))
+      .catch((error) =>
+        setStatus({ loading: false, error: error?.message || 'Failed to process image.', success: '' })
+      )
   }
 
   const save = async (event) => {

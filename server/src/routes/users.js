@@ -4,13 +4,15 @@ import bcrypt from 'bcryptjs'
 import { getUserById, updateUser } from '../db/users.js'
 import { requireAuth } from '../middleware/auth.js'
 import { normalizeId } from '../db/util.js'
+import { isDataUrl } from '../lib/images.js'
 
 const router = express.Router()
 
-const profileSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(7),
+const profileSchema = z
+  .object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().min(7),
   addressLine: z.string().optional(),
   barangay: z.string().min(2),
   city: z.string().min(2),
@@ -18,9 +20,12 @@ const profileSchema = z.object({
   zip: z.string().min(3),
   country: z.string().min(2),
   backupAddress: z.string().optional(),
-  profileImage: z.string().optional(),
-  preferredTheme: z.string().optional(),
-})
+    profileImage: z.string().optional(),
+    preferredTheme: z.string().optional(),
+  })
+  .refine((data) => !isDataUrl(data.profileImage), {
+    message: 'Inline images are not allowed',
+  })
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(8),

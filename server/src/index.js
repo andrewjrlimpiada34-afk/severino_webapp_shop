@@ -19,6 +19,7 @@ import adminRoutes from './routes/admin.js'
 import userRoutes from './routes/users.js'
 import reviewRoutes from './routes/reviews.js'
 import publicRoutes from './routes/public.js'
+import uploadRoutes from './routes/uploads.js'
 
 // Middleware
 import { errorHandler } from './middleware/error.js'
@@ -82,6 +83,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/reviews', reviewRoutes)
 app.use('/api/public', publicRoutes)
+app.use('/api/uploads', uploadRoutes)
 
 // ─────────────────────────────
 // Global Error Handler

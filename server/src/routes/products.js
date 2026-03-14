@@ -3,21 +3,29 @@ import { z } from 'zod'
 import { createProduct, getProductById, getProducts, updateProduct } from '../db/products.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { normalizeId, normalizeList } from '../db/util.js'
+import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 
 const router = express.Router()
 
-const productSchema = z.object({
-  name: z.string().min(2),
-  price: z.number().min(0),
-  stock: z.number().min(0),
-  notes: z.string().min(2),
-  size: z.string().optional(),
-  description: z.string().min(10).optional(),
-  imageUrl: z.string().min(1).optional(),
-  imageUrls: z.array(z.string().min(1)).optional(),
-  category: z.enum(['Men', 'Women', 'Unisex']).optional(),
-  active: z.boolean().default(true),
-})
+const productSchema = z
+  .object({
+    name: z.string().min(2),
+    price: z.number().min(0),
+    stock: z.number().min(0),
+    notes: z.string().min(2),
+    size: z.string().optional(),
+    description: z.string().min(10).optional(),
+    imageUrl: z.string().min(1).optional(),
+    imageUrls: z.array(z.string().min(1)).optional(),
+    category: z.enum(['Men', 'Women', 'Unisex']).optional(),
+    active: z.boolean().default(true),
+  })
+  .refine((data) => !isDataUrl(data.imageUrl), {
+    message: 'Inline images are not allowed',
+  })
+  .refine((data) => assertNoDataUrls(data.imageUrls || []), {
+    message: 'Inline images are not allowed',
+  })
 
 router.get('/', async (req, res) => {
   const products = await getProducts()
@@ -40,6 +48,9 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
+  if (isDataUrl(req.body.imageUrl) || !assertNoDataUrls(req.body.imageUrls || [])) {
+    return res.status(400).json({ message: 'Inline images are not allowed' })
+  }
   const product = await updateProduct(req.params.id, req.body)
   if (!product) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(product))

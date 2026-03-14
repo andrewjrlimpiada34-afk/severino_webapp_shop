@@ -15,6 +15,7 @@ import { removeCartByUserId } from '../db/carts.js'
 import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
 import { normalizeList, normalizeId } from '../db/util.js'
+import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 
 const router = express.Router()
 
@@ -55,6 +56,8 @@ router.get('/inventory', async (req, res) => {
 
 const bannerSchema = z.object({
   images: z.array(z.string().min(1)).min(1),
+}).refine((data) => assertNoDataUrls(data.images), {
+  message: 'Inline images are not allowed',
 })
 
 router.get('/banners', async (req, res) => {
@@ -72,6 +75,8 @@ router.put('/banners', async (req, res) => {
 
 const loginPopupSchema = z.object({
   image: z.string().optional(),
+}).refine((data) => !isDataUrl(data.image), {
+  message: 'Inline images are not allowed',
 })
 
 router.get('/login-popup', async (req, res) => {
@@ -90,6 +95,8 @@ router.put('/login-popup', async (req, res) => {
 
 const heroImageSchema = z.object({
   image: z.string().optional(),
+}).refine((data) => !isDataUrl(data.image), {
+  message: 'Inline images are not allowed',
 })
 
 router.get('/hero-image', async (req, res) => {

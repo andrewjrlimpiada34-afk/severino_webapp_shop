@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
+import { compressImage } from '../lib/image.js'
 
 function Account() {
   const [form, setForm] = useState({
@@ -183,10 +184,13 @@ function Account() {
               onChange={(event) => {
                 const file = event.target.files?.[0]
                 if (!file) return
-                const reader = new FileReader()
-                reader.onload = () =>
-                  setForm((prev) => ({ ...prev, profileImage: String(reader.result) }))
-                reader.readAsDataURL(file)
+                compressImage(file, { maxSize: 800, quality: 0.8 })
+                  .then((dataUrl) =>
+                    setForm((prev) => ({ ...prev, profileImage: String(dataUrl) }))
+                  )
+                  .catch(() =>
+                    setStatus({ loading: false, error: 'Failed to process image.', success: '' })
+                  )
               }}
             />
           </div>

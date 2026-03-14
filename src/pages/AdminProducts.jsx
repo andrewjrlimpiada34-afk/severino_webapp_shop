@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
+import { compressImage } from '../lib/image.js'
 
 function AdminProducts() {
   const [items, setItems] = useState([])
@@ -54,15 +55,16 @@ function AdminProducts() {
   const handleFile = (event, index) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () =>
-      setForm((prev) => {
-        if (index === 3) return { ...prev, imageUrl4: String(reader.result) }
-        if (index === 2) return { ...prev, imageUrl3: String(reader.result) }
-        if (index === 1) return { ...prev, imageUrl2: String(reader.result) }
-        return { ...prev, imageUrl1: String(reader.result) }
-      })
-    reader.readAsDataURL(file)
+    compressImage(file, { maxSize: 1400, quality: 0.82 })
+      .then((dataUrl) =>
+        setForm((prev) => {
+          if (index === 3) return { ...prev, imageUrl4: String(dataUrl) }
+          if (index === 2) return { ...prev, imageUrl3: String(dataUrl) }
+          if (index === 1) return { ...prev, imageUrl2: String(dataUrl) }
+          return { ...prev, imageUrl1: String(dataUrl) }
+        })
+      )
+      .catch(() => setStatus({ loading: false, error: 'Failed to process image.', success: '' }))
   }
 
   const save = async (event) => {

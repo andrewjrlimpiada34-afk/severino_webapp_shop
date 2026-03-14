@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api.js'
+import { compressImage } from '../lib/image.js'
 
 function AdminAddProduct() {
   const [form, setForm] = useState({
@@ -26,9 +27,9 @@ function AdminAddProduct() {
   const handleFile = (event, key) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => updateField(key, String(reader.result))
-    reader.readAsDataURL(file)
+    compressImage(file, { maxSize: 1400, quality: 0.82 })
+      .then((dataUrl) => updateField(key, String(dataUrl)))
+      .catch(() => setStatus({ loading: false, error: 'Failed to process image.', success: '' }))
   }
 
   const handleSubmit = async (event) => {

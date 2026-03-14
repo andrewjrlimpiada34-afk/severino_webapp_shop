@@ -50,7 +50,9 @@ app.use(
 app.use(express.json({ limit: '30mb' }))
 app.use(cookieParser())
 app.use(passport.initialize())
-app.use(morgan('dev'))
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
+}
 
 app.use(
   rateLimit({

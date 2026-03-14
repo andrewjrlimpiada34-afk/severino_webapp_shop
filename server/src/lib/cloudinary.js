@@ -1,15 +1,19 @@
 import { v2 as cloudinary } from 'cloudinary'
 
-const resolveCloudinaryConfig = () => {
+let configured = false
+
+const configureCloudinary = () => {
+  if (configured) return true
   if (process.env.CLOUDINARY_URL) {
     cloudinary.config({ secure: true })
-    return
+    configured = true
+    return true
   }
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME
   const apiKey = process.env.CLOUDINARY_API_KEY
   const apiSecret = process.env.CLOUDINARY_API_SECRET
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error('Cloudinary is not configured')
+    return false
   }
   cloudinary.config({
     cloud_name: cloudName,
@@ -17,12 +21,15 @@ const resolveCloudinaryConfig = () => {
     api_secret: apiSecret,
     secure: true,
   })
+  configured = true
+  return true
 }
-
-resolveCloudinaryConfig()
 
 export const uploadBuffer = (buffer, options = {}) =>
   new Promise((resolve, reject) => {
+    if (!configureCloudinary()) {
+      return reject(new Error('Cloudinary is not configured'))
+    }
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: options.folder || 'severino',

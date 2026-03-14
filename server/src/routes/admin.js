@@ -67,7 +67,7 @@ router.get('/banners', async (req, res) => {
 router.put('/banners', async (req, res) => {
   const parsed = bannerSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const updated = await updateBanners(parsed.data.images)
   return res.json(updated)
@@ -87,7 +87,7 @@ router.get('/login-popup', async (req, res) => {
 router.put('/login-popup', async (req, res) => {
   const parsed = loginPopupSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const updated = await updateLoginPopup(parsed.data.image || '')
   return res.json({ image: updated })
@@ -107,7 +107,7 @@ router.get('/hero-image', async (req, res) => {
 router.put('/hero-image', async (req, res) => {
   const parsed = heroImageSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const updated = await updateHeroImage(parsed.data.image || '')
   return res.json({ image: updated })

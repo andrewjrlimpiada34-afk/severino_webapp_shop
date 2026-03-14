@@ -17,7 +17,7 @@ const productSchema = z
     description: z.string().min(10).optional(),
     imageUrl: z.string().min(1).optional(),
     imageUrls: z.array(z.string().min(1)).optional(),
-    category: z.enum(['Men', 'Women', 'Unisex']).optional(),
+    category: z.enum(['Men', 'Women', 'Unisex', 'Signature', 'Fresh', 'Floral', 'Amber']).optional(),
     active: z.boolean().default(true),
   })
   .refine((data) => !isDataUrl(data.imageUrl), {
@@ -41,7 +41,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const parsed = productSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const product = await createProduct(parsed.data)
   return res.status(201).json(normalizeId(product))

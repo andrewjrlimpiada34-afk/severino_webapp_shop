@@ -44,7 +44,7 @@ router.get('/me', requireAuth, async (req, res) => {
 router.patch('/me', requireAuth, async (req, res) => {
   const parsed = profileSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ message: 'Invalid input' })
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const address = `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`
   const user = await updateUser(req.user.id, { ...parsed.data, address })

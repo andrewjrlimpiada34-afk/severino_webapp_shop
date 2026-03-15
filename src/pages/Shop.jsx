@@ -189,6 +189,8 @@ function Shop() {
                     className="product-image-img"
                     src={product.imageUrls?.[0] || product.imageUrl}
                     alt={product.name}
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <span>{product.name}</span>

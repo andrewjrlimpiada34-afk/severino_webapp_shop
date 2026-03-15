@@ -154,7 +154,13 @@ function ProductDetail() {
         <div className="card">
           <div className="product-image product-image--detail">
             {activeImage ? (
-              <img className="product-image-img" src={activeImage} alt={product.name} />
+              <img
+                className="product-image-img"
+                src={activeImage}
+                alt={product.name}
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <span>{product.name}</span>
             )}

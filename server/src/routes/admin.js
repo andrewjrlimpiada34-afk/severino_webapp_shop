@@ -16,8 +16,11 @@ import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
 import { normalizeList, normalizeId } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
+import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
+const inventoryCache = createCache(20000)
+const bannersCache = createCache(20000)
 
 router.use(requireAuth, requireAdmin)
 
@@ -50,8 +53,11 @@ router.delete('/users/:id', async (req, res) => {
 })
 
 router.get('/inventory', async (req, res) => {
-  const items = await getProducts()
-  res.json(normalizeList(items))
+  const cached = inventoryCache.get()
+  if (cached) return res.json(cached)
+  const items = normalizeList(await getProducts())
+  inventoryCache.set(items)
+  return res.json(items)
 })
 
 const bannerSchema = z.object({
@@ -61,7 +67,11 @@ const bannerSchema = z.object({
 })
 
 router.get('/banners', async (req, res) => {
-  res.json(await getBanners())
+  const cached = bannersCache.get()
+  if (cached) return res.json(cached)
+  const banners = await getBanners()
+  bannersCache.set(banners)
+  return res.json(banners)
 })
 
 router.put('/banners', async (req, res) => {
@@ -70,6 +80,7 @@ router.put('/banners', async (req, res) => {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const updated = await updateBanners(parsed.data.images)
+  bannersCache.clear()
   return res.json(updated)
 })
 

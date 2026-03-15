@@ -49,11 +49,13 @@ function Favorites() {
             <article key={product.id} className="product-card">
               <div className="product-image">
                 {product.imageUrls?.[0] || product.imageUrl ? (
-                  <img
-                    className="product-image-img"
-                    src={product.imageUrls?.[0] || product.imageUrl}
-                    alt={product.name}
-                  />
+                    <img
+                      className="product-image-img"
+                      src={product.imageUrls?.[0] || product.imageUrl}
+                      alt={product.name}
+                      loading="lazy"
+                      decoding="async"
+                    />
                 ) : (
                   <span>{product.name}</span>
                 )}

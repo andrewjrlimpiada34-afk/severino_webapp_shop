@@ -4,8 +4,10 @@ import { createProduct, getProductById, getProducts, updateProduct } from '../db
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { normalizeId, normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
+import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
+const productsCache = createCache(20000)
 
 const productSchema = z
   .object({
@@ -28,8 +30,15 @@ const productSchema = z
   })
 
 router.get('/', async (req, res) => {
-  const products = await getProducts()
-  res.json(normalizeList(products))
+  const cached = productsCache.get()
+  if (cached) {
+    res.set('Cache-Control', 'public, max-age=20')
+    return res.json(cached)
+  }
+  const products = normalizeList(await getProducts())
+  productsCache.set(products)
+  res.set('Cache-Control', 'public, max-age=20')
+  return res.json(products)
 })
 
 router.get('/:id', async (req, res) => {
@@ -44,6 +53,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const product = await createProduct(parsed.data)
+  productsCache.clear()
   return res.status(201).json(normalizeId(product))
 })
 
@@ -52,6 +62,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res) => {
     return res.status(400).json({ message: 'Inline images are not allowed' })
   }
   const product = await updateProduct(req.params.id, req.body)
+  productsCache.clear()
   if (!product) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(product))
 })

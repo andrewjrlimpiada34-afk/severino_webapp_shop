@@ -30,11 +30,13 @@ function AdminSalesReport() {
       const label = date.toLocaleDateString(undefined, { weekday: 'short' })
       days.push({ key, label, total: 0 })
     }
-    orders.forEach((order) => {
+    orders
+      .filter((order) => order.status !== 'Cancelled' && order.status !== 'Removed')
+      .forEach((order) => {
       const day = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''
       const item = days.find((d) => d.key === day)
       if (item) item.total += order.total || 0
-    })
+      })
     return days
   }, [orders])
 

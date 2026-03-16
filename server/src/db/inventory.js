@@ -9,7 +9,10 @@ export const recordSale = async (orderId, total) => {
 
 export const getSalesSummary = async () => {
   const db = await getDb()
-  const sales = await db.collection('sales').find({}).toArray()
+  const sales = await db
+    .collection('orders')
+    .find({ status: { $nin: ['Cancelled', 'Removed'] } })
+    .toArray()
   return {
     count: sales.length,
     revenue: sales.reduce((sum, item) => sum + (item.total || 0), 0),

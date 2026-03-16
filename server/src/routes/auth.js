@@ -67,7 +67,11 @@ const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
   return parsed.error.issues[0]?.message || fallback
 }
 
-const isMailConfigured = () => !!(process.env.SMTP_EMAIL && process.env.SMTP_PASS)
+const isMailConfigured = () =>
+  !!(
+    (process.env.RESEND_API_KEY && (process.env.RESEND_FROM || process.env.SMTP_EMAIL)) ||
+    (process.env.SMTP_EMAIL && process.env.SMTP_PASS)
+  )
 
 const OTP_TTL_MS = Number(process.env.OTP_TTL_MS || 5 * 60 * 1000)
 const OTP_RESEND_MS = Number(process.env.OTP_RESEND_MS || 60 * 1000)

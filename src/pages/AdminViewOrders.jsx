@@ -35,7 +35,12 @@ function AdminViewOrders() {
   const byAddress = useMemo(() => {
     const counts = {}
     orders
-      .filter((order) => order.status !== 'Cancelled' && order.status !== 'Removed')
+      .filter(
+        (order) =>
+          order.status !== 'Cancelled' &&
+          order.status !== 'Removed' &&
+          order.status !== 'To Review'
+      )
       .forEach((order) => {
       const address = parseAddress(order.address)
       const key = `${address.country}|${address.province}|${address.city}|${address.barangay}`

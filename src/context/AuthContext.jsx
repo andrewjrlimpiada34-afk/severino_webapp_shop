@@ -92,6 +92,14 @@ export function AuthProvider({ children }) {
     return api.register({ name, email, password, ...extra })
   }
 
+  const sendRegisterOtp = async (email) => {
+    return api.sendRegisterOtp(email)
+  }
+
+  const verifyRegisterOtp = async (payload) => {
+    return api.verifyRegisterOtp(payload)
+  }
+
   const logout = async () => {
     await api.logout()
     setUser(null)
@@ -109,6 +117,8 @@ export function AuthProvider({ children }) {
       loading,
       startLogin,
       register,
+      sendRegisterOtp,
+      verifyRegisterOtp,
       logout,
       refresh,
     }),

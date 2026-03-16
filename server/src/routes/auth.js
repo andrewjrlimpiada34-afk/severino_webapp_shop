@@ -14,7 +14,14 @@ import {
   updateUser,
   sanitizeUser,
 } from '../db/users.js'
-import { consumeOtp, createOtp, getOtpById } from '../db/otps.js'
+import {
+  consumeOtp,
+  createOtp,
+  getLatestOtpByEmail,
+  getOtpById,
+  incrementOtpAttempts,
+  markOtpVerified,
+} from '../db/otps.js'
 
 const router = express.Router()
 
@@ -29,6 +36,7 @@ const registerSchema = z.object({
   province: z.string().trim().min(2, 'Province is required'),
   zip: z.string().trim().min(3, 'ZIP is required'),
   country: z.string().trim().min(2, 'Country is required'),
+  verificationId: z.string().min(8),
 })
 
 const loginSchema = z.object({
@@ -45,12 +53,25 @@ const resendSchema = z.object({
   challengeId: z.string().min(8),
 })
 
+const otpSendSchema = z.object({
+  email: z.string().email(),
+})
+
+const otpVerifySchema = z.object({
+  challengeId: z.string().min(8),
+  code: z.string().min(6),
+})
+
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
   if (parsed.success) return ''
   return parsed.error.issues[0]?.message || fallback
 }
 
 const isMailConfigured = () => !!(process.env.SMTP_EMAIL && process.env.SMTP_PASS)
+
+const OTP_TTL_MS = Number(process.env.OTP_TTL_MS || 5 * 60 * 1000)
+const OTP_RESEND_MS = Number(process.env.OTP_RESEND_MS || 60 * 1000)
+const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5)
 
 const googleConfigReady =
   process.env.GOOGLE_CLIENT_ID &&
@@ -96,14 +117,112 @@ if (googleConfigReady) {
   )
 }
 
-router.post('/register', async (req, res) => {
-  const parsed = registerSchema.safeParse(req.body)
+const otpRateMap = new Map()
+const isRateLimited = (key, limit = 5, windowMs = 10 * 60 * 1000) => {
+  const now = Date.now()
+  const entry = otpRateMap.get(key)
+  if (!entry || now > entry.resetAt) {
+    otpRateMap.set(key, { count: 1, resetAt: now + windowMs })
+    return false
+  }
+  entry.count += 1
+  return entry.count > limit
+}
+
+const generateOtp = () => {
+  const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0')
+  return code
+}
+
+router.post('/otp/send', async (req, res) => {
+  const parsed = otpSendSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
+  }
+  if (!isMailConfigured()) {
+    return res.status(500).json({ message: 'Email service not configured' })
+  }
+
+  const email = parsed.data.email.toLowerCase()
+  const existing = await getUserByEmail(email)
+  if (existing) {
+    return res.status(409).json({ message: 'Email already registered' })
+  }
+
+  const rateKey = `${req.ip || 'ip'}:${email}`
+  if (isRateLimited(rateKey)) {
+    return res.status(429).json({ message: 'Too many requests. Try again later.' })
+  }
+
+  const recent = await getLatestOtpByEmail(email, 'register')
+  if (recent && Date.now() - new Date(recent.createdAt).getTime() < OTP_RESEND_MS) {
+    return res.status(429).json({ message: 'Please wait before requesting another OTP.' })
+  }
+
+  const code = generateOtp()
+  const expiresAt = Date.now() + OTP_TTL_MS
+  const challenge = await createOtp({
+    id: `${email}-${Date.now()}`,
+    email,
+    code,
+    expiresAt,
+    type: 'register',
+    attempts: 0,
+  })
+
+  try {
+    const result = await send_otp({
+      to: email,
+      subject: 'Your Severino verification code',
+      text: `Your verification code is ${code}. It expires in 5 minutes.`,
+    })
+    if (!result.success) {
+      throw result.error || new Error('SMTP send failed')
+    }
+  } catch (error) {
+    await consumeOtp(challenge.id)
+    return res.status(502).json({
+      message: 'Unable to send OTP email. Please verify SMTP settings and try again.',
+    })
+  }
+
+  return res.json({
+    challengeId: challenge.id,
+    message: 'OTP sent to your email',
+  })
+})
+
+router.post('/otp/verify', async (req, res) => {
+  const parsed = otpVerifySchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
-  if (!isMailConfigured()) {
-    return res.status(500).json({ message: 'Email service not configured' })
+  const entry = await getOtpById(parsed.data.challengeId)
+  if (!entry || entry.type !== 'register') {
+    return res.status(400).json({ message: 'Invalid or expired OTP' })
+  }
+  if (Date.now() > entry.expiresAt) {
+    await consumeOtp(parsed.data.challengeId)
+    return res.status(400).json({ message: 'Invalid or expired OTP' })
+  }
+  if (entry.attempts >= OTP_MAX_ATTEMPTS) {
+    await consumeOtp(parsed.data.challengeId)
+    return res.status(400).json({ message: 'Too many attempts. Request a new OTP.' })
+  }
+  if (entry.code !== parsed.data.code) {
+    await incrementOtpAttempts(parsed.data.challengeId)
+    return res.status(400).json({ message: 'Invalid or expired OTP' })
+  }
+
+  await markOtpVerified(parsed.data.challengeId)
+  return res.json({ verified: true, message: 'OTP verified successfully' })
+})
+
+router.post('/register', async (req, res) => {
+  const parsed = registerSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
   const existing = await getUserByEmail(parsed.data.email)
@@ -111,11 +230,23 @@ router.post('/register', async (req, res) => {
     return res.status(409).json({ message: 'Email already registered' })
   }
 
+  const verification = await getOtpById(parsed.data.verificationId)
+  if (
+    !verification ||
+    verification.type !== 'register' ||
+    verification.email !== parsed.data.email.toLowerCase() ||
+    !verification.verifiedAt ||
+    Date.now() > verification.expiresAt
+  ) {
+    return res.status(403).json({ message: 'Email not verified' })
+  }
+
   const passwordHash = await bcrypt.hash(parsed.data.password, 12)
   const user = await createUser({
     name: parsed.data.name,
-    email: parsed.data.email,
+    email: parsed.data.email.toLowerCase(),
     passwordHash,
+    verified: true,
     phone: parsed.data.phone || '',
     addressLine: parsed.data.addressLine || '',
     barangay: parsed.data.barangay || '',
@@ -125,40 +256,12 @@ router.post('/register', async (req, res) => {
     country: parsed.data.country || '',
     address: `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`,
   })
-
-  const code = Math.floor(100000 + Math.random() * 900000).toString()
-  const expiresAt = Date.now() + 10 * 60 * 1000
-  const challenge = await createOtp({
-    id: `${user._id.toString()}-${Date.now()}`,
-    userId: user._id.toString(),
-    email: user.email,
-    code,
-    expiresAt,
-  })
-
-  try {
-    const result = await send_otp({
-      to: user.email,
-      subject: 'Verify your Severino account',
-      text: `Your verification code is ${code}. It expires in 10 minutes.`,
-    })
-    if (!result.success) {
-      throw result.error || new Error('SMTP send failed')
-    }
-  } catch (error) {
-    await consumeOtp(challenge.id)
-    await removeUser(user._id.toString())
-    return res.status(502).json({
-      message:
-        'Unable to send OTP email. Please verify SMTP settings and try again.',
-    })
-  }
+  await consumeOtp(verification.id)
 
   return res.status(201).json({
     id: user._id.toString(),
     email: user.email,
-    requiresVerification: true,
-    challengeId: challenge.id,
+    requiresVerification: false,
   })
 })
 

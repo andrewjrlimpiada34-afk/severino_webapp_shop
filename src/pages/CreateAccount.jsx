@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -20,7 +20,16 @@ function CreateAccount() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
-  const { register } = useAuth()
+  const [otp, setOtp] = useState('')
+  const [otpState, setOtpState] = useState({
+    sending: false,
+    verifying: false,
+    verified: false,
+    message: '',
+    challengeId: '',
+    email: '',
+  })
+  const { register, sendRegisterOtp, verifyRegisterOtp } = useAuth()
   const navigate = useNavigate()
 
   const updateField = (key, value) => {
@@ -62,6 +71,10 @@ function CreateAccount() {
       setStatus({ loading: false, error: 'Please complete all fields.', success: '' })
       return
     }
+    if (!otpState.verified || !otpState.challengeId || otpState.email !== email.toLowerCase()) {
+      setStatus({ loading: false, error: 'Please verify your email with OTP.', success: '' })
+      return
+    }
     try {
       setStatus({ loading: true, error: '', success: '' })
       const result = await register(`${firstName} ${lastName}`, email, form.password, {
@@ -72,21 +85,76 @@ function CreateAccount() {
         province,
         zip,
         country,
+        verificationId: otpState.challengeId,
       })
-      if (result?.challengeId) {
-        const query = new URLSearchParams({
-          challengeId: result.challengeId,
-          email,
-        }).toString()
-        navigate(`/verify-email?${query}`, { replace: true })
-      } else {
-        setStatus({
-          loading: false,
-          error: '',
-          success: 'Account created. Please contact support to verify.',
-        })
-      }
+      setStatus({
+        loading: false,
+        error: '',
+        success: 'Account created successfully. You can now log in.',
+      })
+      setTimeout(() => navigate('/login'), 800)
     } catch (error) {
+      setStatus({ loading: false, error: error.message, success: '' })
+    }
+  }
+
+  useEffect(() => {
+    const email = form.email.trim().toLowerCase()
+    if (!otpState.email || otpState.email === email) return
+    setOtp('')
+    setOtpState({
+      sending: false,
+      verifying: false,
+      verified: false,
+      message: '',
+      challengeId: '',
+      email: '',
+    })
+  }, [form.email, otpState.email])
+
+  const sendOtp = async () => {
+    const email = form.email.trim().toLowerCase()
+    if (!email) {
+      setStatus({ loading: false, error: 'Please enter your email first.', success: '' })
+      return
+    }
+    try {
+      setOtpState((prev) => ({ ...prev, sending: true, message: '', verified: false }))
+      const result = await sendRegisterOtp(email)
+      setOtp('')
+      setOtpState({
+        sending: false,
+        verifying: false,
+        verified: false,
+        message: result?.message || 'OTP sent to your email',
+        challengeId: result.challengeId,
+        email,
+      })
+    } catch (error) {
+      setOtpState((prev) => ({ ...prev, sending: false }))
+      setStatus({ loading: false, error: error.message, success: '' })
+    }
+  }
+
+  const verifyOtp = async () => {
+    if (!otpState.challengeId) {
+      setStatus({ loading: false, error: 'Please send OTP first.', success: '' })
+      return
+    }
+    try {
+      setOtpState((prev) => ({ ...prev, verifying: true, message: '' }))
+      const result = await verifyRegisterOtp({
+        challengeId: otpState.challengeId,
+        code: otp.trim(),
+      })
+      setOtpState((prev) => ({
+        ...prev,
+        verifying: false,
+        verified: true,
+        message: result?.message || 'OTP verified successfully',
+      }))
+    } catch (error) {
+      setOtpState((prev) => ({ ...prev, verifying: false }))
       setStatus({ loading: false, error: error.message, success: '' })
     }
   }
@@ -128,15 +196,26 @@ function CreateAccount() {
         <div className="grid two">
           <div>
             <div className="label">Email</div>
-            <input
-              className="input"
-              type="email"
-              placeholder="you@email.com"
-              autoComplete="email"
-              required
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
-            />
+            <div className="input-row">
+              <input
+                className="input"
+                type="email"
+                placeholder="you@email.com"
+                autoComplete="email"
+                required
+                value={form.email}
+                onChange={(event) => updateField('email', event.target.value)}
+              />
+              <button
+                type="button"
+                className="button secondary"
+                onClick={sendOtp}
+                disabled={otpState.sending}
+              >
+                {otpState.sending ? 'Sending...' : 'Send OTP'}
+              </button>
+            </div>
+            {otpState.message && <div className="pill">{otpState.message}</div>}
           </div>
           <div>
             <div className="label">Mobile Number</div>
@@ -148,6 +227,31 @@ function CreateAccount() {
               value={form.mobile}
               onChange={(event) => updateField('mobile', event.target.value)}
             />
+          </div>
+        </div>
+        <div className="grid two">
+          <div>
+            <div className="label">Email OTP</div>
+            <div className="input-row">
+              <input
+                className="input"
+                placeholder="6-digit OTP"
+                inputMode="numeric"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+              />
+              <button
+                type="button"
+                className="button secondary"
+                onClick={verifyOtp}
+                disabled={otpState.verifying || otpState.verified}
+              >
+                {otpState.verified ? 'Verified' : otpState.verifying ? 'Verifying...' : 'Verify OTP'}
+              </button>
+            </div>
+          </div>
+          <div className="pill" style={{ alignSelf: 'end' }}>
+            {otpState.verified ? 'OTP verified successfully' : 'Verify OTP before creating account'}
           </div>
         </div>
         <div className="grid two">

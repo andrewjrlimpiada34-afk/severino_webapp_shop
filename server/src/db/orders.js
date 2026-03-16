@@ -8,7 +8,11 @@ export const getOrders = async () => {
 
 export const getOrdersByUserId = async (userId) => {
   const db = await getDb()
-  return db.collection('orders').find({ userId }).sort({ createdAt: -1 }).toArray()
+  return db
+    .collection('orders')
+    .find({ userId, status: { $ne: 'Removed' } })
+    .sort({ createdAt: -1 })
+    .toArray()
 }
 
 export const createOrder = async (data) => {

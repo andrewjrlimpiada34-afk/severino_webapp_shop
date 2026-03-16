@@ -1,6 +1,6 @@
 export const compressImageFile = async (
   file,
-  { maxSize = 1600, quality = 0.82, outputType = 'image/jpeg' } = {}
+  { maxSize = 1600, quality = 0.82, outputType = 'image/webp' } = {}
 ) => {
   const loadImage = () =>
     new Promise((resolve, reject) => {
@@ -38,4 +38,27 @@ export const compressImageFile = async (
     canvas.toBlob(resolve, outputType, quality)
   )
   return blob || file
+}
+
+const CLOUDINARY_MARKER = '/upload/'
+
+export const buildCloudinaryUrl = (url, { width = 1000 } = {}) => {
+  if (!url || typeof url !== 'string') return url
+  const index = url.indexOf(CLOUDINARY_MARKER)
+  if (index === -1) return url
+  const transform = `f_auto,q_auto,c_limit,w_${width}`
+  return `${url.slice(0, index + CLOUDINARY_MARKER.length)}${transform}/${url.slice(
+    index + CLOUDINARY_MARKER.length
+  )}`
+}
+
+export const buildCloudinarySrcSet = (
+  url,
+  widths = [320, 480, 640, 800, 1000]
+) => {
+  if (!url || typeof url !== 'string') return ''
+  if (!url.includes(CLOUDINARY_MARKER)) return ''
+  return widths
+    .map((width) => `${buildCloudinaryUrl(url, { width })} ${width}w`)
+    .join(', ')
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
+import { buildCloudinarySrcSet, buildCloudinaryUrl } from '../lib/image.js'
 
 function ProductDetail() {
   const { id } = useParams()
@@ -157,6 +158,8 @@ function ProductDetail() {
               <img
                 className="product-image-img"
                 src={activeImage}
+                srcSet={buildCloudinarySrcSet(activeImage, [480, 640, 800, 1000, 1200])}
+                sizes="(max-width: 768px) 90vw, 560px"
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
@@ -171,7 +174,7 @@ function ProductDetail() {
                 key={img}
                 type="button"
                 className="thumb"
-                style={{ backgroundImage: `url(${img})` }}
+                style={{ backgroundImage: `url(${buildCloudinaryUrl(img, { width: 200 })})` }}
                 onClick={() => setActiveImage(img)}
               />
             ))}

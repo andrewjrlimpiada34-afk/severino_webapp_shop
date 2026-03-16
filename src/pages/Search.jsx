@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
+import { buildCloudinarySrcSet } from '../lib/image.js'
 
 function Search() {
   const [query, setQuery] = useState('')
@@ -102,13 +103,15 @@ function Search() {
             <article key={product.id} className="product-card">
               <div className="product-image">
                 {product.imageUrls?.[0] || product.imageUrl ? (
-                    <img
-                      className="product-image-img"
-                      src={product.imageUrls?.[0] || product.imageUrl}
-                      alt={product.name}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                  <img
+                    className="product-image-img"
+                    src={product.imageUrls?.[0] || product.imageUrl}
+                    srcSet={buildCloudinarySrcSet(product.imageUrls?.[0] || product.imageUrl)}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
+                    alt={product.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ) : (
                   <span>{product.name}</span>
                 )}

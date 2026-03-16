@@ -19,24 +19,30 @@ function Home() {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [data, bannerImages, hero] = await Promise.all([
-          api.products(),
-          api.banners().catch(() => []),
-          api.heroImage().catch(() => ({ image: '' })),
-        ])
+        const data = await api.products()
         setItems(data)
-        setHeroImage(hero?.image || '')
-        setBanners(
-          bannerImages.length
-            ? bannerImages.map((image, index) => ({ title: `Banner ${index + 1}`, image }))
-            : []
-        )
         setStatus({ loading: false, error: '' })
       } catch (error) {
         setStatus({ loading: false, error: error.message })
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    const loadHeroAndBanners = async () => {
+      const [bannerImages, hero] = await Promise.all([
+        api.banners().catch(() => []),
+        api.heroImage().catch(() => ({ image: '' })),
+      ])
+      setHeroImage(hero?.image || '')
+      setBanners(
+        bannerImages.length
+          ? bannerImages.map((image, index) => ({ title: `Banner ${index + 1}`, image }))
+          : []
+      )
+    }
+    loadHeroAndBanners()
   }, [])
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import { getLoginPopup, getBanners, getHeroImage } from '../db/banners.js'
 import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
-const bannersCache = createCache(20000)
+const bannersCache = createCache(300000)
 
 router.get('/login-popup', async (req, res) => {
   const image = await getLoginPopup()
@@ -13,12 +13,12 @@ router.get('/login-popup', async (req, res) => {
 router.get('/banners', async (req, res) => {
   const cached = bannersCache.get()
   if (cached) {
-    res.set('Cache-Control', 'public, max-age=20')
+    res.set('Cache-Control', 'public, max-age=300')
     return res.json(cached)
   }
   const banners = await getBanners()
   bannersCache.set(banners)
-  res.set('Cache-Control', 'public, max-age=20')
+  res.set('Cache-Control', 'public, max-age=300')
   return res.json(banners)
 })
 

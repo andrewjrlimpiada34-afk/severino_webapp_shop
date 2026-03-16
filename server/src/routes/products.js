@@ -7,7 +7,7 @@ import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
-const productsCache = createCache(20000)
+const productsCache = createCache(300000)
 
 const productSchema = z
   .object({
@@ -32,12 +32,12 @@ const productSchema = z
 router.get('/', async (req, res) => {
   const cached = productsCache.get()
   if (cached) {
-    res.set('Cache-Control', 'public, max-age=20')
+    res.set('Cache-Control', 'public, max-age=300')
     return res.json(cached)
   }
   const products = normalizeList(await getProducts())
   productsCache.set(products)
-  res.set('Cache-Control', 'public, max-age=20')
+  res.set('Cache-Control', 'public, max-age=300')
   return res.json(products)
 })
 

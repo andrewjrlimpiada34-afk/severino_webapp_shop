@@ -21,6 +21,7 @@ const seedProducts = [
 
 const sizes = ['70ml', '80ml', '90ml', '100ml']
 const categories = ['Men', 'Women', 'Unisex']
+let seeded = false
 
 const seed = () =>
   seedProducts.map((name, index) => ({
@@ -37,12 +38,14 @@ const seed = () =>
   }))
 
 const ensureSeeded = async () => {
+  if (seeded) return
   const db = await getDb()
   const products = db.collection('products')
   const count = await products.countDocuments()
   if (count === 0) {
     await products.insertMany(seed())
   }
+  seeded = true
 }
 
 export const getProducts = async () => {

@@ -34,12 +34,14 @@ function AdminViewOrders() {
 
   const byAddress = useMemo(() => {
     const counts = {}
-    orders.forEach((order) => {
+    orders
+      .filter((order) => order.status !== 'Cancelled' && order.status !== 'Removed')
+      .forEach((order) => {
       const address = parseAddress(order.address)
       const key = `${address.country}|${address.province}|${address.city}|${address.barangay}`
       counts[key] = counts[key] || { ...address, count: 0 }
       counts[key].count += 1
-    })
+      })
     return Object.values(counts).sort((a, b) => {
       return (
         a.country.localeCompare(b.country) ||

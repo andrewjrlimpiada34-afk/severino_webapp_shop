@@ -85,11 +85,15 @@ export const api = {
   adminLoginPopup: () => request('/api/admin/login-popup'),
   updateLoginPopup: (image) =>
     request('/api/admin/login-popup', { method: 'PUT', body: JSON.stringify({ image }) }),
+  adminLoginAnnouncement: () => request('/api/admin/login-announcement'),
+  updateLoginAnnouncement: (data) =>
+    request('/api/admin/login-announcement', { method: 'PUT', body: JSON.stringify(data) }),
   adminHeroImage: () => request('/api/admin/hero-image'),
   updateHeroImage: (image) =>
     request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
   uploadImage: (file) => upload('/api/uploads/image', file),
   loginPopup: () => request('/api/public/login-popup'),
+  loginAnnouncement: () => request('/api/public/login-announcement'),
   heroImage: () => request('/api/public/hero-image'),
   banners: () => request('/api/public/banners'),
   productReviews: (productId) => request(`/api/reviews/${productId}`),

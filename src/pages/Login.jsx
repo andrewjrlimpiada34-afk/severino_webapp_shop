@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { api } from '../lib/api.js'
 
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
+  const [announcement, setAnnouncement] = useState({ title: '', message: '' })
+  const [announcementOpen, setAnnouncementOpen] = useState(false)
   const { startLogin } = useAuth()
   const navigate = useNavigate()
   const defaultApi =
@@ -24,9 +27,32 @@ function Login() {
     }
   }, [])
 
+  useEffect(() => {
+    let active = true
+    api
+      .loginAnnouncement()
+      .then((data) => {
+        if (!active) return
+        setAnnouncement({
+          title: data?.title || '',
+          message: data?.message || '',
+        })
+      })
+      .catch(() => {
+        if (!active) return
+        setAnnouncement({ title: '', message: '' })
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
+
+  const hasAnnouncement = Boolean(announcement.message.trim())
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -51,9 +77,21 @@ function Login() {
   }
   return (
     <section className="grid" style={{ gap: '24px', maxWidth: '960px', margin: '0 auto' }}>
-      <div>
-        <h1 className="section-title">Login Page</h1>
-        <p className="section-subtitle">Secure login with device verification.</p>
+      <div className="login-header-row">
+        <div>
+          <h1 className="section-title">Login Page</h1>
+          <p className="section-subtitle">Secure login with device verification.</p>
+        </div>
+        {hasAnnouncement && (
+          <button
+            className="announcement-trigger"
+            type="button"
+            onClick={() => setAnnouncementOpen(true)}
+            aria-label="View announcement"
+          >
+            !
+          </button>
+        )}
       </div>
       <div className="grid two">
         <form className="card form" onSubmit={handleSubmit}>
@@ -122,6 +160,35 @@ function Login() {
           </ul>
         </div>
       </div>
+      {announcementOpen && hasAnnouncement && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setAnnouncementOpen(false)}
+        >
+          <div
+            className="modal-card announcement-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-announcement-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setAnnouncementOpen(false)}
+            >
+              X
+            </button>
+            <div className="announcement-modal__badge">Announcement</div>
+            <h2 id="login-announcement-title" className="section-title" style={{ fontSize: '28px' }}>
+              {announcement.title.trim() || 'Important Notice'}
+            </h2>
+            <p className="announcement-modal__message">{announcement.message}</p>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

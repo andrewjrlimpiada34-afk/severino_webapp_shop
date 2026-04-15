@@ -1,5 +1,5 @@
 import express from 'express'
-import { getLoginPopup, getBanners, getHeroImage } from '../db/banners.js'
+import { getLoginPopup, getBanners, getHeroImage, getLoginAnnouncement } from '../db/banners.js'
 import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
@@ -8,6 +8,11 @@ const bannersCache = createCache(300000)
 router.get('/login-popup', async (req, res) => {
   const image = await getLoginPopup()
   res.json({ image: image || '' })
+})
+
+router.get('/login-announcement', async (req, res) => {
+  const announcement = await getLoginAnnouncement()
+  res.json(announcement)
 })
 
 router.get('/banners', async (req, res) => {

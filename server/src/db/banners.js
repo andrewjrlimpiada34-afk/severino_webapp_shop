@@ -58,6 +58,39 @@ export const updateLoginPopup = async (image) => {
   return image || ''
 }
 
+const ensureLoginAnnouncement = async () => {
+  const db = await getDb()
+  const collection = db.collection('banners')
+  const existing = await collection.findOne({ key: 'login_announcement' })
+  if (!existing) {
+    const announcement = { title: '', message: '' }
+    await collection.insertOne({ key: 'login_announcement', ...announcement })
+    return announcement
+  }
+  return {
+    title: existing.title || '',
+    message: existing.message || '',
+  }
+}
+
+export const getLoginAnnouncement = async () => {
+  return ensureLoginAnnouncement()
+}
+
+export const updateLoginAnnouncement = async ({ title, message }) => {
+  const db = await getDb()
+  const nextAnnouncement = {
+    title: title || '',
+    message: message || '',
+  }
+  await db.collection('banners').updateOne(
+    { key: 'login_announcement' },
+    { $set: nextAnnouncement },
+    { upsert: true }
+  )
+  return nextAnnouncement
+}
+
 const ensureHeroImage = async () => {
   const db = await getDb()
   const collection = db.collection('banners')

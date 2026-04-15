@@ -6,7 +6,9 @@ import { getProducts } from '../db/products.js'
 import {
   getBanners,
   updateBanners,
+  getLoginAnnouncement,
   getLoginPopup,
+  updateLoginAnnouncement,
   updateLoginPopup,
   getHeroImage,
   updateHeroImage,
@@ -102,6 +104,28 @@ router.put('/login-popup', async (req, res) => {
   }
   const updated = await updateLoginPopup(parsed.data.image || '')
   return res.json({ image: updated })
+})
+
+const loginAnnouncementSchema = z.object({
+  title: z.string().max(120).optional(),
+  message: z.string().max(1500).optional(),
+})
+
+router.get('/login-announcement', async (req, res) => {
+  const announcement = await getLoginAnnouncement()
+  res.json(announcement)
+})
+
+router.put('/login-announcement', async (req, res) => {
+  const parsed = loginAnnouncementSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
+  }
+  const updated = await updateLoginAnnouncement({
+    title: parsed.data.title?.trim() || '',
+    message: parsed.data.message?.trim() || '',
+  })
+  return res.json(updated)
 })
 
 const heroImageSchema = z.object({

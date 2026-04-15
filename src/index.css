@@ -477,6 +477,12 @@ img {
   font-size: 14px;
 }
 
+.input-textarea {
+  min-height: 132px;
+  resize: vertical;
+  font: inherit;
+}
+
 .input-row {
   display: flex;
   align-items: center;
@@ -626,6 +632,58 @@ img {
   max-height: 70vh;
   object-fit: contain;
   border-radius: 16px;
+}
+
+.login-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.announcement-trigger {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #cf8f17, #7f5910);
+  color: #fffaf0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 18px 28px rgba(127, 89, 16, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.announcement-trigger:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 22px 34px rgba(127, 89, 16, 0.34);
+}
+
+.announcement-modal {
+  width: min(92vw, 520px);
+  padding: 28px 24px 24px;
+}
+
+.announcement-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  background: rgba(207, 143, 23, 0.14);
+  color: #8a6110;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.announcement-modal__message {
+  margin: 0;
+  white-space: pre-wrap;
+  color: rgba(26, 31, 20, 0.82);
 }
 
 .modal-close {
@@ -1158,6 +1216,17 @@ img {
 }
 
 @media (max-width: 640px) {
+  .login-header-row {
+    align-items: flex-start;
+  }
+
+  .announcement-trigger {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
   .nav-toggle {
     display: inline-flex;
   }

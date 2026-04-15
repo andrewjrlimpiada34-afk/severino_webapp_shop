@@ -9,6 +9,12 @@ function AdminDashboard() {
   const [bannerStatus, setBannerStatus] = useState({ loading: false, error: '', success: '' })
   const [loginPopup, setLoginPopup] = useState('')
   const [popupStatus, setPopupStatus] = useState({ loading: false, error: '', success: '' })
+  const [announcement, setAnnouncement] = useState({ title: '', message: '' })
+  const [announcementStatus, setAnnouncementStatus] = useState({
+    loading: false,
+    error: '',
+    success: '',
+  })
   const [heroImage, setHeroImage] = useState('')
   const [heroStatus, setHeroStatus] = useState({ loading: false, error: '', success: '' })
 
@@ -16,11 +22,12 @@ function AdminDashboard() {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [sales, inventory, bannerImages, popup, hero] = await Promise.all([
+        const [sales, inventory, bannerImages, popup, adminAnnouncement, hero] = await Promise.all([
           api.adminSales(),
           api.adminInventory(),
           api.adminBanners().catch(() => []),
           api.adminLoginPopup().catch(() => ({ image: '' })),
+          api.adminLoginAnnouncement().catch(() => ({ title: '', message: '' })),
           api.adminHeroImage().catch(() => ({ image: '' })),
         ])
         const lowStock = inventory.filter((item) => item.stock < 12).length
@@ -35,6 +42,12 @@ function AdminDashboard() {
         }
         if (popup?.image) {
           setLoginPopup(popup.image)
+        }
+        if (adminAnnouncement) {
+          setAnnouncement({
+            title: adminAnnouncement.title || '',
+            message: adminAnnouncement.message || '',
+          })
         }
         if (hero?.image) {
           setHeroImage(hero.image)
@@ -263,6 +276,61 @@ function AdminDashboard() {
           }}
         >
           Save Hero Image
+        </button>
+      </div>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>
+          Login Announcement
+        </h2>
+        <p className="section-subtitle">
+          This shows an exclamation button on the login page only when a message is saved.
+        </p>
+        {announcementStatus.error && <div className="card">Error: {announcementStatus.error}</div>}
+        {announcementStatus.success && <div className="card">{announcementStatus.success}</div>}
+        <div>
+          <div className="label">Announcement Title</div>
+          <input
+            className="input"
+            placeholder="Important Notice"
+            value={announcement.title}
+            onChange={(event) =>
+              setAnnouncement((prev) => ({ ...prev, title: event.target.value }))
+            }
+          />
+        </div>
+        <div>
+          <div className="label">Announcement Message</div>
+          <textarea
+            className="input input-textarea"
+            placeholder="Type the admin announcement here. Leave this blank to hide the exclamation button."
+            value={announcement.message}
+            onChange={(event) =>
+              setAnnouncement((prev) => ({ ...prev, message: event.target.value }))
+            }
+            rows={5}
+          />
+        </div>
+        <button
+          className="button"
+          type="button"
+          onClick={async () => {
+            try {
+              setAnnouncementStatus({ loading: true, error: '', success: '' })
+              await api.updateLoginAnnouncement(announcement)
+              setAnnouncementStatus({
+                loading: false,
+                error: '',
+                success: announcement.message.trim()
+                  ? 'Announcement updated.'
+                  : 'Announcement cleared. The exclamation button will be hidden.',
+              })
+            } catch (error) {
+              setAnnouncementStatus({ loading: false, error: error.message, success: '' })
+            }
+          }}
+        >
+          Save Announcement
         </button>
       </div>
 

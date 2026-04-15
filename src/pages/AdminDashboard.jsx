@@ -1,15 +1,31 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
+
+const defaultBannerStories = [
+  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
+  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
+  { id: 'banner-3', title: 'Severino Stories', message: '' },
+  { id: 'banner-4', title: 'Severino Scents', message: '' },
+  { id: 'banner-5', title: 'Why Severino?', message: '' },
+]
+
+const createAnnouncement = (index) => ({
+  id: `announcement-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
+  title: '',
+  message: '',
+})
 
 function AdminDashboard() {
   const [stats, setStats] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [banners, setBanners] = useState(['', '', '', '', ''])
   const [bannerStatus, setBannerStatus] = useState({ loading: false, error: '', success: '' })
+  const [bannerStories, setBannerStories] = useState(defaultBannerStories)
+  const [bannerStoryStatus, setBannerStoryStatus] = useState({ loading: false, error: '', success: '' })
   const [loginPopup, setLoginPopup] = useState('')
   const [popupStatus, setPopupStatus] = useState({ loading: false, error: '', success: '' })
-  const [announcement, setAnnouncement] = useState({ title: '', message: '' })
+  const [announcements, setAnnouncements] = useState([createAnnouncement(0)])
   const [announcementStatus, setAnnouncementStatus] = useState({
     loading: false,
     error: '',
@@ -22,12 +38,13 @@ function AdminDashboard() {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [sales, inventory, bannerImages, popup, adminAnnouncement, hero] = await Promise.all([
+        const [sales, inventory, bannerImages, stories, popup, adminAnnouncements, hero] = await Promise.all([
           api.adminSales(),
           api.adminInventory(),
           api.adminBanners().catch(() => []),
+          api.adminBannerStories().catch(() => defaultBannerStories),
           api.adminLoginPopup().catch(() => ({ image: '' })),
-          api.adminLoginAnnouncement().catch(() => ({ title: '', message: '' })),
+          api.adminLoginAnnouncement().catch(() => []),
           api.adminHeroImage().catch(() => ({ image: '' })),
         ])
         const lowStock = inventory.filter((item) => item.stock < 12).length
@@ -40,14 +57,25 @@ function AdminDashboard() {
         if (bannerImages.length) {
           setBanners(bannerImages)
         }
+        if (stories?.length) {
+          setBannerStories(
+            defaultBannerStories.map((item, index) => ({
+              ...item,
+              message: stories[index]?.message || '',
+            }))
+          )
+        }
         if (popup?.image) {
           setLoginPopup(popup.image)
         }
-        if (adminAnnouncement) {
-          setAnnouncement({
-            title: adminAnnouncement.title || '',
-            message: adminAnnouncement.message || '',
-          })
+        if (adminAnnouncements?.length) {
+          setAnnouncements(
+            adminAnnouncements.map((item, index) => ({
+              id: item.id || createAnnouncement(index).id,
+              title: item.title || '',
+              message: item.message || '',
+            }))
+          )
         }
         if (hero?.image) {
           setHeroImage(hero.image)
@@ -244,6 +272,51 @@ function AdminDashboard() {
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
+          Banner Pop-up Content
+        </h2>
+        <p className="section-subtitle">
+          Each homepage banner opens a modal. Titles are fixed; only the messages are editable here.
+        </p>
+        {bannerStoryStatus.error && <div className="card">Error: {bannerStoryStatus.error}</div>}
+        {bannerStoryStatus.success && <div className="card">{bannerStoryStatus.success}</div>}
+        {bannerStories.map((story, index) => (
+          <div key={story.id} className="announcement-editor">
+            <div className="label">Banner {index + 1}</div>
+            <input className="input" value={story.title} readOnly />
+            <textarea
+              className="input input-textarea"
+              placeholder={`Write the popup content for ${story.title}.`}
+              value={story.message}
+              onChange={(event) =>
+                setBannerStories((prev) =>
+                  prev.map((item, itemIndex) =>
+                    itemIndex === index ? { ...item, message: event.target.value } : item
+                  )
+                )
+              }
+              rows={4}
+            />
+          </div>
+        ))}
+        <button
+          className="button"
+          type="button"
+          onClick={async () => {
+            try {
+              setBannerStoryStatus({ loading: true, error: '', success: '' })
+              await api.updateBannerStories(bannerStories)
+              setBannerStoryStatus({ loading: false, error: '', success: 'Banner popup content updated.' })
+            } catch (error) {
+              setBannerStoryStatus({ loading: false, error: error.message, success: '' })
+            }
+          }}
+        >
+          Save Banner Content
+        </button>
+      </div>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>
           Hero Header Image
         </h2>
         <p className="section-subtitle">This is the full-width header background on the homepage.</p>
@@ -281,56 +354,89 @@ function AdminDashboard() {
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
-          Login Announcement
+          Login Announcements
         </h2>
         <p className="section-subtitle">
-          This shows an exclamation button on the login page only when a message is saved.
+          The exclamation button appears on the login page only when at least one announcement exists.
         </p>
         {announcementStatus.error && <div className="card">Error: {announcementStatus.error}</div>}
         {announcementStatus.success && <div className="card">{announcementStatus.success}</div>}
-        <div>
-          <div className="label">Announcement Title</div>
-          <input
-            className="input"
-            placeholder="Important Notice"
-            value={announcement.title}
-            onChange={(event) =>
-              setAnnouncement((prev) => ({ ...prev, title: event.target.value }))
-            }
-          />
-        </div>
-        <div>
-          <div className="label">Announcement Message</div>
-          <textarea
-            className="input input-textarea"
-            placeholder="Type the admin announcement here. Leave this blank to hide the exclamation button."
-            value={announcement.message}
-            onChange={(event) =>
-              setAnnouncement((prev) => ({ ...prev, message: event.target.value }))
-            }
-            rows={5}
-          />
-        </div>
+        {announcements.map((announcement, index) => (
+          <div key={announcement.id} className="announcement-editor">
+            <div className="announcement-editor__header">
+              <div className="label">Announcement {index + 1}</div>
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() =>
+                  setAnnouncements((prev) =>
+                    prev.length > 1 ? prev.filter((item) => item.id !== announcement.id) : [createAnnouncement(0)]
+                  )
+                }
+              >
+                Remove
+              </button>
+            </div>
+            <input
+              className="input"
+              placeholder="Important Notice"
+              value={announcement.title}
+              onChange={(event) =>
+                setAnnouncements((prev) =>
+                  prev.map((item) =>
+                    item.id === announcement.id ? { ...item, title: event.target.value } : item
+                  )
+                )
+              }
+            />
+            <textarea
+              className="input input-textarea"
+              placeholder="Type the admin announcement here."
+              value={announcement.message}
+              onChange={(event) =>
+                setAnnouncements((prev) =>
+                  prev.map((item) =>
+                    item.id === announcement.id ? { ...item, message: event.target.value } : item
+                  )
+                )
+              }
+              rows={5}
+            />
+          </div>
+        ))}
+        <button
+          className="button secondary"
+          type="button"
+          onClick={() => setAnnouncements((prev) => [...prev, createAnnouncement(prev.length)])}
+        >
+          Add Announcement
+        </button>
         <button
           className="button"
           type="button"
           onClick={async () => {
             try {
               setAnnouncementStatus({ loading: true, error: '', success: '' })
-              await api.updateLoginAnnouncement(announcement)
+              const nextAnnouncements = announcements.filter(
+                (item) => item.title.trim() || item.message.trim()
+              )
+              await api.updateLoginAnnouncement(nextAnnouncements)
+              if (!nextAnnouncements.length) {
+                setAnnouncements([createAnnouncement(0)])
+              }
               setAnnouncementStatus({
                 loading: false,
                 error: '',
-                success: announcement.message.trim()
-                  ? 'Announcement updated.'
-                  : 'Announcement cleared. The exclamation button will be hidden.',
+                success: nextAnnouncements.length
+                  ? 'Announcements updated.'
+                  : 'All announcements cleared. The exclamation button will be hidden.',
               })
             } catch (error) {
               setAnnouncementStatus({ loading: false, error: error.message, success: '' })
             }
           }}
         >
-          Save Announcement
+          Save Announcements
         </button>
       </div>
 

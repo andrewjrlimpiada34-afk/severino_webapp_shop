@@ -8,6 +8,33 @@ const defaultBanners = [
   'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Dior_Logo.svg/1024px-Dior_Logo.svg.png',
 ]
 
+const defaultBannerStories = [
+  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
+  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
+  { id: 'banner-3', title: 'Severino Stories', message: '' },
+  { id: 'banner-4', title: 'Severino Scents', message: '' },
+  { id: 'banner-5', title: 'Why Severino?', message: '' },
+]
+
+const normalizeBannerStories = (stories = []) =>
+  defaultBannerStories.map((item, index) => {
+    const current = stories[index] || {}
+    return {
+      id: item.id,
+      title: item.title,
+      message: current.message || '',
+    }
+  })
+
+const normalizeAnnouncements = (announcements = []) =>
+  announcements
+    .map((item, index) => ({
+      id: item?.id || `announcement-${index + 1}`,
+      title: item?.title || '',
+      message: item?.message || '',
+    }))
+    .filter((item) => item.title || item.message)
+
 const ensureBanners = async () => {
   const db = await getDb()
   const collection = db.collection('banners')
@@ -58,37 +85,61 @@ export const updateLoginPopup = async (image) => {
   return image || ''
 }
 
-const ensureLoginAnnouncement = async () => {
+const ensureLoginAnnouncements = async () => {
   const db = await getDb()
   const collection = db.collection('banners')
-  const existing = await collection.findOne({ key: 'login_announcement' })
+  const existing = await collection.findOne({ key: 'login_announcements' })
   if (!existing) {
-    const announcement = { title: '', message: '' }
-    await collection.insertOne({ key: 'login_announcement', ...announcement })
-    return announcement
+    const legacy = await collection.findOne({ key: 'login_announcement' })
+    const announcements = legacy?.title || legacy?.message
+      ? normalizeAnnouncements([{ id: 'announcement-1', title: legacy.title, message: legacy.message }])
+      : []
+    await collection.insertOne({ key: 'login_announcements', announcements })
+    return announcements
   }
-  return {
-    title: existing.title || '',
-    message: existing.message || '',
-  }
+  return normalizeAnnouncements(existing.announcements || [])
 }
 
-export const getLoginAnnouncement = async () => {
-  return ensureLoginAnnouncement()
+export const getLoginAnnouncements = async () => {
+  return ensureLoginAnnouncements()
 }
 
-export const updateLoginAnnouncement = async ({ title, message }) => {
+export const updateLoginAnnouncements = async (announcements) => {
   const db = await getDb()
-  const nextAnnouncement = {
-    title: title || '',
-    message: message || '',
-  }
+  const nextAnnouncements = normalizeAnnouncements(announcements)
   await db.collection('banners').updateOne(
-    { key: 'login_announcement' },
-    { $set: nextAnnouncement },
+    { key: 'login_announcements' },
+    { $set: { announcements: nextAnnouncements } },
     { upsert: true }
   )
-  return nextAnnouncement
+  return nextAnnouncements
+}
+
+const ensureBannerStories = async () => {
+  const db = await getDb()
+  const collection = db.collection('banners')
+  const existing = await collection.findOne({ key: 'banner_stories' })
+  if (!existing) {
+    const stories = normalizeBannerStories()
+    await collection.insertOne({ key: 'banner_stories', stories })
+    return stories
+  }
+  return normalizeBannerStories(existing.stories || [])
+}
+
+export const getBannerStories = async () => {
+  return ensureBannerStories()
+}
+
+export const updateBannerStories = async (stories) => {
+  const db = await getDb()
+  const nextStories = normalizeBannerStories(stories)
+  await db.collection('banners').updateOne(
+    { key: 'banner_stories' },
+    { $set: { stories: nextStories } },
+    { upsert: true }
+  )
+  return nextStories
 }
 
 const ensureHeroImage = async () => {

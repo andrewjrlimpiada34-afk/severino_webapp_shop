@@ -4,11 +4,13 @@ import { getSalesSummary } from '../db/inventory.js'
 import { getUserById, getUsers, removeUser } from '../db/users.js'
 import { getProducts } from '../db/products.js'
 import {
+  getBannerStories,
   getBanners,
-  updateBanners,
-  getLoginAnnouncement,
+  getLoginAnnouncements,
   getLoginPopup,
-  updateLoginAnnouncement,
+  updateBannerStories,
+  updateBanners,
+  updateLoginAnnouncements,
   updateLoginPopup,
   getHeroImage,
   updateHeroImage,
@@ -68,6 +70,12 @@ const bannerSchema = z.object({
   message: 'Inline images are not allowed',
 })
 
+const bannerStorySchema = z.object({
+  id: z.string().optional(),
+  title: z.string().max(120).optional(),
+  message: z.string().max(1500).optional(),
+})
+
 router.get('/banners', async (req, res) => {
   const cached = bannersCache.get()
   if (cached) return res.json(cached)
@@ -83,6 +91,26 @@ router.put('/banners', async (req, res) => {
   }
   const updated = await updateBanners(parsed.data.images)
   bannersCache.clear()
+  return res.json(updated)
+})
+
+router.get('/banner-stories', async (req, res) => {
+  const stories = await getBannerStories()
+  res.json(stories)
+})
+
+router.put('/banner-stories', async (req, res) => {
+  const parsed = z.object({ stories: z.array(bannerStorySchema).length(5) }).safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
+  }
+  const updated = await updateBannerStories(
+    parsed.data.stories.map((story) => ({
+      id: story.id || '',
+      title: story.title?.trim() || '',
+      message: story.message?.trim() || '',
+    }))
+  )
   return res.json(updated)
 })
 
@@ -107,24 +135,28 @@ router.put('/login-popup', async (req, res) => {
 })
 
 const loginAnnouncementSchema = z.object({
+  id: z.string().optional(),
   title: z.string().max(120).optional(),
   message: z.string().max(1500).optional(),
 })
 
 router.get('/login-announcement', async (req, res) => {
-  const announcement = await getLoginAnnouncement()
-  res.json(announcement)
+  const announcements = await getLoginAnnouncements()
+  res.json(announcements)
 })
 
 router.put('/login-announcement', async (req, res) => {
-  const parsed = loginAnnouncementSchema.safeParse(req.body)
+  const parsed = z.object({ announcements: z.array(loginAnnouncementSchema) }).safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
-  const updated = await updateLoginAnnouncement({
-    title: parsed.data.title?.trim() || '',
-    message: parsed.data.message?.trim() || '',
-  })
+  const updated = await updateLoginAnnouncements(
+    parsed.data.announcements.map((announcement) => ({
+      id: announcement.id || '',
+      title: announcement.title?.trim() || '',
+      message: announcement.message?.trim() || '',
+    }))
+  )
   return res.json(updated)
 })
 

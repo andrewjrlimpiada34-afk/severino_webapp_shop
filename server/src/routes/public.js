@@ -1,5 +1,11 @@
 import express from 'express'
-import { getLoginPopup, getBanners, getHeroImage, getLoginAnnouncement } from '../db/banners.js'
+import {
+  getBannerStories,
+  getLoginPopup,
+  getBanners,
+  getHeroImage,
+  getLoginAnnouncements,
+} from '../db/banners.js'
 import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
@@ -11,8 +17,13 @@ router.get('/login-popup', async (req, res) => {
 })
 
 router.get('/login-announcement', async (req, res) => {
-  const announcement = await getLoginAnnouncement()
-  res.json(announcement)
+  const announcements = await getLoginAnnouncements()
+  res.json(announcements)
+})
+
+router.get('/banner-stories', async (req, res) => {
+  const stories = await getBannerStories()
+  res.json(stories)
 })
 
 router.get('/banners', async (req, res) => {

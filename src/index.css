@@ -402,6 +402,29 @@ img {
   padding: 16px;
 }
 
+.banner-overlay--interactive {
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(18, 20, 14, 0.06), rgba(18, 20, 14, 0.46));
+}
+
+.banner-overlay__text {
+  display: grid;
+  gap: 4px;
+  align-self: end;
+  text-align: left;
+}
+
+.banner-overlay__text span {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.banner-overlay__text strong {
+  font-size: 12px;
+  color: rgba(248, 246, 238, 0.88);
+}
+
 .banner-overlay h3 {
   margin: 6px 0 0;
   font-family: 'Playfair Display', serif;
@@ -415,6 +438,12 @@ img {
   background-size: cover;
   background-position: center;
   border: 1px solid rgba(43, 52, 34, 0.15);
+}
+
+.banner-card-button {
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 
@@ -684,6 +713,39 @@ img {
   margin: 0;
   white-space: pre-wrap;
   color: rgba(26, 31, 20, 0.82);
+}
+
+.announcement-list {
+  display: grid;
+  gap: 14px;
+}
+
+.announcement-item {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(127, 147, 88, 0.1);
+  border: 1px solid rgba(43, 52, 34, 0.1);
+}
+
+.announcement-item h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.announcement-editor {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(43, 52, 34, 0.12);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.announcement-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .modal-close {

@@ -7,7 +7,7 @@ function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
-  const [announcement, setAnnouncement] = useState({ title: '', message: '' })
+  const [announcements, setAnnouncements] = useState([])
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const { startLogin } = useAuth()
   const navigate = useNavigate()
@@ -33,14 +33,11 @@ function Login() {
       .loginAnnouncement()
       .then((data) => {
         if (!active) return
-        setAnnouncement({
-          title: data?.title || '',
-          message: data?.message || '',
-        })
+        setAnnouncements(Array.isArray(data) ? data.filter((item) => item?.title || item?.message) : [])
       })
       .catch(() => {
         if (!active) return
-        setAnnouncement({ title: '', message: '' })
+        setAnnouncements([])
       })
 
     return () => {
@@ -52,7 +49,7 @@ function Login() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  const hasAnnouncement = Boolean(announcement.message.trim())
+  const hasAnnouncement = announcements.length > 0
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -87,7 +84,7 @@ function Login() {
             className="announcement-trigger"
             type="button"
             onClick={() => setAnnouncementOpen(true)}
-            aria-label="View announcement"
+            aria-label="View announcements"
           >
             !
           </button>
@@ -112,7 +109,7 @@ function Login() {
               <input
                 className="input"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 autoComplete="current-password"
                 value={form.password}
                 onChange={(event) => updateField('password', event.target.value)}
@@ -135,7 +132,7 @@ function Login() {
               </button>
             </div>
           </div>
-          <div className="pill">2FA ready · Security first</div>
+          <div className="pill">2FA ready Â· Security first</div>
           {status.error && <div className="card">Error: {status.error}</div>}
           {status.success && <div className="card">{status.success}</div>}
           <button className="button" type="submit" disabled={status.loading}>
@@ -181,11 +178,18 @@ function Login() {
             >
               X
             </button>
-            <div className="announcement-modal__badge">Announcement</div>
+            <div className="announcement-modal__badge">Announcements</div>
             <h2 id="login-announcement-title" className="section-title" style={{ fontSize: '28px' }}>
-              {announcement.title.trim() || 'Important Notice'}
+              Latest Updates
             </h2>
-            <p className="announcement-modal__message">{announcement.message}</p>
+            <div className="announcement-list">
+              {announcements.map((announcement) => (
+                <article key={announcement.id} className="announcement-item">
+                  <h3>{announcement.title.trim() || 'Important Notice'}</h3>
+                  <p className="announcement-modal__message">{announcement.message}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       )}

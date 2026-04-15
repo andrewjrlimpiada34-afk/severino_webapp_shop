@@ -1,9 +1,17 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
+
+const defaultBannerStories = [
+  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
+  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
+  { id: 'banner-3', title: 'Severino Stories', message: '' },
+  { id: 'banner-4', title: 'Severino Scents', message: '' },
+  { id: 'banner-5', title: 'Why Severino?', message: '' },
+]
 
 function Home() {
   const [items, setItems] = useState([])
@@ -15,6 +23,8 @@ function Home() {
   const [bannerIndex, setBannerIndex] = useState(0)
   const [favorites, setFavorites] = useState([])
   const [heroImage, setHeroImage] = useState('')
+  const [bannerStories, setBannerStories] = useState(defaultBannerStories)
+  const [openBannerStory, setOpenBannerStory] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -32,14 +42,25 @@ function Home() {
 
   useEffect(() => {
     const loadHeroAndBanners = async () => {
-      const [bannerImages, hero] = await Promise.all([
+      const [bannerImages, stories, hero] = await Promise.all([
         api.banners().catch(() => []),
+        api.bannerStories().catch(() => defaultBannerStories),
         api.heroImage().catch(() => ({ image: '' })),
       ])
       setHeroImage(hero?.image || '')
+      setBannerStories(
+        defaultBannerStories.map((item, index) => ({
+          ...item,
+          message: stories?.[index]?.message || '',
+        }))
+      )
       setBanners(
         bannerImages.length
-          ? bannerImages.map((image, index) => ({ title: `Banner ${index + 1}`, image }))
+          ? bannerImages.map((image, index) => ({
+              title: defaultBannerStories[index]?.title || `Banner ${index + 1}`,
+              image,
+              message: stories?.[index]?.message || '',
+            }))
           : []
       )
     }
@@ -122,10 +143,18 @@ function Home() {
         </div>
         <div className="hero-card hero-banner">
           <div className="banner-track" ref={bannerRef}>
-            {banners.map((banner) => (
-              <div
+            {banners.map((banner, index) => (
+              <button
                 key={banner.title}
-                className="banner-card"
+                className="banner-card banner-card-button"
+                type="button"
+                aria-label={`Open ${banner.title}`}
+                onClick={() =>
+                  setOpenBannerStory({
+                    title: bannerStories[index]?.title || banner.title,
+                    message: bannerStories[index]?.message || '',
+                  })
+                }
                 style={{
                   backgroundImage: `url(${banner.image})`,
                   backgroundSize: 'contain',
@@ -134,8 +163,13 @@ function Home() {
                   backgroundColor: '#f7f6f1',
                 }}
               >
-                <div className="banner-overlay" />
-              </div>
+                <div className="banner-overlay banner-overlay--interactive">
+                  <div className="banner-overlay__text">
+                    <span>{bannerStories[index]?.title || banner.title}</span>
+                    <strong>Tap to open</strong>
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         </div>
@@ -217,6 +251,37 @@ function Home() {
           })}
         </div>
       </div>
+      {openBannerStory && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setOpenBannerStory(null)}
+        >
+          <div
+            className="modal-card announcement-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="home-banner-story-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setOpenBannerStory(null)}
+            >
+              X
+            </button>
+            <div className="announcement-modal__badge">Severino Banner</div>
+            <h2 id="home-banner-story-title" className="section-title" style={{ fontSize: '28px' }}>
+              {openBannerStory.title}
+            </h2>
+            <p className="announcement-modal__message">
+              {openBannerStory.message.trim() || 'No message yet for this banner.'}
+            </p>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

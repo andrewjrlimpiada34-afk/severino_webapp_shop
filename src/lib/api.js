@@ -82,18 +82,25 @@ export const api = {
   adminBanners: () => request('/api/admin/banners'),
   updateBanners: (images) =>
     request('/api/admin/banners', { method: 'PUT', body: JSON.stringify({ images }) }),
+  adminBannerStories: () => request('/api/admin/banner-stories'),
+  updateBannerStories: (stories) =>
+    request('/api/admin/banner-stories', { method: 'PUT', body: JSON.stringify({ stories }) }),
   adminLoginPopup: () => request('/api/admin/login-popup'),
   updateLoginPopup: (image) =>
     request('/api/admin/login-popup', { method: 'PUT', body: JSON.stringify({ image }) }),
   adminLoginAnnouncement: () => request('/api/admin/login-announcement'),
-  updateLoginAnnouncement: (data) =>
-    request('/api/admin/login-announcement', { method: 'PUT', body: JSON.stringify(data) }),
+  updateLoginAnnouncement: (announcements) =>
+    request('/api/admin/login-announcement', {
+      method: 'PUT',
+      body: JSON.stringify({ announcements }),
+    }),
   adminHeroImage: () => request('/api/admin/hero-image'),
   updateHeroImage: (image) =>
     request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
   uploadImage: (file) => upload('/api/uploads/image', file),
   loginPopup: () => request('/api/public/login-popup'),
   loginAnnouncement: () => request('/api/public/login-announcement'),
+  bannerStories: () => request('/api/public/banner-stories'),
   heroImage: () => request('/api/public/hero-image'),
   banners: () => request('/api/public/banners'),
   productReviews: (productId) => request(`/api/reviews/${productId}`),

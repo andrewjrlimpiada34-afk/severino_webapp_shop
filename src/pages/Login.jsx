@@ -72,6 +72,7 @@ function Login() {
       setStatus({ loading: false, error: error.message, success: '' })
     }
   }
+
   return (
     <section className="grid" style={{ gap: '24px', maxWidth: '960px', margin: '0 auto' }}>
       <div className="login-header-row">
@@ -109,7 +110,7 @@ function Login() {
               <input
                 className="input"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="********"
                 autoComplete="current-password"
                 value={form.password}
                 onChange={(event) => updateField('password', event.target.value)}
@@ -132,7 +133,7 @@ function Login() {
               </button>
             </div>
           </div>
-          <div className="pill">2FA ready Â· Security first</div>
+          <div className="pill">2FA ready | Security first</div>
           {status.error && <div className="card">Error: {status.error}</div>}
           {status.success && <div className="card">{status.success}</div>}
           <button className="button" type="submit" disabled={status.loading}>

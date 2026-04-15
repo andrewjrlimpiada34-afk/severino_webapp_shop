@@ -40,12 +40,13 @@ function NavBar() {
       try {
         const orders = await api.orders()
         const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
+        const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
         const list = orders.slice(0, 5).map((order) => ({
           id: order.id,
           text: `Order ${order.id} is ${order.status}`,
           opened: openedIds.includes(order.id),
         }))
-        setNotifications(list)
+        setNotifications(list.filter((item) => !deletedIds.includes(item.id)))
         const profile = await api.profile().catch(() => null)
         setProfileImage(profile?.profileImage || '')
       } catch {

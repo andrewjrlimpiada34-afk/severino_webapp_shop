@@ -163,12 +163,7 @@ function Home() {
                   backgroundColor: '#f7f6f1',
                 }}
               >
-                <div className="banner-overlay banner-overlay--interactive">
-                  <div className="banner-overlay__text">
-                    <span>{bannerStories[index]?.title || banner.title}</span>
-                    <strong>Tap to open</strong>
-                  </div>
-                </div>
+                <div className="banner-overlay banner-overlay--interactive" />
               </button>
             ))}
           </div>
@@ -213,7 +208,7 @@ function Home() {
                 </div>
                 <div className="pill">{product.size}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>₱{product.price.toLocaleString()}</span>
+                  <span>PHP {product.price.toLocaleString()}</span>
                   <div className="product-actions">
                     <button
                       className={`icon-button ${isFav ? 'favorited' : ''}`}

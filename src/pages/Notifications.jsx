@@ -19,13 +19,14 @@ function Notifications() {
         setStatus({ loading: true, error: '' })
         const orders = await api.orders()
         const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
+        const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
         const mapped = orders.map((order) => ({
           id: order.id,
           text: `Order ${order.id} is ${order.status}`,
           opened: openedIds.includes(order.id),
           createdAt: order.createdAt,
         }))
-        setItems(mapped)
+        setItems(mapped.filter((item) => !deletedIds.includes(item.id)))
         setStatus({ loading: false, error: '' })
       } catch (error) {
         setStatus({ loading: false, error: error.message })
@@ -46,6 +47,15 @@ function Notifications() {
     const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
     if (!openedIds.includes(id)) {
       localStorage.setItem(`severino_notif_opened_${user.id}`, JSON.stringify([...openedIds, id]))
+    }
+  }
+
+  const deleteInbox = (id) => {
+    if (!user) return
+    setItems((prev) => prev.filter((item) => item.id !== id))
+    const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
+    if (!deletedIds.includes(id)) {
+      localStorage.setItem(`severino_notif_deleted_${user.id}`, JSON.stringify([...deletedIds, id]))
     }
   }
 
@@ -82,15 +92,25 @@ function Notifications() {
         <div className="card notif-list">
           {visible.length === 0 && <p className="section-subtitle">No inboxes in this category.</p>}
           {visible.map((item) => (
-            <button
-              key={item.id}
-              className={`notif-row ${item.opened ? 'opened' : ''}`}
-              type="button"
-              onClick={() => markOpened(item.id)}
-            >
-              <span>{item.text}</span>
-              {!item.opened && <span className="pill">Unread</span>}
-            </button>
+            <div key={item.id} className={`notif-row ${item.opened ? 'opened' : ''}`}>
+              <button
+                className="notif-row__content"
+                type="button"
+                onClick={() => markOpened(item.id)}
+              >
+                <span>{item.text}</span>
+                {!item.opened && <span className="pill">Unread</span>}
+              </button>
+              {item.opened && (
+                <button
+                  className="button secondary notif-delete"
+                  type="button"
+                  onClick={() => deleteInbox(item.id)}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

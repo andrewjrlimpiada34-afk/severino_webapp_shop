@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import { requireAuth } from '../middleware/auth.js'
 import { uploadBuffer } from '../lib/cloudinary.js'
+import { buildCloudinaryTransformUrl, processImageBuffer } from '../lib/images.js'
 
 const router = express.Router()
 
@@ -25,8 +26,15 @@ router.post('/image', requireAuth, upload.single('image'), async (req, res) => {
     if (!req.file?.buffer) {
       return res.status(400).json({ message: 'Image is required' })
     }
-    const result = await uploadBuffer(req.file.buffer)
-    return res.json({ url: result.secure_url })
+    const processed = await processImageBuffer(req.file.buffer)
+    const result = await uploadBuffer(processed.buffer)
+    const optimizedUrl = buildCloudinaryTransformUrl(result.secure_url)
+    return res.json({
+      url: optimizedUrl,
+      rawUrl: result.secure_url,
+      bytes: processed.size,
+      format: processed.format,
+    })
   } catch (error) {
     const message =
       error?.message?.includes('File too large') || error?.code === 'LIMIT_FILE_SIZE'

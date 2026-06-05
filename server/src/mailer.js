@@ -7,15 +7,6 @@ config()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const resendFrom = process.env.RESEND_FROM || process.env.SMTP_EMAIL || ''
 
-const info = await resend.emails.send({
-  from: resendFrom,
-  to,
-  subject,
-  text,
-})
-
-console.log('RESEND RESPONSE:', info)
-
 const transporter =
   process.env.SMTP_EMAIL && process.env.SMTP_PASS
     ? nodemailer.createTransport({

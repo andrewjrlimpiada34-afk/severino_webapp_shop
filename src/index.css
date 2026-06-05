@@ -1,9 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap');
+
 
 :root {
   color-scheme: light;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Cinzel', serif;
   line-height: 1.5;
+
   font-weight: 400;
   --olive-900: #1a1f14;
   --olive-800: #2b3422;
@@ -203,7 +205,8 @@ img {
 }
 
 .section-title {
-  font-family: 'Leyton', 'Playfair Display', serif;
+  font-family: 'Cinzel', serif;
+
   font-size: clamp(28px, 3vw, 40px);
   margin: 0 0 8px;
   letter-spacing: 0.5px;
@@ -868,7 +871,8 @@ img {
 }
 
 .nav-logo {
-  font-family: 'Leyton', 'Playfair Display', serif;
+  font-family: 'Cinzel', serif;
+
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -896,7 +900,7 @@ img {
 .logout-button {
   background: #e17b7b;
   color: #fff;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Cinzel', serif;
   font-weight: 700;
   border: 1px solid rgba(205, 66, 66, 0.35);
 }
@@ -1025,6 +1029,7 @@ img {
 
 .product-image {
   height: 160px;
+
   border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(16, 20, 14, 0.12), rgba(232, 239, 220, 0.9)),
@@ -1032,8 +1037,9 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Leyton', 'Playfair Display', serif;
+  font-family: 'Cinzel', serif;
   font-size: 26px;
+
   color: var(--olive-800);
   aspect-ratio: 4 / 3;
   overflow: hidden;

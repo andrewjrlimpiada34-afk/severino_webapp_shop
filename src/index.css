@@ -1,9 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:wght@400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Forum:wght@400;500;700&display=swap');
 
 
 :root {
   color-scheme: light;
-  font-family: 'Cinzel', serif;
+  font-family: 'Playfair Display', serif;
   line-height: 1.5;
 
   font-weight: 400;
@@ -45,6 +52,7 @@ body {
 }
 
 [data-theme='Daylight'] {
+  font-family: 'Cormorant Garamond', serif;
   --olive-900: #1b1d24;
   --olive-800: #2a2f3a;
   --olive-700: #3b4454;
@@ -62,6 +70,7 @@ body {
 }
 
 [data-theme='Pink Splush'] {
+  font-family: 'DM Serif Display', serif;
   --olive-900: #2a111c;
   --olive-800: #3c1828;
   --olive-700: #5a243b;
@@ -79,6 +88,7 @@ body {
 }
 
 [data-theme='Blazing Maroon'] {
+  font-family: 'Cinzel', serif;
   --olive-900: #2b0b0b;
   --olive-800: #3f1212;
   --olive-700: #5a1d1d;
@@ -96,6 +106,7 @@ body {
 }
 
 [data-theme='Forest Brown'] {
+  font-family: 'Libre Baskerville', serif;
   --olive-900: #1c140d;
   --olive-800: #2b1c12;
   --olive-700: #3f2718;
@@ -113,6 +124,7 @@ body {
 }
 
 [data-theme='Beach Blue'] {
+  font-family: 'Marcellus', serif;
   --olive-900: #11212b;
   --olive-800: #173040;
   --olive-700: #204356;
@@ -130,6 +142,7 @@ body {
 }
 
 [data-theme='Luxurious Gold'] {
+  font-family: 'Bodoni Moda', serif;
   --olive-900: #241a09;
   --olive-800: #362511;
   --olive-700: #4b3218;
@@ -147,6 +160,7 @@ body {
 }
 
 [data-theme='Shadow Dark Mode'] {
+  font-family: 'Forum', serif;
   color-scheme: dark;
   --olive-900: #f0efe9;
   --olive-800: #cfcac0;
@@ -205,7 +219,7 @@ img {
 }
 
 .section-title {
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
 
   font-size: clamp(28px, 3vw, 40px);
   margin: 0 0 8px;
@@ -871,7 +885,7 @@ img {
 }
 
 .nav-logo {
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
 
   font-size: 26px;
   font-weight: 700;
@@ -900,7 +914,7 @@ img {
 .logout-button {
   background: #e17b7b;
   color: #fff;
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
   font-weight: 700;
   border: 1px solid rgba(205, 66, 66, 0.35);
 }
@@ -1037,7 +1051,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Cinzel', serif;
+  font-family: inherit;
   font-size: 26px;
 
   color: var(--olive-800);

@@ -192,7 +192,7 @@ function Login() {
             Create Account
           </a>
         </form>
-        <div className="card">
+        <div className="card terms-summary-card">
           <div className="tag">Agreement</div>
           <h2 className="section-title" style={{ fontSize: '26px' }}>
             Accept the terms and conditions

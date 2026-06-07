@@ -577,6 +577,22 @@ img {
   font-size: 18px;
 }
 
+.terms-summary-card {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.terms-summary-card .section-title,
+.terms-summary-card .section-subtitle {
+  margin: 0;
+}
+
+.terms-summary-card .button {
+  justify-self: start;
+}
+
 .label {
   font-size: 13px;
   color: rgba(26, 31, 20, 0.7);
@@ -1007,6 +1023,19 @@ img {
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.footer-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.footer-contact__icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .hero {

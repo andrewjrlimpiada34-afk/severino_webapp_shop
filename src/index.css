@@ -1951,46 +1951,48 @@ img {
   .featured-banner-gallery {
     position: relative;
     display: block;
-    min-height: 430px;
-    margin-top: 8px;
+    width: 100%;
+    min-height: 390px;
+    margin: 8px auto 0;
     overflow: hidden;
   }
 
   .featured-banner-gallery .featured-banner-card {
     position: absolute;
-    top: 32px;
+    top: 24px;
     left: 50%;
-    width: min(72vw, 300px);
-    border: 12px solid rgba(255, 255, 255, 0.74) !important;
+    width: min(58vw, 230px);
+    max-width: calc(100vw - 80px);
+    border: 9px solid rgba(255, 255, 255, 0.74) !important;
     border-radius: 0;
-    box-shadow: 0 20px 38px rgba(26, 31, 20, 0.22);
+    box-shadow: 0 16px 30px rgba(26, 31, 20, 0.2);
     transform-origin: center bottom;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(1) {
-    transform: translateX(-92%) rotate(-6deg) scale(0.9);
+    transform: translateX(-83%) rotate(-6deg) scale(0.86);
     opacity: 0.56;
     z-index: 1;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(2) {
-    transform: translateX(-50%) scale(1.03);
+    transform: translateX(-50%) scale(1);
     opacity: 1;
     z-index: 3;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(3) {
-    transform: translateX(-8%) rotate(6deg) scale(0.9);
+    transform: translateX(-17%) rotate(6deg) scale(0.86);
     opacity: 0.56;
     z-index: 1;
   }
 
   .featured-banner-gallery .featured-banner-card > div:first-child {
-    height: 300px !important;
+    height: 245px !important;
   }
 
   .featured-banner-gallery .featured-banner-card__content {
-    min-height: 86px;
+    min-height: 76px;
     text-align: center;
     display: grid;
     place-items: center;
@@ -2000,7 +2002,7 @@ img {
 
   .featured-banner-gallery .featured-banner-card__title {
     margin-top: 0;
-    font-size: 18px;
+    font-size: 16px;
   }
 
   [data-theme='Shadow Dark Mode'] .featured-banner-gallery .featured-banner-card {

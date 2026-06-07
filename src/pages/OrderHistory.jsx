@@ -79,11 +79,16 @@ function OrderHistory() {
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
                   <td>₱{(item.price * item.quantity).toLocaleString()}</td>
                   <td>
-                    <span className="badge">{order.status}</span>
+                    <span className="badge">
+                      {item.trackingStatus || order.status}
+                    </span>
                   </td>
                   <td>
-                    <span className="badge">{trackingLabel(order.status)}</span>
+                    <span className="badge">
+                      {trackingLabel(item.trackingStatus || order.status)}
+                    </span>
                   </td>
+
                   <td>
                     {order.status === 'Pending COD' && (
                       <button

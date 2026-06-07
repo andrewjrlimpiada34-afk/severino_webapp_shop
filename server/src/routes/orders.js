@@ -65,12 +65,38 @@ router.patch('/:id/cancel', requireAuth, async (req, res) => {
   if (order.userId !== req.user.id) {
     return res.status(403).json({ message: 'Forbidden' })
   }
+
+  // Backward-compatible: existing orders are tracked at order-level.
+  // For item tracking, cancel each item independently (same action type, per item updates).
   if (order.status !== 'Pending COD') {
     return res.status(400).json({ message: 'Order already processed' })
   }
-  const updated = await updateOrderStatus(req.params.id, 'Cancelled')
+
+  const now = new Date()
+  const cancelledEvents = (order.items || []).map((i) => i)
+
+  // Update whole order doc but per-item status inside `items[]`.
+  const db = await (await import('../db/mongo.js')).getDb()
+  const updated = await db.collection('orders').findOneAndUpdate(
+    { _id: new (await import('mongodb')).ObjectId(req.params.id) },
+    {
+      $set: {
+        status: 'Cancelled',
+        'items.$[].trackingStatus': 'Cancelled',
+      },
+      $push: {
+        'items.$[].trackingEvents': {
+          status: 'Cancelled',
+          at: now,
+        },
+      },
+    },
+    { returnDocument: 'after' }
+  )
+
   return res.json(normalizeId(updated))
 })
+
 
 router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
   const { status } = req.body
@@ -86,12 +112,36 @@ router.patch('/:id/verify', requireAuth, requireAdmin, async (req, res) => {
   if (order.status !== 'Pending COD') {
     return res.status(400).json({ message: 'Order already processed' })
   }
+
+  // Decrement stock per item
   for (const item of order.items) {
     await decrementStock(item.productId, item.quantity)
   }
-  const updated = await updateOrderStatus(req.params.id, 'To Ship')
+
+  const now = new Date()
+
+  // Per-item tracking update
+  const db = await (await import('../db/mongo.js')).getDb()
+  const updated = await db.collection('orders').findOneAndUpdate(
+    { _id: new (await import('mongodb')).ObjectId(req.params.id) },
+    {
+      $set: {
+        status: 'To Ship',
+        'items.$[].trackingStatus': 'To Ship',
+      },
+      $push: {
+        'items.$[].trackingEvents': {
+          status: 'To Ship',
+          at: now,
+        },
+      },
+    },
+    { returnDocument: 'after' }
+  )
+
   return res.json(normalizeId(updated))
 })
+
 
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   const updated = await updateOrderStatus(req.params.id, 'Removed')

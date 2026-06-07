@@ -17,14 +17,28 @@ export const getOrdersByUserId = async (userId) => {
 
 export const createOrder = async (data) => {
   const db = await getDb()
+
+  const now = new Date()
+  const itemsWithTracking = (data.items || []).map((item) => {
+    const initialStatus = 'Pending COD'
+    return {
+      ...item,
+      trackingStatus: initialStatus,
+      trackingEvents: [{ status: initialStatus, at: now }],
+    }
+  })
+
   const order = {
     status: 'Pending',
-    createdAt: new Date(),
+    createdAt: now,
     ...data,
+    items: itemsWithTracking,
   }
+
   const result = await db.collection('orders').insertOne(order)
   return { ...order, _id: result.insertedId }
 }
+
 
 export const updateOrderStatus = async (id, status) => {
   const db = await getDb()

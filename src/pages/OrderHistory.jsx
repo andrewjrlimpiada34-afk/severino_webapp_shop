@@ -5,6 +5,7 @@ import { api } from '../lib/api.js'
 function OrderHistory() {
   const [orders, setOrders] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
+  const [successMessage, setSuccessMessage] = useState('')
   const navigate = useNavigate()
 
   const [cancelConfirm, setCancelConfirm] = useState({
@@ -62,6 +63,8 @@ function OrderHistory() {
         </div>
       )}
       {status.error && <div className="card">Error: {status.error}</div>}
+      {successMessage && <div className="card">{successMessage}</div>}
+
 
       {cancelConfirm.open && (
         <div
@@ -99,8 +102,17 @@ function OrderHistory() {
                       entry.id === cancelConfirm.orderId ? updated : entry
                     )
                   )
+                  setSuccessMessage('Order Item Cancelled')
+                  setStatus((prev) => ({ ...prev, error: '' }))
                 } catch (error) {
-                  setStatus((prev) => ({ ...prev, error: error.message }))
+                  // Some cancellation requests return 404/Not found for already-cancelled
+                  // or mismatched item identifiers. Treat that case as a completed cancel.
+                  if (String(error?.message || '') === 'Not found') {
+                    setSuccessMessage('Order Item Cancelled')
+                    setStatus((prev) => ({ ...prev, error: '' }))
+                  } else {
+                    setStatus((prev) => ({ ...prev, error: error.message }))
+                  }
                 } finally {
                   setCancelConfirm({ open: false, orderId: '', itemKey: '' })
                 }

@@ -1896,6 +1896,19 @@ img {
     padding: 24px 16px 56px;
   }
 
+  .home-page,
+  .home-page > *,
+  .home-page .hero,
+  .home-page .card {
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .home-page .hero {
+    padding-inline: 16px;
+  }
+
   .filter-toggle {
     display: inline-flex;
   }

@@ -40,7 +40,12 @@ function AdminDashboard() {
     { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
   ]
   const [featuredBanners, setFeaturedBanners] = useState(defaultFeaturedBanners)
-  const [featuredBannerStatus, setFeaturedBannerStatus] = useState({ loading: false, error: '', success: '' })
+  const [featuredBannerStatus, setFeaturedBannerStatus] = useState({
+    loading: false,
+    error: '',
+    success: '',
+  })
+
 
 
   useEffect(() => {
@@ -352,9 +357,9 @@ function AdminDashboard() {
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
-          Featured Banner Images (max 3)
+          Featured Banner Images (required: 3)
         </h2>
-        <p className="section-subtitle">Upload + set the image for each featured banner.</p>
+        <p className="section-subtitle">Upload exactly 3 images. They will be saved to Cloudinary and used on the homepage.</p>
         {featuredBannerStatus.error && <div className="card">Error: {featuredBannerStatus.error}</div>}
         {featuredBannerStatus.success && <div className="card">{featuredBannerStatus.success}</div>}
 
@@ -363,59 +368,99 @@ function AdminDashboard() {
             <div className="label">Featured Banner {index + 1} Image</div>
 
             <div>
-              <div className="label">Image URL</div>
-              <input
-                className="input"
-                placeholder="https://..."
-                value={value.image}
-                onChange={(event) =>
-                  setFeaturedBanners((prev) =>
-                    prev.map((item, i) => (i === index ? { ...item, image: event.target.value } : item))
-                  )
-                }
-              />
+              <div className="label">Uploaded Image</div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                <input
+                  className="input"
+                  placeholder="(Upload an image)"
+                  value={value.image}
+                  readOnly
+                />
 
-              <input
-                className="input"
-                type="file"
-                accept="image/*"
-                onChange={async (event) => {
-                  const file = event.target.files?.[0]
-                  if (!file) return
-                  const maxSize = 20 * 1024 * 1024
-                  if (file.size > maxSize) {
-                    setFeaturedBannerStatus({
-                      loading: false,
-                      error: 'Image too large. Please upload under 20MB.',
-                      success: '',
-                    })
-                    return
-                  }
-                  try {
-                    const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
-                    const upload = await api.uploadImage(compressed)
-                    setFeaturedBanners((prev) =>
-                      prev.map((item, i) => (i === index ? { ...item, image: upload.url } : item))
-                    )
-                  } catch (error) {
-                    setFeaturedBannerStatus({
-                      loading: false,
-                      error: error?.message || 'Failed to process image.',
-                      success: '',
-                    })
-                  }
-                }}
-              />
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
 
-              {value.image && (
-                <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />
-              )}
+                    const maxSize = 20 * 1024 * 1024
+                    if (file.size > maxSize) {
+                      setFeaturedBannerStatus({
+                        loading: false,
+                        error: 'Image too large. Please upload under 20MB.',
+                        success: '',
+                      })
+                      return
+                    }
+
+                    try {
+                      setFeaturedBannerStatus({ loading: true, error: '', success: '' })
+                      const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
+                      const upload = await api.uploadImage(compressed)
+                      setFeaturedBanners((prev) =>
+                        prev.map((item, i) => (i === index ? { ...item, image: upload.url } : item))
+                      )
+                      setFeaturedBannerStatus({ loading: false, error: '', success: '' })
+                    } catch (error) {
+                      setFeaturedBannerStatus({
+                        loading: false,
+                        error: error?.message || 'Failed to process image.',
+                        success: '',
+                      })
+                    }
+                  }}
+                />
+
+                {value.image && (
+                  <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />
+                )}
+              </div>
             </div>
 
             <hr style={{ border: 'none', borderTop: '1px solid #e5e2db', margin: '18px 0' }} />
           </div>
         ))}
+
+        <button
+          className="button"
+          type="button"
+          onClick={async () => {
+            try {
+              const missingIndex = featuredBanners.findIndex((b) => !b?.image?.trim())
+              if (missingIndex !== -1) {
+                setFeaturedBannerStatus({
+                  loading: false,
+                  error: `Please upload Featured Banner ${missingIndex + 1} image before saving.`,
+                  success: '',
+                })
+                return
+              }
+
+              setFeaturedBannerStatus({ loading: true, error: '', success: '' })
+
+              // Always save exactly 3 items in the correct order
+              const cleaned = featuredBanners
+                .slice(0, 3)
+                .map((b, i) => ({
+                  id: b.id || `featured-${i + 1}`,
+                  title: (b.title || `Featured Banner ${i + 1}`).trim(),
+                  image: b.image.trim(),
+                  message: b.message?.trim() || '',
+                }))
+
+              await api.updateFeaturedBanners(cleaned)
+              setFeaturedBannerStatus({ loading: false, error: '', success: 'Featured images updated.' })
+            } catch (error) {
+              setFeaturedBannerStatus({ loading: false, error: error.message, success: '' })
+            }
+          }}
+        >
+          Save Featured Images
+        </button>
       </div>
+
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
@@ -432,13 +477,8 @@ function AdminDashboard() {
                 <div className="label">Banner Title</div>
                 <input
                   className="input"
-                  placeholder={`Featured Banner ${index + 1} title`}
                   value={value.title}
-                  onChange={(event) =>
-                    setFeaturedBanners((prev) =>
-                      prev.map((item, i) => (i === index ? { ...item, title: event.target.value } : item))
-                    )
-                  }
+                  readOnly
                 />
               </div>
 
@@ -446,7 +486,7 @@ function AdminDashboard() {
                 <div className="label">Message</div>
                 <textarea
                   className="input input-textarea"
-                  placeholder="Write the popup content for this featured banner."
+                  placeholder="Write the popup message for this featured banner."
                   value={value.message}
                   onChange={(event) =>
                     setFeaturedBanners((prev) =>
@@ -456,6 +496,7 @@ function AdminDashboard() {
                   rows={4}
                 />
               </div>
+
             </div>
 
             <hr style={{ border: 'none', borderTop: '1px solid #e5e2db', margin: '18px 0' }} />
@@ -468,23 +509,38 @@ function AdminDashboard() {
           onClick={async () => {
             try {
               setFeaturedBannerStatus({ loading: true, error: '', success: '' })
+
+              // Only allow saving the 3-message popup content for the 3 featured banners.
+              // Images must remain unchanged; titles are fixed/read-only.
+              const missingIndex = featuredBanners.findIndex((b) => !b?.image?.trim())
+              if (missingIndex !== -1) {
+                setFeaturedBannerStatus({
+                  loading: false,
+                  error: `Please upload Featured Banner ${missingIndex + 1} image before saving content.`,
+                  success: '',
+                })
+                return
+              }
+
               const cleaned = featuredBanners
-                .map((b) => ({
-                  id: b.id,
-                  title: b.title?.trim() || '',
-                  image: b.image?.trim() || '',
+                .slice(0, 3)
+                .map((b, i) => ({
+                  id: b.id || `featured-${i + 1}`,
+                  title: b.title || `Featured Banner ${i + 1}`,
+                  image: b.image.trim(),
                   message: b.message?.trim() || '',
                 }))
-                .filter((b) => b.image || b.message || b.title)
+
               await api.updateFeaturedBanners(cleaned)
-              setFeaturedBannerStatus({ loading: false, error: '', success: 'Featured banners updated.' })
+              setFeaturedBannerStatus({ loading: false, error: '', success: 'Featured popup content updated.' })
             } catch (error) {
               setFeaturedBannerStatus({ loading: false, error: error.message, success: '' })
             }
           }}
         >
-          Save Featured Banners
+          Save Featured Pop-up Content
         </button>
+
       </div>
 
       <div className="card form">

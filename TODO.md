@@ -1,10 +1,6 @@
 # TODO
-
-- [ ] Refactor `src/pages/AdminDashboard.jsx` Featured Banners section into separate top-level cards/sections:
-  - [x] Keep/add a dedicated card for **Featured Banner Images Upload** (upload input + preview for each featured banner)
-  - [x] Add a dedicated top-level card titled **Featured Banner Pop-up Content**
-  - [x] Inside that card, add a container for each featured banner that holds **Banner Title** input and **message** textarea
-  - [x] Ensure Save Featured Banners button + state update logic remains unchanged
-- [ ] Run frontend lint/build (or dev server) to ensure no JSX/syntax errors
-
+- [ ] Update AdminDashboard featured banner admin UI to enforce exactly 3 uploaded images (Cloudinary) for `featured_banners`.
+- [ ] Make Featured Banner Pop-up Content titles fixed/non-editable (only messages editable) and map message fields 1:1 with banner slots.
+- [ ] Add frontend validation: block save if any of the 3 images is missing.
+- [ ] Save changes and verify persistence by reloading AdminDashboard.
 

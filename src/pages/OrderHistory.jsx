@@ -7,6 +7,15 @@ function OrderHistory() {
   const [status, setStatus] = useState({ loading: true, error: '' })
   const navigate = useNavigate()
 
+  const [cancelConfirm, setCancelConfirm] = useState({
+    open: false,
+    orderId: '',
+    itemKey: '',
+  })
+
+
+
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -53,6 +62,56 @@ function OrderHistory() {
         </div>
       )}
       {status.error && <div className="card">Error: {status.error}</div>}
+
+      {cancelConfirm.open && (
+        <div
+          className="card"
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000,
+            width: 'min(520px, 92vw)',
+            padding: '16px',
+          }}
+        >
+          <div style={{ fontSize: '16px', marginBottom: '12px' }}>
+            Are you sure you want to cancel ordering this item/s?
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button
+              className="button secondary"
+              onClick={() => setCancelConfirm({ open: false, orderId: '', itemKey: '' })}
+            >
+              No
+            </button>
+            <button
+              className="button ghost"
+              onClick={async () => {
+                try {
+                  const updated = await api.cancelOrderItem(
+                    cancelConfirm.orderId,
+                    cancelConfirm.itemKey
+                  )
+                  setOrders((prev) =>
+                    prev.map((entry) =>
+                      entry.id === cancelConfirm.orderId ? updated : entry
+                    )
+                  )
+                } catch (error) {
+                  setStatus((prev) => ({ ...prev, error: error.message }))
+                } finally {
+                  setCancelConfirm({ open: false, orderId: '', itemKey: '' })
+                }
+              }}
+            >
+              Yes
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card table-scroll">
         <table className="table">
           <thead>
@@ -93,24 +152,19 @@ function OrderHistory() {
                     {item.trackingStatus === 'Pending COD' && (
                       <button
                         className="button ghost"
-                        onClick={async () => {
-                          try {
-                            const updated = await api.cancelOrderItem(
-                              order.id,
-                              item.itemId || `${index}-${item.productId}`
-                            )
-
-                            setOrders((prev) =>
-                              prev.map((entry) => (entry.id === order.id ? updated : entry))
-                            )
-                          } catch (error) {
-                            setStatus((prev) => ({ ...prev, error: error.message }))
-                          }
+                        onClick={() => {
+                          const itemKey = item.itemId || `${index}-${item.productId}`
+                          setCancelConfirm({
+                            open: true,
+                            orderId: order.id,
+                            itemKey,
+                          })
                         }}
                       >
                         Cancel
                       </button>
                     )}
+
 
                     {item.trackingStatus === 'To Review' && (
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

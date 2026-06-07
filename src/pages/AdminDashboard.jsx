@@ -221,23 +221,14 @@ function AdminDashboard() {
       )
   }
 
-  const handleFeaturedBannerFiles = async (event) => {
-    const files = Array.from(event.target.files || [])
-    if (!files.length) return
-    if (files.length > 3) {
-      setFeaturedBannerStatus({
-        loading: false,
-        error: 'You can upload a maximum of 3 featured banner images.',
-        success: '',
-      })
-      event.target.value = ''
-      return
-    }
+  const handleFeaturedBannerFile = async (event, index) => {
+    const file = event.target.files?.[0]
+    if (!file) return
     const maxSize = 20 * 1024 * 1024
-    if (files.some((file) => file.size > maxSize)) {
+    if (file.size > maxSize) {
       setFeaturedBannerStatus({
         loading: false,
-        error: 'Image too large. Please upload featured banners under 20MB each.',
+        error: 'Image too large. Please upload a featured banner under 20MB.',
         success: '',
       })
       event.target.value = ''
@@ -246,28 +237,22 @@ function AdminDashboard() {
 
     try {
       setFeaturedBannerStatus({ loading: true, error: '', success: '' })
-      const urls = await Promise.all(
-        files.map(async (file) => {
-          const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
-          const upload = await api.uploadImage(compressed)
-          return upload.url
-        })
-      )
+      const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
+      const upload = await api.uploadImage(compressed)
       setFeaturedBanners((prev) =>
-        normalizeFeaturedBanners(prev).map((item, index) => ({
-          ...item,
-          image: urls[index] || item.image,
-        }))
+        normalizeFeaturedBanners(prev).map((item, itemIndex) =>
+          itemIndex === index ? { ...item, image: upload.url } : item
+        )
       )
       setFeaturedBannerStatus({
         loading: false,
         error: '',
-        success: 'Featured banner images loaded.',
+        success: `Featured Banner ${index + 1} image loaded.`,
       })
     } catch (error) {
       setFeaturedBannerStatus({
         loading: false,
-        error: error?.message || 'Failed to process featured banner images.',
+        error: error?.message || 'Failed to process featured banner image.',
         success: '',
       })
     } finally {
@@ -417,17 +402,6 @@ function AdminDashboard() {
         {featuredBannerStatus.error && <div className="card">Error: {featuredBannerStatus.error}</div>}
         {featuredBannerStatus.success && <div className="card">{featuredBannerStatus.success}</div>}
 
-        <div>
-          <div className="label">Upload Featured Banner Images</div>
-          <input
-            className="input"
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFeaturedBannerFiles}
-          />
-        </div>
-
         {featuredBanners.map((value, index) => (
           <div key={value.id || index}>
             <div className="label">Featured Banner {index + 1} Image</div>
@@ -442,6 +416,12 @@ function AdminDashboard() {
                   )
                 )
               }
+            />
+            <input
+              className="input"
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleFeaturedBannerFile(event, index)}
             />
             {value.image && (
               <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />

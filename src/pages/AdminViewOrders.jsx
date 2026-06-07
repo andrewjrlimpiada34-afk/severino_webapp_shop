@@ -118,66 +118,67 @@ function AdminViewOrders() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, index) => (
-              <tr key={order.id}>
-                <td>{index + 1}</td>
-                <td>{order.id}</td>
-                <td>{order.email || order.userId || 'Customer'}</td>
-                <td>{order.contactName || 'Customer'}</td>
-                <td>{order.phone || '-'}</td>
-                <td>₱{order.total.toLocaleString()}</td>
-                <td>
-                  <span className="badge">{order.status}</span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['Verify', 'To Ship', 'To Receive', 'To Review'].map((label) => (
+            {orders.flatMap((order, orderIndex) =>
+              (order.items || []).map((item, itemIndex) => (
+                <tr key={`${order.id}-${item.itemId}-${itemIndex}`}>
+                  <td>{orderIndex + 1}</td>
+                  <td>{order.id}</td>
+                  <td>{order.email || order.userId || 'Customer'}</td>
+                  <td>{order.contactName || 'Customer'}</td>
+                  <td>{order.phone || '-'}</td>
+                  <td>₱{order.total.toLocaleString()}</td>
+                  <td>
+                    <span className="badge">{item.trackingStatus || order.status}</span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {['To Ship', 'To Receive', 'To Review'].map((label) => (
+                        <button
+                          key={label}
+                          className="button ghost"
+                          onClick={async () => {
+                            try {
+                            const updated = await api.updateOrderItemStatus(
+                                order.id,
+                                item.itemId || `${orderIndex}-${itemIndex}`,
+                                label
+                              )
+
+                              setOrders((prev) =>
+                                prev.map((o) => (o.id === order.id ? updated : o))
+                              )
+                            } catch (error) {
+                              setStatus((prev) => ({ ...prev, error: error.message }))
+                            }
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
                       <button
-                        key={label}
                         className="button ghost"
+                        type="button"
                         onClick={async () => {
                           try {
-                            const nextStatus = label === 'Verify' ? 'To Ship' : label
-                            if (label === 'Verify') {
-                              await api.verifyOrder(order.id)
-                            } else {
-                              await api.updateOrderStatus(order.id, nextStatus)
-                            }
+                            const ok = window.confirm('Remove this order? This cannot be undone.')
+                            if (!ok) return
+                            const updated = await api.deleteOrder(order.id)
                             setOrders((prev) =>
-                              prev.map((item) =>
-                                item.id === order.id ? { ...item, status: nextStatus } : item
-                              )
+                              prev.map((o) => (o.id === order.id ? updated : o))
                             )
                           } catch (error) {
                             setStatus((prev) => ({ ...prev, error: error.message }))
                           }
                         }}
                       >
-                        {label}
+                        Remove
                       </button>
-                    ))}
-                    <button
-                      className="button ghost"
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const ok = window.confirm('Remove this order? This cannot be undone.')
-                          if (!ok) return
-                          const updated = await api.deleteOrder(order.id)
-                          setOrders((prev) =>
-                            prev.map((item) => (item.id === order.id ? updated : item))
-                          )
-                        } catch (error) {
-                          setStatus((prev) => ({ ...prev, error: error.message }))
-                        }
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+
           </tbody>
         </table>
       </div>

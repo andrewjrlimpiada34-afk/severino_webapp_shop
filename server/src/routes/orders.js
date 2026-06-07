@@ -105,6 +105,80 @@ router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
   return res.json(normalizeId(order))
 })
 
+// ---- Item-level actions (per Item ID) ----
+router.patch('/:orderId/items/:itemId/cancel', requireAuth, async (req, res) => {
+  const { orderId, itemId } = req.params
+  const orders = await getOrdersByUserId(req.user.id)
+  const order = orders.find((o) => o._id.toString() === orderId)
+  if (!order) return res.status(404).json({ message: 'Not found' })
+
+  // Only allow cancelling items while the order is still pending COD
+  if (order.status !== 'Pending COD' && order.status !== 'Pending') {
+    // existing code uses both 'Pending COD' (created) and order-level 'Pending'
+    return res.status(400).json({ message: 'Order already processed' })
+  }
+
+  const now = new Date()
+  const db = await (await import('../db/mongo.js')).getDb()
+
+  const updated = await db.collection('orders').findOneAndUpdate(
+    {
+      _id: new (await import('mongodb')).ObjectId(orderId),
+      'items.itemId': itemId,
+    },
+    {
+      $set: {
+        'items.$[elem].trackingStatus': 'Cancelled',
+      },
+      $push: {
+        'items.$[elem].trackingEvents': { status: 'Cancelled', at: now },
+      },
+    },
+    {
+      returnDocument: 'after',
+      arrayFilters: [{ 'elem.itemId': itemId }],
+    }
+  )
+
+  if (!updated?.value) return res.status(404).json({ message: 'Not found' })
+  return res.json(normalizeId(updated.value))
+})
+
+router.patch('/:orderId/items/:itemId/status', requireAuth, requireAdmin, async (req, res) => {
+  const { orderId, itemId } = req.params
+  const { status } = req.body
+
+  const order = await (await getOrders()).find((o) => o._id?.toString?.() === orderId)
+  if (!order) return res.status(404).json({ message: 'Not found' })
+
+  // Ensure item exists; also allow item-level transitions while order is active
+  const now = new Date()
+  const db = await (await import('../db/mongo.js')).getDb()
+
+  const updated = await db.collection('orders').findOneAndUpdate(
+    {
+      _id: new (await import('mongodb')).ObjectId(orderId),
+      'items.itemId': itemId,
+    },
+    {
+      $set: {
+        'items.$[elem].trackingStatus': status,
+      },
+      $push: {
+        'items.$[elem].trackingEvents': { status, at: now },
+      },
+    },
+    {
+      returnDocument: 'after',
+      arrayFilters: [{ 'elem.itemId': itemId }],
+    }
+  )
+
+  if (!updated?.value) return res.status(404).json({ message: 'Not found' })
+  return res.json(normalizeId(updated.value))
+})
+
+
 router.patch('/:id/verify', requireAuth, requireAdmin, async (req, res) => {
   const orders = await getOrders()
   const order = orders.find((item) => item._id.toString() === req.params.id)

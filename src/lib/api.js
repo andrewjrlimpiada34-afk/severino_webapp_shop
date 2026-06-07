@@ -68,9 +68,17 @@ export const api = {
   orders: () => request('/api/orders'),
   createOrder: (data) => request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
   cancelOrder: (id) => request(`/api/orders/${id}/cancel`, { method: 'PATCH' }),
+  cancelOrderItem: (orderId, itemId) =>
+    request(`/api/orders/${orderId}/items/${itemId}/cancel`, { method: 'PATCH' }),
   verifyOrder: (id) => request(`/api/orders/${id}/verify`, { method: 'PATCH' }),
   updateOrderStatus: (id, status) =>
     request(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateOrderItemStatus: (orderId, itemId, status) =>
+    request(`/api/orders/${orderId}/items/${itemId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
   deleteOrder: (id) => request(`/api/orders/${id}`, { method: 'DELETE' }),
   feedback: () => request('/api/feedback'),
   submitFeedback: (data) =>

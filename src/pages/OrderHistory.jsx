@@ -90,12 +90,16 @@ function OrderHistory() {
                   </td>
 
                   <td>
-                    {order.status === 'Pending COD' && (
+                    {item.trackingStatus === 'Pending COD' && (
                       <button
                         className="button ghost"
                         onClick={async () => {
                           try {
-                            const updated = await api.cancelOrder(order.id)
+                            const updated = await api.cancelOrderItem(
+                              order.id,
+                              item.itemId || `${index}-${item.productId}`
+                            )
+
                             setOrders((prev) =>
                               prev.map((entry) => (entry.id === order.id ? updated : entry))
                             )
@@ -107,8 +111,10 @@ function OrderHistory() {
                         Cancel
                       </button>
                     )}
-                    {order.status === 'To Review' && (
+
+                    {item.trackingStatus === 'To Review' && (
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+
                         <button
                           className="button ghost"
                           onClick={async () => {

@@ -19,14 +19,21 @@ export const createOrder = async (data) => {
   const db = await getDb()
 
   const now = new Date()
-  const itemsWithTracking = (data.items || []).map((item) => {
+  const itemsWithTracking = (data.items || []).map((item, index) => {
     const initialStatus = 'Pending COD'
+
+    // Stable per-order-line identifier (frontend uses this to address item actions)
+    // NOTE: For new orders only; old documents without itemId are handled in routes.
+    const itemId = `${index}-${item.productId}`
+
     return {
       ...item,
+      itemId,
       trackingStatus: initialStatus,
       trackingEvents: [{ status: initialStatus, at: now }],
     }
   })
+
 
   const order = {
     status: 'Pending',

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd7e8"/>
+      <stop offset="0.52" stop-color="#f6a6c8"/>
+      <stop offset="1" stop-color="#7a3350"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.18" cy="0.18" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#pink)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g fill="none" stroke="#fff" stroke-width="5" opacity="0.42">
+    <circle cx="290" cy="235" r="52"/>
+    <circle cx="430" cy="610" r="74"/>
+    <circle cx="1180" cy="250" r="64"/>
+    <circle cx="1320" cy="610" r="92"/>
+  </g>
+  <g fill="#fff" opacity="0.85">
+    <path d="M650 180 668 222 712 232 672 252 660 296 638 256 594 246 634 222Z"/>
+    <path d="M1010 510 1023 540 1056 548 1026 563 1017 596 1000 566 968 558 997 541Z"/>
+    <path d="M210 470 220 493 245 499 222 511 216 536 203 514 178 508 201 493Z"/>
+  </g>
+  <path d="M0 660 C310 570 520 720 830 650 C1120 585 1345 730 1600 615 L1600 900 L0 900 Z" fill="#3c1828" opacity="0.22"/>
+</svg>

@@ -5,9 +5,37 @@ import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { normalizeId, normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
+import { getDb } from '../db/mongo.js'
 
 const router = express.Router()
 const productsCache = createCache(300000)
+
+const getProductSoldCounts = async () => {
+  const db = await getDb()
+  const rows = await db
+    .collection('orders')
+    .aggregate([
+      { $match: { status: { $nin: ['Cancelled', 'Removed'] } } },
+      { $unwind: '$items' },
+      {
+        $match: {
+          'items.trackingStatus': { $nin: ['Cancelled', 'Removed'] },
+        },
+      },
+      {
+        $group: {
+          _id: '$items.productId',
+          soldCount: { $sum: '$items.quantity' },
+        },
+      },
+    ])
+    .toArray()
+
+  return rows.reduce((counts, row) => {
+    counts[row._id] = row.soldCount || 0
+    return counts
+  }, {})
+}
 
 const productSchema = z
   .object({
@@ -35,7 +63,11 @@ router.get('/', async (req, res) => {
     res.set('Cache-Control', 'public, max-age=300')
     return res.json(cached)
   }
-  const products = normalizeList(await getProducts())
+  const soldCounts = await getProductSoldCounts()
+  const products = normalizeList(await getProducts()).map((product) => ({
+    ...product,
+    soldCount: soldCounts[product.id] || 0,
+  }))
   productsCache.set(products)
   res.set('Cache-Control', 'public, max-age=300')
   return res.json(products)

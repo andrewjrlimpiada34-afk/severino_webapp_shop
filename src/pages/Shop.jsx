@@ -7,7 +7,7 @@ import { buildCloudinarySrcSet } from '../lib/image.js'
 
 function Shop() {
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState('featured')
+  const [sort, setSort] = useState('default')
   const [category, setCategory] = useState('all')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -19,18 +19,19 @@ function Shop() {
   const [favorites, setFavorites] = useState([])
 
   const filtered = useMemo(() => {
-    const base = items.filter((product) =>
-      product.name.toLowerCase().includes(query.toLowerCase())
-    )
+    const normalizedQuery = query.trim().toLowerCase()
+    const base = normalizedQuery
+      ? items.filter((product) => product.name.toLowerCase().includes(normalizedQuery))
+      : items
 
     const categoryFiltered =
       category === 'all'
         ? base
         : base.filter((product) => (product.category || 'Unisex') === category)
 
-    const minValue = Number(minPrice)
-    const maxValue = Number(maxPrice)
-    const resolvedMin = Number.isFinite(minValue) ? minValue : 0
+    const minValue = minPrice === '' ? null : Number(minPrice)
+    const maxValue = maxPrice === '' ? null : Number(maxPrice)
+    const resolvedMin = Number.isFinite(minValue) ? minValue : Number.NEGATIVE_INFINITY
     const resolvedMax = Number.isFinite(maxValue) ? maxValue : Number.POSITIVE_INFINITY
     const priceFiltered = categoryFiltered.filter(
       (product) => product.price >= resolvedMin && product.price <= resolvedMax
@@ -41,6 +42,9 @@ function Shop() {
     }
     if (sort === 'price-high') {
       return [...priceFiltered].sort((a, b) => b.price - a.price)
+    }
+    if (sort === 'popularity') {
+      return [...priceFiltered].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
     }
     return priceFiltered
   }, [items, query, sort, maxPrice, minPrice, category])
@@ -155,7 +159,8 @@ function Shop() {
           <div>
             <div className="label">Sort</div>
             <select className="input" value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="featured">Featured</option>
+              <option value="default">Default</option>
+              <option value="popularity">Popularity</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
             </select>

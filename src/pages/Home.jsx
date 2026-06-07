@@ -89,7 +89,7 @@ function Home() {
 
 
   return (
-    <section className="grid" style={{ gap: '32px' }}>
+    <section className="grid home-page" style={{ gap: '32px' }}>
       <div
         className="hero"
         style={heroImage ? { '--hero-image': `url(${heroImage})` } : undefined}
@@ -163,7 +163,7 @@ function Home() {
         </div>
 
         {featuredBanners.length > 0 && (
-          <div className="grid three" style={{ width: '100%' }}>
+          <div className="grid three featured-banner-gallery" style={{ width: '100%' }}>
             {featuredBanners.map((banner, index) => (
               <button
                 key={`${banner.id}-${index}`}

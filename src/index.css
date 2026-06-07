@@ -53,6 +53,14 @@ body {
   min-height: 100vh;
   background: var(--app-bg);
   color: var(--olive-900);
+  overflow-x: hidden;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
 }
 
 [data-theme='Daylight'] {
@@ -275,6 +283,8 @@ img {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
 }
 
 .admin-shell {
@@ -1799,6 +1809,12 @@ img {
 }
 
 @media (max-width: 640px) {
+  .nav,
+  .footer {
+    width: 100%;
+    max-width: 100%;
+  }
+
   body.mobile-scroll-shadow-down::before,
   body.mobile-scroll-shadow-up::after {
     content: '';
@@ -1896,6 +1912,10 @@ img {
     padding: 24px 16px 56px;
   }
 
+  .app-shell > .page:has(.home-page) {
+    padding-inline: 8px;
+  }
+
   .home-page,
   .home-page > *,
   .home-page .hero,
@@ -1907,6 +1927,14 @@ img {
 
   .home-page .hero {
     padding-inline: 16px;
+  }
+
+  .home-page::before {
+    inset: -20px 0;
+  }
+
+  .home-page > .grid {
+    gap: 16px;
   }
 
   .filter-toggle {

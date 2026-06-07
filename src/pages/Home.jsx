@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+
 import { useAuth } from '../context/AuthContext.jsx'
-import { getFavorites, toggleFavorite } from '../lib/favorites.js'
-import { buildCloudinarySrcSet } from '../lib/image.js'
+
+
 
 const defaultBannerStories = [
   { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
@@ -14,31 +15,16 @@ const defaultBannerStories = [
 ]
 
 function Home() {
-  const [items, setItems] = useState([])
-  const [status, setStatus] = useState({ loading: true, error: '' })
   const { user } = useAuth()
+
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
   const bannerRef = useRef(null)
   const [bannerIndex, setBannerIndex] = useState(0)
-  const [favorites, setFavorites] = useState([])
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [openBannerStory, setOpenBannerStory] = useState(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setStatus({ loading: true, error: '' })
-        const data = await api.products()
-        setItems(data)
-        setStatus({ loading: false, error: '' })
-      } catch (error) {
-        setStatus({ loading: false, error: error.message })
-      }
-    }
-    load()
-  }, [])
 
   useEffect(() => {
     const loadHeroAndBanners = async () => {
@@ -68,10 +54,6 @@ function Home() {
   }, [])
 
   useEffect(() => {
-    setFavorites(getFavorites(user?.id))
-  }, [user])
-
-  useEffect(() => {
     if (!banners.length) return undefined
     const interval = setInterval(() => {
       setBannerIndex((prev) => {
@@ -88,34 +70,8 @@ function Home() {
     return () => clearInterval(interval)
   }, [banners.length])
 
-  const addToCart = async (productId) => {
-    if (!user) {
-      navigate('/login')
-      return
-    }
-    try {
-      const product = items.find((item) => item.id === productId)
-      if (!product || product.stock <= 0) {
-        setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
-        return
-      }
-      const cart = await api.cart()
-      const existing = cart.items.find((item) => item.productId === productId)
-      const nextItems = existing
-        ? cart.items.map((item) =>
-            item.productId === productId
-              ? {
-                  ...item,
-                  quantity: Math.min(100, Math.min(product.stock, item.quantity + 1)),
-                }
-              : item
-          )
-        : [...cart.items, { productId, quantity: 1 }]
-      await api.updateCart(nextItems)
-    } catch (error) {
-      setStatus((prev) => ({ ...prev, error: error.message }))
-    }
-  }
+
+
 
   return (
     <section className="grid" style={{ gap: '32px' }}>
@@ -172,80 +128,66 @@ function Home() {
 
       <div className="grid">
         <div>
-          <h2 className="section-title">Featured Scents</h2>
-          <p className="section-subtitle">A refined lineup for every mood.</p>
+          <h2 className="section-title">Explore the Shop</h2>
+          <p className="section-subtitle">Browse new scents, find your signature, and build your collection.</p>
         </div>
-        {status.loading && (
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="loader" />
-            Loading products...
+
+        <div className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'grid', gap: '6px' }}>
+            <div className="tag">Curated for you</div>
+            <div style={{ fontWeight: 700 }}>Severino Collection — always ready to discover.</div>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <a className="button" href="/shop">
+              Shop All Scents
+            </a>
+            <a className="button secondary" href="/search">
+              Search Products
+            </a>
+          </div>
+        </div>
+
+        {banners.length > 0 && (
+          <div className="grid three" style={{ width: '100%' }}>
+            {banners.slice(0, 3).map((banner, index) => (
+              <button
+                key={`${banner.title}-${index}`}
+                type="button"
+                className="card"
+                style={{
+                  padding: '0',
+                  border: 'none',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  background: '#f7f6f1',
+                }}
+                onClick={() =>
+                  setOpenBannerStory({
+                    title: bannerStories[index]?.title || banner.title,
+                    message: bannerStories[index]?.message || '',
+                  })
+                }
+                aria-label={`Open ${banner.title}`}
+              >
+                <div
+                  style={{
+                    height: '160px',
+                    backgroundImage: `url(${banner.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
+                <div style={{ padding: '14px 16px' }}>
+                  <div className="tag">Featured Banner</div>
+                  <div style={{ fontWeight: 800, marginTop: '8px' }}>{banner.title}</div>
+                </div>
+              </button>
+            ))}
           </div>
         )}
-        {status.error && <div className="card">Error: {status.error}</div>}
-        <div className="grid four">
-          {items.slice(0, 8).map((product) => {
-            const isFav = favorites.includes(product.id)
-            return (
-              <article key={product.id} className="product-card">
-                <div className="product-image">
-                  {product.imageUrls?.[0] || product.imageUrl ? (
-                    <img
-                      className="product-image-img"
-                      src={product.imageUrls?.[0] || product.imageUrl}
-                      srcSet={buildCloudinarySrcSet(product.imageUrls?.[0] || product.imageUrl)}
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
-                      alt={product.name}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span>{product.name}</span>
-                  )}
-                </div>
-                <div>
-                  <strong>{product.name}</strong>
-                  <p className="section-subtitle">{product.notes}</p>
-                </div>
-                <div className="pill">{product.size}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>PHP {product.price.toLocaleString()}</span>
-                  <div className="product-actions">
-                    <button
-                      className={`icon-button ${isFav ? 'favorited' : ''}`}
-                      type="button"
-                      onClick={() => {
-                        if (!user) {
-                          navigate('/login')
-                          return
-                        }
-                        const next = toggleFavorite(product.id, user?.id)
-                        setFavorites(next)
-                      }}
-                      aria-label="Favorite"
-                    >
-                      <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                          d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                          fill={isFav ? 'currentColor' : 'none'}
-                          stroke="currentColor"
-                          strokeWidth="1.6"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                    <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
-                      View
-                    </button>
-                    <button className="button ghost" onClick={() => addToCart(product.id)}>
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
       </div>
+
       {openBannerStory && (
         <div
           className="modal-backdrop"

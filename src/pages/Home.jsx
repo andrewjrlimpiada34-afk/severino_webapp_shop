@@ -23,15 +23,18 @@ function Home() {
   const [bannerIndex, setBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
+  const [featuredBanners, setFeaturedBanners] = useState([])
   const [openBannerStory, setOpenBannerStory] = useState(null)
+
 
 
   useEffect(() => {
     const loadHeroAndBanners = async () => {
-      const [bannerImages, stories, hero] = await Promise.all([
+      const [bannerImages, stories, hero, featured] = await Promise.all([
         api.banners().catch(() => []),
         api.bannerStories().catch(() => defaultBannerStories),
         api.heroImage().catch(() => ({ image: '' })),
+        api.featuredBanners().catch(() => []),
       ])
       setHeroImage(hero?.image || '')
       setBannerStories(
@@ -49,6 +52,18 @@ function Home() {
             }))
           : []
       )
+      setFeaturedBanners(
+        (featured || [])
+          .filter((b) => b?.image)
+          .slice(0, 3)
+          .map((b, idx) => ({
+            id: b.id || `featured-${idx + 1}`,
+            title: b.title || `Featured Banner ${idx + 1}`,
+            image: b.image,
+            message: b.message || '',
+          }))
+      )
+
     }
     loadHeroAndBanners()
   }, [])
@@ -147,11 +162,11 @@ function Home() {
           </div>
         </div>
 
-        {banners.length > 0 && (
+        {featuredBanners.length > 0 && (
           <div className="grid three" style={{ width: '100%' }}>
-            {banners.slice(0, 3).map((banner, index) => (
+            {featuredBanners.map((banner, index) => (
               <button
-                key={`${banner.title}-${index}`}
+                key={`${banner.id}-${index}`}
                 type="button"
                 className="card"
                 style={{
@@ -163,10 +178,11 @@ function Home() {
                 }}
                 onClick={() =>
                   setOpenBannerStory({
-                    title: bannerStories[index]?.title || banner.title,
-                    message: bannerStories[index]?.message || '',
+                    title: banner.title,
+                    message: banner.message || '',
                   })
                 }
+
                 aria-label={`Open ${banner.title}`}
               >
                 <div
@@ -186,6 +202,7 @@ function Home() {
             ))}
           </div>
         )}
+
       </div>
 
       {openBannerStory && (

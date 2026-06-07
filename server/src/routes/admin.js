@@ -14,7 +14,10 @@ import {
   updateLoginPopup,
   getHeroImage,
   updateHeroImage,
+  getFeaturedBanners,
+  updateFeaturedBanners,
 } from '../db/banners.js'
+
 import { removeCartByUserId } from '../db/carts.js'
 import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
@@ -180,4 +183,36 @@ router.put('/hero-image', async (req, res) => {
   return res.json({ image: updated })
 })
 
+const featuredBannerSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().max(120).optional(),
+  image: z.string().optional(),
+  message: z.string().max(1500).optional(),
+})
+
+const featuredBannersSchema = z
+  .object({
+    items: z.array(featuredBannerSchema).max(3),
+  })
+  .refine((data) => data.items.every((i) => !isDataUrl(i.image || '')), {
+    message: 'Inline images are not allowed',
+  })
+
+
+router.get('/featured-banners', async (req, res) => {
+  const items = await getFeaturedBanners()
+  return res.json(items)
+})
+
+router.put('/featured-banners', async (req, res) => {
+  const parsed = featuredBannersSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
+  }
+  const updated = await updateFeaturedBanners(parsed.data.items)
+  bannersCache.clear()
+  return res.json(updated)
+})
+
 export default router
+

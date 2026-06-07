@@ -5,7 +5,9 @@ import {
   getBanners,
   getHeroImage,
   getLoginAnnouncements,
+  getFeaturedBanners,
 } from '../db/banners.js'
+
 import { createCache } from '../lib/cache.js'
 
 const router = express.Router()
@@ -43,4 +45,10 @@ router.get('/hero-image', async (req, res) => {
   res.json({ image: image || '' })
 })
 
+router.get('/featured-banners', async (req, res) => {
+  const items = await getFeaturedBanners()
+  res.json(items)
+})
+
 export default router
+

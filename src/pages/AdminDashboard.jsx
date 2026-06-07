@@ -34,11 +34,29 @@ function AdminDashboard() {
   const [heroImage, setHeroImage] = useState('')
   const [heroStatus, setHeroStatus] = useState({ loading: false, error: '', success: '' })
 
+  const defaultFeaturedBanners = [
+    { id: 'featured-1', title: 'Featured Banner 1', image: '', message: '' },
+    { id: 'featured-2', title: 'Featured Banner 2', image: '', message: '' },
+    { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
+  ]
+  const [featuredBanners, setFeaturedBanners] = useState(defaultFeaturedBanners)
+  const [featuredBannerStatus, setFeaturedBannerStatus] = useState({ loading: false, error: '', success: '' })
+
+
   useEffect(() => {
     const load = async () => {
       try {
         setStatus({ loading: true, error: '' })
-        const [sales, inventory, bannerImages, stories, popup, adminAnnouncements, hero] = await Promise.all([
+        const [
+          sales,
+          inventory,
+          bannerImages,
+          stories,
+          popup,
+          adminAnnouncements,
+          hero,
+          featured,
+        ] = await Promise.all([
           api.adminSales(),
           api.adminInventory(),
           api.adminBanners().catch(() => []),
@@ -46,7 +64,9 @@ function AdminDashboard() {
           api.adminLoginPopup().catch(() => ({ image: '' })),
           api.adminLoginAnnouncement().catch(() => []),
           api.adminHeroImage().catch(() => ({ image: '' })),
+          api.adminFeaturedBanners().catch(() => defaultFeaturedBanners),
         ])
+
         const lowStock = inventory.filter((item) => item.stock < 12).length
         setStats([
           { label: 'Total Orders', value: sales.count },
@@ -80,6 +100,21 @@ function AdminDashboard() {
         if (hero?.image) {
           setHeroImage(hero.image)
         }
+
+        if (featured?.length) {
+          setFeaturedBanners(
+            featured
+              .filter((b) => b?.image)
+              .slice(0, 3)
+              .map((item, index) => ({
+                id: item.id || `featured-${index + 1}`,
+                title: item.title || `Featured Banner ${index + 1}`,
+                image: item.image || '',
+                message: item.message || '',
+              }))
+          )
+        }
+
         setStatus({ loading: false, error: '' })
       } catch (error) {
         setStatus({ loading: false, error: error.message })
@@ -317,8 +352,121 @@ function AdminDashboard() {
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
+          Featured Banners (max 3)
+        </h2>
+        <p className="section-subtitle">Each featured banner has its own title + popup message.</p>
+        {featuredBannerStatus.error && <div className="card">Error: {featuredBannerStatus.error}</div>}
+        {featuredBannerStatus.success && <div className="card">{featuredBannerStatus.success}</div>}
+
+        {featuredBanners.map((value, index) => (
+          <div key={value.id || index}>
+            <div className="label">Featured Banner {index + 1}</div>
+
+            <div className="grid two" style={{ gap: '16px' }}>
+              <div>
+                <div className="label">Image URL</div>
+                <input
+                  className="input"
+                  placeholder="https://..."
+                  value={value.image}
+                  onChange={(event) =>
+                    setFeaturedBanners((prev) =>
+                      prev.map((item, i) => (i === index ? { ...item, image: event.target.value } : item))
+                    )
+                  }
+                />
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    const maxSize = 20 * 1024 * 1024
+                    if (file.size > maxSize) {
+                      setFeaturedBannerStatus({ loading: false, error: 'Image too large. Please upload under 20MB.', success: '' })
+                      return
+                    }
+                    try {
+                      const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
+                      const upload = await api.uploadImage(compressed)
+                      setFeaturedBanners((prev) =>
+                        prev.map((item, i) => (i === index ? { ...item, image: upload.url } : item))
+                      )
+                    } catch (error) {
+                      setFeaturedBannerStatus({ loading: false, error: error?.message || 'Failed to process image.', success: '' })
+                    }
+                  }}
+                />
+                {value.image && (
+                  <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />
+                )}
+              </div>
+
+              <div>
+                <div className="label">Title</div>
+                <input
+                  className="input"
+                  placeholder={`Featured Banner ${index + 1} title`}
+                  value={value.title}
+                  onChange={(event) =>
+                    setFeaturedBanners((prev) =>
+                      prev.map((item, i) => (i === index ? { ...item, title: event.target.value } : item))
+                    )
+                  }
+                />
+
+                <div className="label" style={{ marginTop: '8px' }}>
+                  Popup message
+                </div>
+                <textarea
+                  className="input input-textarea"
+                  placeholder="Write the popup content for this featured banner."
+                  value={value.message}
+                  onChange={(event) =>
+                    setFeaturedBanners((prev) =>
+                      prev.map((item, i) => (i === index ? { ...item, message: event.target.value } : item))
+                    )
+                  }
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e2db', margin: '18px 0' }} />
+          </div>
+        ))}
+
+        <button
+          className="button"
+          type="button"
+          onClick={async () => {
+            try {
+              setFeaturedBannerStatus({ loading: true, error: '', success: '' })
+              const cleaned = featuredBanners
+                .map((b) => ({
+                  id: b.id,
+                  title: b.title?.trim() || '',
+                  image: b.image?.trim() || '',
+                  message: b.message?.trim() || '',
+                }))
+                .filter((b) => b.image || b.message || b.title)
+              await api.updateFeaturedBanners(cleaned)
+              setFeaturedBannerStatus({ loading: false, error: '', success: 'Featured banners updated.' })
+            } catch (error) {
+              setFeaturedBannerStatus({ loading: false, error: error.message, success: '' })
+            }
+          }}
+        >
+          Save Featured Banners
+        </button>
+      </div>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>
           Hero Header Image
         </h2>
+
         <p className="section-subtitle">This is the full-width header background on the homepage.</p>
         {heroStatus.error && <div className="card">Error: {heroStatus.error}</div>}
         {heroStatus.success && <div className="card">{heroStatus.success}</div>}

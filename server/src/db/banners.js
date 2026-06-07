@@ -166,3 +166,51 @@ export const updateHeroImage = async (image) => {
   )
   return image || ''
 }
+
+const defaultFeaturedBanners = [
+  { id: 'featured-1', title: 'Featured Banner 1', image: '', message: '' },
+  { id: 'featured-2', title: 'Featured Banner 2', image: '', message: '' },
+  { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
+]
+
+const normalizeFeaturedBanners = (items = []) => {
+  const max = 3
+  const next = defaultFeaturedBanners.map((base, idx) => {
+    const current = items[idx] || {}
+    return {
+      id: base.id,
+      title: (current.title ?? base.title) || '',
+      image: current.image || '',
+      message: current.message || '',
+    }
+  })
+  return next.slice(0, max)
+}
+
+const ensureFeaturedBanners = async () => {
+  const db = await getDb()
+  const collection = db.collection('banners')
+  const existing = await collection.findOne({ key: 'featured_banners' })
+  if (!existing) {
+    const featured = normalizeFeaturedBanners([])
+    await collection.insertOne({ key: 'featured_banners', items: featured })
+    return featured
+  }
+  return normalizeFeaturedBanners(existing.items || [])
+}
+
+export const getFeaturedBanners = async () => {
+  return ensureFeaturedBanners()
+}
+
+export const updateFeaturedBanners = async (items) => {
+  const db = await getDb()
+  const nextItems = normalizeFeaturedBanners(items)
+  await db.collection('banners').updateOne(
+    { key: 'featured_banners' },
+    { $set: { items: nextItems } },
+    { upsert: true }
+  )
+  return nextItems
+}
+

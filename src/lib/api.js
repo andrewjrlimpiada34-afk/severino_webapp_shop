@@ -111,6 +111,14 @@ export const api = {
   bannerStories: () => request('/api/public/banner-stories'),
   heroImage: () => request('/api/public/hero-image'),
   banners: () => request('/api/public/banners'),
+  featuredBanners: () => request('/api/public/featured-banners'),
+  adminFeaturedBanners: () => request('/api/admin/featured-banners'),
+  updateFeaturedBanners: (items) =>
+    request('/api/admin/featured-banners', {
+      method: 'PUT',
+      body: JSON.stringify({ items }),
+    }),
+
   productReviews: (productId) => request(`/api/reviews/${productId}`),
   addReview: (productId, data) =>
     request(`/api/reviews/${productId}`, { method: 'POST', body: JSON.stringify(data) }),

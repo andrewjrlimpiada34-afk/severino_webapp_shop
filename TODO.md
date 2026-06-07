@@ -1,12 +1,12 @@
 # TODO
 
-- [x] Edit `src/pages/Home.jsx`
-  - [x] Remove the “Featured Scents” (products grid) section and related loading/error UI
-  - [x] Remove product-related state/side-effects if they become unused
-  - [x] Add a replacement “Explore the shop” promo section using the existing admin-managed homepage banners from `api.banners()`
-  - [x] Ensure CTAs link to `/shop`
-  - [x] Keep banner carousel/hero intact
-- [x] Run build/dev checks (lint + build if available)
-- [ ] Manual verification: Home loads, no product grid appears, banners render, links work
+## Featured banners separation (carousel vs featured)
 
+- [ ] Implement new DB dataset `featured_banners` in `server/src/db/banners.js` (max 3)
+- [ ] Add admin endpoints in `server/src/routes/admin.js`: GET/PUT `/featured-banners`
+- [ ] Add public endpoint in `server/src/routes/public.js`: GET `/featured-banners`
+- [ ] Extend client API in `src/lib/api.js` for admin/public featured banners
+- [ ] Update `src/pages/Home.jsx` to render featured cards using `/featured-banners` (max 3) with per-card popup message
+- [ ] Update `src/pages/AdminDashboard.jsx` to manage featured banners (upload up to 3 images, edit title + popup message, save)
+- [ ] Verify build/lint for root + server
 

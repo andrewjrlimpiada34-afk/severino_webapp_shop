@@ -444,6 +444,40 @@ img {
   cursor: pointer;
 }
 
+.featured-banner-card {
+  background: var(--glass);
+  color: var(--olive-900);
+}
+
+.featured-banner-card__content {
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--glass) 88%, var(--olive-100));
+}
+
+.featured-banner-card__title {
+  margin-top: 8px;
+  font-weight: 800;
+  color: var(--olive-900);
+}
+
+.featured-banner-card .tag {
+  color: var(--olive-700);
+}
+
+[data-theme='Shadow Dark Mode'] .featured-banner-card {
+  background: rgba(30, 27, 21, 0.94);
+  color: #f4ead5;
+}
+
+[data-theme='Shadow Dark Mode'] .featured-banner-card__content {
+  background: rgba(30, 27, 21, 0.96);
+}
+
+[data-theme='Shadow Dark Mode'] .featured-banner-card__title,
+[data-theme='Shadow Dark Mode'] .featured-banner-card .tag {
+  color: #f4ead5;
+}
+
 
 .star-row {
   display: flex;

@@ -168,13 +168,12 @@ function Home() {
               <button
                 key={`${banner.id}-${index}`}
                 type="button"
-                className="card"
+                className="card featured-banner-card"
                 style={{
                   padding: '0',
                   border: 'none',
                   overflow: 'hidden',
                   cursor: 'pointer',
-                  background: '#f7f6f1',
                 }}
                 onClick={() =>
                   setOpenBannerStory({
@@ -194,9 +193,9 @@ function Home() {
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
-                <div style={{ padding: '14px 16px' }}>
+                <div className="featured-banner-card__content">
                   <div className="tag">Featured Banner</div>
-                  <div style={{ fontWeight: 800, marginTop: '8px' }}>{banner.title}</div>
+                  <div className="featured-banner-card__title">{banner.title}</div>
                 </div>
               </button>
             ))}

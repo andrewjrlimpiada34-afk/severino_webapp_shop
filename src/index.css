@@ -1962,50 +1962,46 @@ img {
   }
 
   .featured-banner-gallery {
-    position: relative;
-    display: block;
+    display: grid;
+    gap: 16px;
     width: 100%;
-    min-height: 390px;
     margin: 8px auto 0;
-    overflow: hidden;
   }
 
   .featured-banner-gallery .featured-banner-card {
-    position: absolute;
-    top: 24px;
-    left: 50%;
-    width: min(58vw, 230px);
-    max-width: calc(100vw - 80px);
-    border: 9px solid rgba(255, 255, 255, 0.74) !important;
-    border-radius: 0;
-    box-shadow: 0 16px 30px rgba(26, 31, 20, 0.2);
-    transform-origin: center bottom;
+    position: relative;
+    width: 100%;
+    border: 1px solid rgba(43, 52, 34, 0.12) !important;
+    border-radius: 16px;
+    box-shadow: 0 18px 30px rgba(26, 31, 20, 0.14);
+    transform: none;
+    opacity: 1;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(1) {
-    transform: translateX(-83%) rotate(-6deg) scale(0.86);
-    opacity: 0.56;
+    transform: none;
+    opacity: 1;
     z-index: 1;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(2) {
-    transform: translateX(-50%) scale(1);
+    transform: none;
     opacity: 1;
-    z-index: 3;
+    z-index: 1;
   }
 
   .featured-banner-gallery .featured-banner-card:nth-child(3) {
-    transform: translateX(-17%) rotate(6deg) scale(0.86);
-    opacity: 0.56;
+    transform: none;
+    opacity: 1;
     z-index: 1;
   }
 
   .featured-banner-gallery .featured-banner-card > div:first-child {
-    height: 245px !important;
+    height: 190px !important;
   }
 
   .featured-banner-gallery .featured-banner-card__content {
-    min-height: 76px;
+    min-height: 78px;
     text-align: center;
     display: grid;
     place-items: center;

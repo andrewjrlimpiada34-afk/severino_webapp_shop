@@ -200,8 +200,18 @@ function Login() {
           <p className="section-subtitle">
             Review and agree to the platform terms before accessing your account.
           </p>
+          <div className="terms-preview">
+            <p>
+              By checking the "I Agree" box, accessing, or utilizing the Platform, you confirm that
+              you have read, understood, and agreed to be legally bound by this Agreement.
+            </p>
+            <p>
+              We process personal data, system logs, and operational telemetry in strict compliance
+              with applicable privacy regulations and platform security protocols.
+            </p>
+          </div>
           <button className="button secondary" type="button" onClick={() => setTermsOpen(true)}>
-            Read Terms
+            Read More
           </button>
         </div>
       </div>

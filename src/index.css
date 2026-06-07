@@ -1002,6 +1002,15 @@ img {
   }
 }
 
+@keyframes scrollEdgeShadow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .nav-logo {
   font-family: inherit;
 
@@ -1503,14 +1512,27 @@ img {
 }
 
 @media (max-width: 640px) {
-  .page > * {
-    transition: opacity 0.22s ease, transform 0.22s ease, filter 0.22s ease;
+  body.mobile-scroll-shadow-down::before,
+  body.mobile-scroll-shadow-up::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 84px;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 1;
+    animation: scrollEdgeShadow 0.18s ease both;
   }
 
-  body.mobile-scroll-fade .page > * {
-    opacity: 0.82;
-    filter: blur(0.35px);
-    transform: translateY(3px);
+  body.mobile-scroll-shadow-down::before {
+    top: 0;
+    background: linear-gradient(180deg, rgba(16, 20, 14, 0.24), rgba(16, 20, 14, 0));
+  }
+
+  body.mobile-scroll-shadow-up::after {
+    bottom: 0;
+    background: linear-gradient(0deg, rgba(16, 20, 14, 0.24), rgba(16, 20, 14, 0));
   }
 
   .login-header-row {

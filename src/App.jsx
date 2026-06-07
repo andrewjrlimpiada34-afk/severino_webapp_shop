@@ -160,25 +160,47 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  const location = useLocation()
+
   useEffect(() => {
     let scrollTimer
+    let lastScrollY = window.scrollY
+    const shadowRoutes = ['/', '/shop', '/favorites']
+    const isShadowRoute = shadowRoutes.includes(location.pathname)
+
+    const clearScrollShadows = () => {
+      document.body.classList.remove('mobile-scroll-shadow-up')
+      document.body.classList.remove('mobile-scroll-shadow-down')
+    }
 
     const updateScrollState = () => {
-      if (!window.matchMedia('(max-width: 640px)').matches) return
-      document.body.classList.add('mobile-scroll-fade')
+      if (!window.matchMedia('(max-width: 640px)').matches || !isShadowRoute) {
+        clearScrollShadows()
+        return
+      }
+
+      const currentScrollY = window.scrollY
+      const isScrollingDown = currentScrollY > lastScrollY
+      clearScrollShadows()
+      document.body.classList.add(
+        isScrollingDown ? 'mobile-scroll-shadow-down' : 'mobile-scroll-shadow-up'
+      )
+      lastScrollY = currentScrollY
+
       window.clearTimeout(scrollTimer)
       scrollTimer = window.setTimeout(() => {
-        document.body.classList.remove('mobile-scroll-fade')
+        clearScrollShadows()
       }, 180)
     }
 
+    clearScrollShadows()
     window.addEventListener('scroll', updateScrollState, { passive: true })
     return () => {
       window.clearTimeout(scrollTimer)
       window.removeEventListener('scroll', updateScrollState)
-      document.body.classList.remove('mobile-scroll-fade')
+      clearScrollShadows()
     }
-  }, [])
+  }, [location.pathname])
 
   return (
     <Routes>

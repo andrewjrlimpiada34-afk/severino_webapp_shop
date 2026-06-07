@@ -56,34 +56,59 @@ function Shop() {
     }
   }
 
-  const addToCart = async (productId) => {
+  const [cartModal, setCartModal] = useState({ open: false, product: null, quantity: 1 })
+
+  const openAddToCartModal = (productId) => {
+    const product = items.find((item) => item.id === productId)
+    if (!product || product.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      return
+    }
+    setStatus((prev) => ({ ...prev, error: '' }))
+    setCartModal({
+      open: true,
+      product,
+      quantity: 1,
+    })
+  }
+
+  const closeAddToCartModal = () => {
+    setCartModal({ open: false, product: null, quantity: 1 })
+  }
+
+  const addToCartWithQuantity = async () => {
     if (!user) {
       navigate('/login')
       return
     }
+    const product = cartModal.product
+    if (!product || product.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      closeAddToCartModal()
+      return
+    }
+
+    const desiredQty = Number(cartModal.quantity) || 1
+    const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+
     try {
-      const product = items.find((item) => item.id === productId)
-      if (!product || product.stock <= 0) {
-        setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
-        return
-      }
       const cart = await api.cart()
-      const existing = cart.items.find((item) => item.productId === productId)
+      const existing = cart.items.find((item) => item.productId === product.id)
       const nextItems = existing
         ? cart.items.map((item) =>
-            item.productId === productId
-              ? {
-                  ...item,
-                  quantity: Math.min(100, Math.min(product.stock, item.quantity + 1)),
-                }
+            item.productId === product.id
+              ? { ...item, quantity: Math.min(100, Math.min(product.stock, item.quantity + qtyToAdd)) }
               : item
           )
-        : [...cart.items, { productId, quantity: 1 }]
+        : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
+
       await api.updateCart(nextItems)
+      closeAddToCartModal()
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
     }
   }
+
 
   useEffect(() => {
     loadProducts()
@@ -93,8 +118,11 @@ function Shop() {
     setFavorites(getFavorites(user?.id))
   }, [user])
 
+  const maxQty = cartModal.product ? Math.min(100, cartModal.product.stock ?? 100) : 1
+
   return (
     <section className="grid" style={{ gap: '28px' }}>
+
       <div className="page-hero">
         <div className="tag">Severino Collection</div>
         <h1 className="section-title">Shop the Collection</h1>
@@ -184,6 +212,8 @@ function Shop() {
           const isFav = favorites.includes(product.id)
           return (
             <article key={product.id} className="product-card">
+
+
               <div className="product-image">
                 {product.imageUrls?.[0] || product.imageUrl ? (
                   <img
@@ -233,17 +263,68 @@ function Shop() {
                   <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
                     View
                   </button>
-                  <button className="button" onClick={() => addToCart(product.id)}>
+                  <button className="button" onClick={() => openAddToCartModal(product.id)}>
                     Add
                   </button>
+
                 </div>
               </div>
             </article>
           )
         })}
       </div>
+
+      {cartModal.open && cartModal.product && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card" role="dialog" aria-modal="true">
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={closeAddToCartModal}
+            >
+              X
+            </button>
+
+            <div className="tag">Add to Cart</div>
+            <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
+              {cartModal.product.name}
+            </h2>
+            <p className="section-subtitle">Select quantity</p>
+
+            <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
+              <div>
+                <div className="label">Quantity</div>
+                <select
+                  className="input"
+                  value={cartModal.quantity}
+                  onChange={(e) =>
+                    setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
+                  }
+                >
+                  {Array.from({ length: maxQty }, (_, i) => i + 1).map((qty) => (
+                    <option key={qty} value={qty}>
+                      {qty}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button className="button secondary" type="button" onClick={closeAddToCartModal}>
+                  Cancel
+                </button>
+                <button className="button" type="button" onClick={addToCartWithQuantity}>
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
+
 
 export default Shop

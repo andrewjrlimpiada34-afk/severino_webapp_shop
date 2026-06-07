@@ -11,6 +11,8 @@ function Search() {
   const [category, setCategory] = useState('all')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
+  const [cartModal, setCartModal] = useState({ open: false, product: null, quantity: 1 })
+
   const { user } = useAuth()
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState([])
@@ -98,6 +100,7 @@ function Search() {
       {status.error && <div className="card">Error: {status.error}</div>}
       <div className="grid four">
         {results.map((product) => {
+
           const isFav = favorites.includes(product.id)
           return (
             <article key={product.id} className="product-card">
@@ -151,36 +154,7 @@ function Search() {
                   </button>
                   <button
                     className="button ghost"
-                    onClick={async () => {
-                      if (!user) {
-                        navigate('/login')
-                        return
-                      }
-                      try {
-                        if (product.stock <= 0) {
-                          setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
-                          return
-                        }
-                        const cart = await api.cart()
-                        const existing = cart.items.find((item) => item.productId === product.id)
-                        const nextItems = existing
-                          ? cart.items.map((item) =>
-                              item.productId === product.id
-                                ? {
-                                    ...item,
-                                    quantity: Math.min(
-                                      100,
-                                      Math.min(product.stock, item.quantity + 1)
-                                    ),
-                                  }
-                                : item
-                            )
-                          : [...cart.items, { productId: product.id, quantity: 1 }]
-                        await api.updateCart(nextItems)
-                      } catch (error) {
-                        setStatus((prev) => ({ ...prev, error: error.message }))
-                      }
-                    }}
+                    onClick={() => openAddToCartModal(product.id)}
                   >
                     Add
                   </button>
@@ -190,8 +164,58 @@ function Search() {
           )
         })}
       </div>
+
+      {cartModal.open && cartModal.product && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card" role="dialog" aria-modal="true">
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={closeAddToCartModal}
+            >
+              X
+            </button>
+
+            <div className="tag">Add to Cart</div>
+            <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
+              {cartModal.product.name}
+            </h2>
+            <p className="section-subtitle">Select quantity</p>
+
+            <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
+              <div>
+                <div className="label">Quantity</div>
+                <select
+                  className="input"
+                  value={cartModal.quantity}
+                  onChange={(e) =>
+                    setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
+                  }
+                >
+                  {Array.from({ length: maxQty }, (_, i) => i + 1).map((qty) => (
+                    <option key={qty} value={qty}>
+                      {qty}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button className="button secondary" type="button" onClick={closeAddToCartModal}>
+                  Cancel
+                </button>
+                <button className="button" type="button" onClick={addToCartWithQuantity}>
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
+
 
 export default Search

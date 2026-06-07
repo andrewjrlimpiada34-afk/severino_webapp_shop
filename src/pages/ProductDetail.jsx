@@ -37,31 +37,53 @@ function ProductDetail() {
     setIsFav(getFavorites(user?.id).includes(id))
   }, [user, id])
 
-  const addToCart = async () => {
+  const [cartModal, setCartModal] = useState({ open: false, quantity: 1 })
+
+  const closeAddToCartModal = () => {
+    setCartModal({ open: false, quantity: 1 })
+  }
+
+  const openAddToCartModal = () => {
+    if (product?.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      return
+    }
+    setStatus((prev) => ({ ...prev, error: '', success: '' }))
+    setCartModal({ open: true, quantity: 1 })
+  }
+
+  const addToCartWithQuantity = async () => {
     if (!user) {
       navigate('/login')
       return
     }
-    if (product.stock <= 0) {
+    if (!product || product.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      closeAddToCartModal()
       return
     }
+
+    const desiredQty = Number(cartModal.quantity) || 1
+    const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+
     try {
       const cart = await api.cart()
       const existing = cart.items.find((item) => item.productId === product.id)
       const nextItems = existing
         ? cart.items.map((item) =>
             item.productId === product.id
-              ? { ...item, quantity: Math.min(product.stock, Math.min(100, item.quantity + 1)) }
+              ? { ...item, quantity: Math.min(product.stock, Math.min(100, item.quantity + qtyToAdd)) }
               : item
           )
-        : [...cart.items, { productId: product.id, quantity: 1 }]
+        : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
       await api.updateCart(nextItems)
       setStatus((prev) => ({ ...prev, success: 'Added to cart.' }))
+      closeAddToCartModal()
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
     }
   }
+
 
   const buyNow = async () => {
     if (!user) {
@@ -191,12 +213,13 @@ function ProductDetail() {
             <div className="pill out-stock">Out of Stock</div>
           )}
           <div className="product-actions product-actions--wrap" style={{ marginTop: '16px' }}>
-            <button className="button" onClick={addToCart}>
+            <button className="button" onClick={openAddToCartModal}>
               Add to Cart
             </button>
             <button className="button secondary" onClick={buyNow}>
               Buy Now
             </button>
+
             <button
               className={`icon-button ${isFav ? 'favorited' : ''}`}
               type="button"
@@ -227,8 +250,60 @@ function ProductDetail() {
         </div>
       </div>
 
+      {cartModal.open && product && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="modal-card" role="dialog" aria-modal="true">
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={closeAddToCartModal}
+            >
+              X
+            </button>
+
+            <div className="tag">Add to Cart</div>
+            <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
+              {product.name}
+            </h2>
+            <p className="section-subtitle">Select quantity</p>
+
+            <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
+              <div>
+                <div className="label">Quantity</div>
+                <select
+                  className="input"
+                  value={cartModal.quantity}
+                  onChange={(e) =>
+                    setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
+                  }
+                >
+                  {Array.from({ length: Math.min(100, product.stock ?? 100) }, (_, i) => i + 1).map(
+                    (qty) => (
+                      <option key={qty} value={qty}>
+                        {qty}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button className="button secondary" type="button" onClick={closeAddToCartModal}>
+                  Cancel
+                </button>
+                <button className="button" type="button" onClick={addToCartWithQuantity}>
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid two">
         <form className="card form" onSubmit={submitReview}>
+
           <div className="tag">Rate this scent</div>
           <div className="card">
             <div className="label">Summary</div>

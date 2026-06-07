@@ -967,6 +967,41 @@ img {
   }
 }
 
+@keyframes perfumeMistText {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(12px);
+    text-shadow: 0 0 0 rgba(247, 243, 234, 0);
+  }
+  45% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+    text-shadow: 0 0 18px rgba(247, 243, 234, 0.34);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+    text-shadow: 0 10px 24px rgba(26, 31, 20, 0.12);
+  }
+}
+
+@keyframes perfumeMistDrift {
+  0% {
+    opacity: 0;
+    transform: translateX(-18%) translateY(8px) scale(0.9);
+  }
+  35% {
+    opacity: 0.38;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(22%) translateY(-12px) scale(1.12);
+  }
+}
+
 .nav-logo {
   font-family: inherit;
 
@@ -1084,6 +1119,28 @@ img {
   display: grid;
   gap: 12px;
   justify-items: center;
+  position: relative;
+  isolation: isolate;
+}
+
+.hero-content::after,
+.page-hero::after,
+.account-hero::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 26%;
+  height: 42%;
+  pointer-events: none;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.22), transparent 46%),
+    radial-gradient(circle at 66% 42%, rgba(197, 211, 165, 0.2), transparent 42%);
+  filter: blur(20px);
+  opacity: 0;
+  z-index: -1;
+  animation: perfumeMistDrift 5.8s ease-in-out infinite;
 }
 
 .hero-actions {
@@ -1104,6 +1161,30 @@ img {
 
 .hero .section-title {
   text-shadow: 0 14px 30px rgba(8, 8, 8, 0.35);
+}
+
+.hero-content .tag,
+.hero-content .section-title,
+.hero-content .section-subtitle,
+.page-hero > .tag,
+.page-hero > .section-title,
+.page-hero > .section-subtitle,
+.account-hero > .tag,
+.account-hero > .section-title,
+.account-hero > .section-subtitle {
+  animation: perfumeMistText 1.15s ease both;
+}
+
+.hero-content .section-title,
+.page-hero > .section-title,
+.account-hero > .section-title {
+  animation-delay: 0.08s;
+}
+
+.hero-content .section-subtitle,
+.page-hero > .section-subtitle,
+.account-hero > .section-subtitle {
+  animation-delay: 0.18s;
 }
 
 .hero .button.secondary {
@@ -1324,6 +1405,9 @@ img {
 .account-hero {
   padding: clamp(22px, 4vw, 36px);
   border-radius: 26px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 60%),
     var(--account-hero-bg);
@@ -1334,6 +1418,9 @@ img {
 .page-hero {
   padding: clamp(22px, 4vw, 34px);
   border-radius: 26px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 60%),
     var(--page-hero-bg);
@@ -1405,7 +1492,27 @@ img {
   }
 }
 
+@media (min-width: 901px) {
+  .hero-content {
+    max-width: min(1120px, 100%);
+  }
+
+  .hero .section-title {
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 640px) {
+  .page > * {
+    transition: opacity 0.22s ease, transform 0.22s ease, filter 0.22s ease;
+  }
+
+  body.mobile-scroll-fade .page > * {
+    opacity: 0.82;
+    filter: blur(0.35px);
+    transform: translateY(3px);
+  }
+
   .login-header-row {
     align-items: flex-start;
   }

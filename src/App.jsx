@@ -160,6 +160,26 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  useEffect(() => {
+    let scrollTimer
+
+    const updateScrollState = () => {
+      if (!window.matchMedia('(max-width: 640px)').matches) return
+      document.body.classList.add('mobile-scroll-fade')
+      window.clearTimeout(scrollTimer)
+      scrollTimer = window.setTimeout(() => {
+        document.body.classList.remove('mobile-scroll-fade')
+      }, 180)
+    }
+
+    window.addEventListener('scroll', updateScrollState, { passive: true })
+    return () => {
+      window.clearTimeout(scrollTimer)
+      window.removeEventListener('scroll', updateScrollState)
+      document.body.classList.remove('mobile-scroll-fade')
+    }
+  }, [])
+
   return (
     <Routes>
       <Route

@@ -352,59 +352,84 @@ function AdminDashboard() {
 
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
-          Featured Banners (max 3)
+          Featured Banner Images (max 3)
         </h2>
-        <p className="section-subtitle">Each featured banner has its own title + popup message.</p>
+        <p className="section-subtitle">Upload + set the image for each featured banner.</p>
         {featuredBannerStatus.error && <div className="card">Error: {featuredBannerStatus.error}</div>}
         {featuredBannerStatus.success && <div className="card">{featuredBannerStatus.success}</div>}
 
         {featuredBanners.map((value, index) => (
           <div key={value.id || index}>
-            <div className="label">Featured Banner {index + 1}</div>
+            <div className="label">Featured Banner {index + 1} Image</div>
+
+            <div>
+              <div className="label">Image URL</div>
+              <input
+                className="input"
+                placeholder="https://..."
+                value={value.image}
+                onChange={(event) =>
+                  setFeaturedBanners((prev) =>
+                    prev.map((item, i) => (i === index ? { ...item, image: event.target.value } : item))
+                  )
+                }
+              />
+
+              <input
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  const maxSize = 20 * 1024 * 1024
+                  if (file.size > maxSize) {
+                    setFeaturedBannerStatus({
+                      loading: false,
+                      error: 'Image too large. Please upload under 20MB.',
+                      success: '',
+                    })
+                    return
+                  }
+                  try {
+                    const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
+                    const upload = await api.uploadImage(compressed)
+                    setFeaturedBanners((prev) =>
+                      prev.map((item, i) => (i === index ? { ...item, image: upload.url } : item))
+                    )
+                  } catch (error) {
+                    setFeaturedBannerStatus({
+                      loading: false,
+                      error: error?.message || 'Failed to process image.',
+                      success: '',
+                    })
+                  }
+                }}
+              />
+
+              {value.image && (
+                <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />
+              )}
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e2db', margin: '18px 0' }} />
+          </div>
+        ))}
+      </div>
+
+      <div className="card form">
+        <h2 className="section-title" style={{ fontSize: '24px' }}>
+          Featured Banner Pop-up Content
+        </h2>
+        <p className="section-subtitle">For each featured banner, set the title and the popup message.</p>
+
+        {featuredBanners.map((value, index) => (
+          <div key={value.id || index}>
+            <div className="label">Featured Banner {index + 1} Popup</div>
 
             <div className="grid two" style={{ gap: '16px' }}>
               <div>
-                <div className="label">Image URL</div>
-                <input
-                  className="input"
-                  placeholder="https://..."
-                  value={value.image}
-                  onChange={(event) =>
-                    setFeaturedBanners((prev) =>
-                      prev.map((item, i) => (i === index ? { ...item, image: event.target.value } : item))
-                    )
-                  }
-                />
-                <input
-                  className="input"
-                  type="file"
-                  accept="image/*"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0]
-                    if (!file) return
-                    const maxSize = 20 * 1024 * 1024
-                    if (file.size > maxSize) {
-                      setFeaturedBannerStatus({ loading: false, error: 'Image too large. Please upload under 20MB.', success: '' })
-                      return
-                    }
-                    try {
-                      const compressed = await compressImageFile(file, { maxSize: 1400, quality: 0.82 })
-                      const upload = await api.uploadImage(compressed)
-                      setFeaturedBanners((prev) =>
-                        prev.map((item, i) => (i === index ? { ...item, image: upload.url } : item))
-                      )
-                    } catch (error) {
-                      setFeaturedBannerStatus({ loading: false, error: error?.message || 'Failed to process image.', success: '' })
-                    }
-                  }}
-                />
-                {value.image && (
-                  <div className="banner-preview" style={{ backgroundImage: `url(${value.image})` }} />
-                )}
-              </div>
-
-              <div>
-                <div className="label">Title</div>
+                <div className="label">Banner Title</div>
                 <input
                   className="input"
                   placeholder={`Featured Banner ${index + 1} title`}
@@ -415,10 +440,10 @@ function AdminDashboard() {
                     )
                   }
                 />
+              </div>
 
-                <div className="label" style={{ marginTop: '8px' }}>
-                  Popup message
-                </div>
+              <div>
+                <div className="label">Message</div>
                 <textarea
                   className="input input-textarea"
                   placeholder="Write the popup content for this featured banner."

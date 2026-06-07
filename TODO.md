@@ -1,12 +1,10 @@
 # TODO
 
-## Featured banners separation (carousel vs featured)
+- [ ] Refactor `src/pages/AdminDashboard.jsx` Featured Banners section into separate top-level cards/sections:
+  - [x] Keep/add a dedicated card for **Featured Banner Images Upload** (upload input + preview for each featured banner)
+  - [x] Add a dedicated top-level card titled **Featured Banner Pop-up Content**
+  - [x] Inside that card, add a container for each featured banner that holds **Banner Title** input and **message** textarea
+  - [x] Ensure Save Featured Banners button + state update logic remains unchanged
+- [ ] Run frontend lint/build (or dev server) to ensure no JSX/syntax errors
 
-- [ ] Implement new DB dataset `featured_banners` in `server/src/db/banners.js` (max 3)
-- [ ] Add admin endpoints in `server/src/routes/admin.js`: GET/PUT `/featured-banners`
-- [ ] Add public endpoint in `server/src/routes/public.js`: GET `/featured-banners`
-- [ ] Extend client API in `src/lib/api.js` for admin/public featured banners
-- [ ] Update `src/pages/Home.jsx` to render featured cards using `/featured-banners` (max 3) with per-card popup message
-- [ ] Update `src/pages/AdminDashboard.jsx` to manage featured banners (upload up to 3 images, edit title + popup message, save)
-- [ ] Verify build/lint for root + server
 

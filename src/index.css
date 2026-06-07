@@ -521,6 +521,62 @@ img {
   border-color: rgba(95, 117, 65, 0.5);
 }
 
+.terms-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.terms-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+
+.terms-link {
+  border: none;
+  background: transparent;
+  color: #9a6a04;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.terms-link:hover {
+  color: #6f4d06;
+}
+
+.terms-modal {
+  padding: 28px;
+}
+
+.terms-content {
+  display: grid;
+  gap: 12px;
+  color: var(--text);
+  line-height: 1.58;
+}
+
+.terms-content h2,
+.terms-content h3,
+.terms-content p {
+  margin: 0;
+}
+
+.terms-content h2 {
+  font-size: 24px;
+}
+
+.terms-content h3 {
+  margin-top: 10px;
+  font-size: 18px;
+}
+
 .label {
   font-size: 13px;
   color: rgba(26, 31, 20, 0.7);

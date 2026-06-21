@@ -706,7 +706,7 @@ img {
 .facebook-embed-frame iframe {
   display: block;
   width: 100%;
-  max-width: 500px;
+  max-width: 340px;
   min-height: 620px;
   margin: 0 auto;
 }
@@ -2125,15 +2125,18 @@ img {
   }
 
   .facebook-page-card {
-    padding: 12px;
+    padding: 10px;
     border-radius: 16px;
   }
 
   .facebook-embed-frame {
+    display: grid;
+    justify-items: center;
     min-height: 500px;
   }
 
   .facebook-embed-frame iframe {
+    width: min(100%, 340px);
     min-height: 500px;
   }
 

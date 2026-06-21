@@ -17,7 +17,7 @@ const defaultBannerStories = [
 const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
 const facebookPluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
   facebookPageUrl
-)}&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+)}&tabs=timeline&width=340&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
 
 function Home() {
   const { user } = useAuth()
@@ -234,7 +234,7 @@ function Home() {
             <iframe
               title="Severino Facebook Page"
               src={facebookPluginUrl}
-              width="500"
+              width="340"
               height="620"
               style={{ border: 'none', overflow: 'hidden' }}
               scrolling="no"

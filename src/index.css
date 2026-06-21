@@ -649,6 +649,77 @@ img {
   color: #f4ead5;
 }
 
+.facebook-follow-section {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(320px, 1.15fr);
+  gap: 24px;
+  align-items: stretch;
+  padding: clamp(22px, 4vw, 34px);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.5), transparent 55%),
+    var(--page-hero-bg);
+  border: 1px solid var(--page-hero-border);
+  box-shadow: var(--shadow);
+  color: var(--page-hero-text);
+}
+
+.facebook-follow-copy {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 14px;
+}
+
+.facebook-follow-copy .section-title,
+.facebook-follow-copy .section-subtitle {
+  margin: 0;
+}
+
+.facebook-follow-copy .section-subtitle {
+  color: var(--page-hero-muted);
+}
+
+.facebook-page-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--glass) 94%, white);
+  border: 1px solid rgba(43, 52, 34, 0.12);
+  overflow: hidden;
+}
+
+.facebook-page-card h3 {
+  margin: 6px 0 0;
+  font-size: 20px;
+}
+
+.facebook-embed-frame {
+  width: 100%;
+  min-height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.facebook-embed-frame iframe {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  min-height: 620px;
+  margin: 0 auto;
+}
+
+[data-theme='Shadow Dark Mode'] .facebook-page-card {
+  background: rgba(30, 27, 21, 0.94);
+  border-color: rgba(229, 206, 162, 0.28);
+}
+
+[data-theme='Shadow Dark Mode'] .facebook-embed-frame {
+  background: rgba(15, 14, 11, 0.78);
+}
+
 
 .star-row {
   display: flex;
@@ -2040,6 +2111,30 @@ img {
   .featured-banner-gallery .featured-banner-card__title {
     margin-top: 0;
     font-size: 16px;
+  }
+
+  .facebook-follow-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .facebook-follow-copy {
+    align-content: start;
+  }
+
+  .facebook-page-card {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .facebook-embed-frame {
+    min-height: 500px;
+  }
+
+  .facebook-embed-frame iframe {
+    min-height: 500px;
   }
 
   [data-theme='Shadow Dark Mode'] .featured-banner-gallery .featured-banner-card {

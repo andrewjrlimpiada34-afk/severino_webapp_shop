@@ -14,6 +14,11 @@ const defaultBannerStories = [
   { id: 'banner-5', title: 'Why Severino?', message: '' },
 ]
 
+const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
+const facebookPluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
+  facebookPageUrl
+)}&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+
 function Home() {
   const { user } = useAuth()
 
@@ -203,6 +208,42 @@ function Home() {
         )}
 
       </div>
+
+      <section className="facebook-follow-section">
+        <div className="facebook-follow-copy">
+          <div className="tag">Stay Connected</div>
+          <h2 className="section-title">Follow Our Journey</h2>
+          <p className="section-subtitle">
+            See the latest updates, new arrivals, and behind-the-scenes stories from our Facebook page.
+          </p>
+          <a
+            className="button"
+            href={facebookPageUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Visit Facebook Page
+          </a>
+        </div>
+        <div className="facebook-page-card">
+          <div>
+            <div className="tag">Follow us on Facebook</div>
+            <h3>Latest Posts</h3>
+          </div>
+          <div className="facebook-embed-frame">
+            <iframe
+              title="Severino Facebook Page"
+              src={facebookPluginUrl}
+              width="500"
+              height="620"
+              style={{ border: 'none', overflow: 'hidden' }}
+              scrolling="no"
+              frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            />
+          </div>
+        </div>
+      </section>
 
       {openBannerStory && (
         <div

@@ -32,6 +32,7 @@ function Home() {
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [featuredBanners, setFeaturedBanners] = useState([])
+  const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
   const [openBannerStory, setOpenBannerStory] = useState(null)
 
 
@@ -75,6 +76,14 @@ function Home() {
     }
     loadHeroAndBanners()
   }, [])
+
+  useEffect(() => {
+    if (featuredBanners.length <= 1) return undefined
+    const interval = setInterval(() => {
+      setActiveFeaturedIndex((prev) => (prev + 1) % featuredBanners.length)
+    }, 5200)
+    return () => clearInterval(interval)
+  }, [featuredBanners.length])
 
   const handleBannerRailScroll = () => {
     const track = bannerRailRef.current
@@ -171,54 +180,87 @@ function Home() {
             <div className="tag">Curated for you</div>
             <div style={{ fontWeight: 700 }}>Severino Collection — always ready to discover.</div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <a className="button" href="/shop">
-              Shop All Scents
+          <div className="home-shop-icon-actions">
+            <a className="button home-shop-icon-button" href="/shop" aria-label="Shop all scents" title="Shop all scents">
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+              </svg>
             </a>
-            <a className="button secondary" href="/search">
-              Search Products
+            <a className="button secondary home-shop-icon-button" href="/search" aria-label="Search products" title="Search products">
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                <path
+                  d="M16.5 16.5L21 21"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
             </a>
           </div>
         </div>
 
         {featuredBanners.length > 0 && (
-          <div className="grid three featured-banner-gallery" style={{ width: '100%' }}>
-            {featuredBanners.map((banner, index) => (
-              <button
-                key={`${banner.id}-${index}`}
-                type="button"
-                className="card featured-banner-card"
-                style={{
-                  padding: '0',
-                  border: 'none',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                }}
-                onClick={() =>
-                  setOpenBannerStory({
-                    title: banner.title,
-                    message: banner.message || '',
-                  })
-                }
-
-                aria-label={`Open ${banner.title}`}
+          <section className="featured-banner-slider" aria-label="Featured banner slider">
+            <div className="featured-banner-slider__viewport">
+              <div
+                className="featured-banner-slider__track"
+                style={{ transform: `translateX(-${activeFeaturedIndex * 100}%)` }}
               >
-                <div
-                  style={{
-                    height: '160px',
-                    backgroundImage: `url(${banner.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
+                {featuredBanners.map((banner, index) => (
+                  <button
+                    key={`${banner.id}-${index}`}
+                    type="button"
+                    className={`card featured-banner-card featured-banner-slide ${
+                      activeFeaturedIndex === index ? 'active' : ''
+                    }`}
+                    onClick={() =>
+                      setOpenBannerStory({
+                        title: banner.title,
+                        message: banner.message || '',
+                      })
+                    }
+                    aria-label={`Open ${banner.title}`}
+                    aria-hidden={activeFeaturedIndex === index ? undefined : 'true'}
+                    tabIndex={activeFeaturedIndex === index ? 0 : -1}
+                  >
+                    <div
+                      className="featured-banner-slide__image"
+                      style={{
+                        backgroundImage: `url(${banner.image})`,
+                      }}
+                    />
+                    <div className="featured-banner-card__content">
+                      <div className="tag">Featured Banner</div>
+                      <div className="featured-banner-card__title">{banner.title}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="featured-banner-dots" aria-label="Featured banner pages">
+              {featuredBanners.map((banner, index) => (
+                <button
+                  key={`${banner.id}-featured-dot`}
+                  className={`home-banner-dot ${activeFeaturedIndex === index ? 'active' : ''}`}
+                  type="button"
+                  aria-label={`Show featured banner ${index + 1}`}
+                  aria-current={activeFeaturedIndex === index ? 'true' : undefined}
+                  onClick={() => setActiveFeaturedIndex(index)}
                 />
-                <div className="featured-banner-card__content">
-                  <div className="tag">Featured Banner</div>
-                  <div className="featured-banner-card__title">{banner.title}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+              ))}
+            </div>
+          </section>
         )}
 
       </div>

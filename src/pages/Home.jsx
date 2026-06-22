@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 
@@ -27,6 +27,8 @@ function Home() {
 
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
+  const bannerRailRef = useRef(null)
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [featuredBanners, setFeaturedBanners] = useState([])
@@ -74,6 +76,24 @@ function Home() {
     loadHeroAndBanners()
   }, [])
 
+  const handleBannerRailScroll = () => {
+    const track = bannerRailRef.current
+    if (!track || !track.firstElementChild) return
+    const firstCard = track.firstElementChild
+    const cardWidth = firstCard.getBoundingClientRect().width
+    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap || '0') || 0
+    const nextIndex = Math.round(track.scrollLeft / Math.max(cardWidth + gap, 1))
+    setActiveBannerIndex(Math.max(0, Math.min(banners.length - 1, nextIndex)))
+  }
+
+  const scrollToBanner = (index) => {
+    const track = bannerRailRef.current
+    const card = track?.children?.[index]
+    if (!track || !card) return
+    track.scrollTo({ left: card.offsetLeft, behavior: 'smooth' })
+    setActiveBannerIndex(index)
+  }
+
   return (
     <section className="grid home-page" style={{ gap: '32px' }}>
       <div
@@ -102,7 +122,11 @@ function Home() {
 
       {banners.length > 0 && (
         <section className="home-banner-rail" aria-label="Homepage banner stories">
-          <div className="home-banner-rail__track">
+          <div
+            className="home-banner-rail__track"
+            ref={bannerRailRef}
+            onScroll={handleBannerRailScroll}
+          >
             {banners.map((banner, index) => (
               <button
                 key={banner.title}
@@ -118,6 +142,18 @@ function Home() {
                 style={{
                   backgroundImage: `url(${banner.image})`,
                 }}
+              />
+            ))}
+          </div>
+          <div className="home-banner-dots" aria-label="Banner slider pages">
+            {banners.map((banner, index) => (
+              <button
+                key={`${banner.title}-dot`}
+                className={`home-banner-dot ${activeBannerIndex === index ? 'active' : ''}`}
+                type="button"
+                aria-label={`Show banner ${index + 1}`}
+                aria-current={activeBannerIndex === index ? 'true' : undefined}
+                onClick={() => scrollToBanner(index)}
               />
             ))}
           </div>

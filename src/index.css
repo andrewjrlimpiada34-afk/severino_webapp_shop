@@ -587,6 +587,40 @@ img {
   box-shadow: 0 26px 48px rgba(16, 20, 14, 0.24);
 }
 
+.home-banner-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.home-banner-dot {
+  width: 9px;
+  height: 9px;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(26, 31, 20, 0.16);
+  cursor: pointer;
+  transition:
+    width 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.home-banner-dot.active {
+  width: 26px;
+  background: var(--olive-500);
+  box-shadow: 0 8px 18px rgba(26, 31, 20, 0.18);
+}
+
+.home-banner-dot:focus-visible {
+  outline: 2px solid var(--olive-900);
+  outline-offset: 3px;
+}
+
 [data-theme='Shadow Dark Mode'] .home-banner-rail {
   background:
     linear-gradient(135deg, rgba(229, 206, 162, 0.12), rgba(255, 255, 255, 0.02)),
@@ -596,6 +630,15 @@ img {
 [data-theme='Shadow Dark Mode'] .home-banner-card {
   border-color: rgba(244, 234, 213, 0.22);
   background-color: rgba(24, 23, 18, 0.92);
+}
+
+[data-theme='Shadow Dark Mode'] .home-banner-dot {
+  background: rgba(244, 234, 213, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(244, 234, 213, 0.22);
+}
+
+[data-theme='Shadow Dark Mode'] .home-banner-dot.active {
+  background: #e5cea2;
 }
 
 .featured-banner-card {
@@ -1153,6 +1196,7 @@ img {
   gap: 8px;
   text-align: left;
   cursor: pointer;
+  min-width: 0;
 }
 
 .notif-row.opened {
@@ -1172,6 +1216,13 @@ img {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  min-width: 0;
+}
+
+.notif-row__content span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .notif-delete {
@@ -2092,6 +2143,30 @@ img {
     justify-content: center;
   }
 
+  .notif-list {
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .notif-row {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .notif-row__content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notif-delete {
+    align-self: flex-end;
+    padding: 8px 12px;
+  }
+
   .page {
     padding: 24px 16px 56px;
   }
@@ -2132,6 +2207,20 @@ img {
     border-width: 7px;
     border-radius: 18px;
     scroll-snap-align: start;
+  }
+
+  .home-banner-dots {
+    gap: 7px;
+    padding-top: 10px;
+  }
+
+  .home-banner-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .home-banner-dot.active {
+    width: 22px;
   }
 
   .home-page > .grid {

@@ -15,7 +15,10 @@ const defaultBannerStories = [
 ]
 
 const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
-const facebookPluginUrl = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
+const facebookPluginUrlDesktop = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
+  facebookPageUrl
+)}&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+const facebookPluginUrlMobile = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
   facebookPageUrl
 )}&tabs=timeline&width=340&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
 
@@ -232,8 +235,20 @@ function Home() {
           </div>
           <div className="facebook-embed-frame">
             <iframe
+              className="facebook-embed-desktop"
               title="Severino Facebook Page"
-              src={facebookPluginUrl}
+              src={facebookPluginUrlDesktop}
+              width="500"
+              height="620"
+              style={{ border: 'none', overflow: 'hidden' }}
+              scrolling="no"
+              frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            />
+            <iframe
+              className="facebook-embed-mobile"
+              title="Severino Facebook Page Mobile"
+              src={facebookPluginUrlMobile}
               width="340"
               height="620"
               style={{ border: 'none', overflow: 'hidden' }}

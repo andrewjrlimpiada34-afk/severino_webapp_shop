@@ -125,9 +125,9 @@ function Shop() {
   const maxQty = cartModal.product ? Math.min(100, cartModal.product.stock ?? 100) : 1
 
   return (
-    <section className="grid" style={{ gap: '28px' }}>
+    <section className="grid shop-page">
 
-      <div className="page-hero">
+      <div className="page-hero shop-hero">
         <div className="tag">Severino Collection</div>
         <h1 className="section-title">Shop the Collection</h1>
         <p className="section-subtitle">
@@ -135,7 +135,7 @@ function Shop() {
         </p>
       </div>
 
-      <div className="card">
+      <div className="card shop-filter-card">
         <div className="filter-header">
           <div className="tag">Filters</div>
           <button
@@ -212,7 +212,7 @@ function Shop() {
         </div>
       )}
       {status.error && <div className="card">Error: {status.error}</div>}
-      <div className="grid four">
+      <div className="grid four shop-product-grid">
         {filtered.map((product) => {
           const isFav = favorites.includes(product.id)
           return (
@@ -234,12 +234,12 @@ function Shop() {
                   <span>{product.name}</span>
                 )}
               </div>
-              <div>
+              <div className="product-copy">
                 <strong>{product.name}</strong>
                 <p className="section-subtitle">{product.notes}</p>
               </div>
               <div className="pill">{product.size}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="product-card-footer">
                 <span>₱{product.price.toLocaleString()}</span>
                 <div className="product-actions">
                   <button

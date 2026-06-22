@@ -64,7 +64,9 @@ function NavBar() {
   return (
     <>
       <nav className="nav">
-        <div className="nav-logo">Severino</div>
+        <NavLink className="nav-logo nav-logo-link" to="/" onClick={() => setOpen(false)} aria-label="Severino home">
+          <img className="nav-logo-image" src="/logo.svg" alt="Severino" />
+        </NavLink>
         <div className={`nav-links ${open ? 'open' : ''}`}>
         <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
         <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 
@@ -27,8 +27,6 @@ function Home() {
 
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
-  const bannerRef = useRef(null)
-  const [bannerIndex, setBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [featuredBanners, setFeaturedBanners] = useState([])
@@ -76,26 +74,6 @@ function Home() {
     loadHeroAndBanners()
   }, [])
 
-  useEffect(() => {
-    if (!banners.length) return undefined
-    const interval = setInterval(() => {
-      setBannerIndex((prev) => {
-        const next = (prev + 1) % banners.length
-        const track = bannerRef.current
-        if (track && track.firstElementChild) {
-          const cardWidth = track.firstElementChild.offsetWidth || 0
-          const gap = 16
-          track.scrollTo({ left: (cardWidth + gap) * next, behavior: 'smooth' })
-        }
-        return next
-      })
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [banners.length])
-
-
-
-
   return (
     <section className="grid home-page" style={{ gap: '32px' }}>
       <div
@@ -120,12 +98,15 @@ function Home() {
             )}
           </div>
         </div>
-        <div className="hero-card hero-banner">
-          <div className="banner-track" ref={bannerRef}>
+      </div>
+
+      {banners.length > 0 && (
+        <section className="home-banner-rail" aria-label="Homepage banner stories">
+          <div className="home-banner-rail__track">
             {banners.map((banner, index) => (
               <button
                 key={banner.title}
-                className="banner-card banner-card-button"
+                className="home-banner-card"
                 type="button"
                 aria-label={`Open ${banner.title}`}
                 onClick={() =>
@@ -136,18 +117,12 @@ function Home() {
                 }
                 style={{
                   backgroundImage: `url(${banner.image})`,
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
-                  backgroundColor: '#f7f6f1',
                 }}
-              >
-                <div className="banner-overlay banner-overlay--interactive" />
-              </button>
+              />
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
 
       <div className="grid">
         <div>

@@ -32,9 +32,8 @@ function Billing() {
             Safe COD Handling
           </h2>
           <ul>
-            <li>Delivery rider verifies your order with a one-time PIN.</li>
             <li>Payments are collected only upon successful handover.</li>
-            <li>Receipts are issued after verification.</li>
+            <li>Receipts can be issued after a successful delivery.</li>
           </ul>
         </div>
       </div>

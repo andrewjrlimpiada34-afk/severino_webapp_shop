@@ -13,7 +13,7 @@ function Shop() {
   const [maxPrice, setMaxPrice] = useState('')
   const [items, setItems] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
-  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const { user } = useAuth()
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState([])
@@ -268,8 +268,25 @@ function Shop() {
                   <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
                     View
                   </button>
-                  <button className="button" onClick={() => openAddToCartModal(product.id)}>
-                    Add
+                  <button
+                    className="button shop-cart-button"
+                    type="button"
+                    aria-label={`Add ${product.name} to cart`}
+                    title="Add to cart"
+                    onClick={() => openAddToCartModal(product.id)}
+                  >
+                    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+                      <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+                    </svg>
                   </button>
 
                 </div>

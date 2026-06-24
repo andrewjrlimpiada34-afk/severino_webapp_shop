@@ -6,7 +6,6 @@ import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
-import AdaptiveScentToggle from '../components/AdaptiveScentToggle.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 function Shop() {
@@ -140,12 +139,9 @@ function Shop() {
         </p>
       </div>
 
-      <AdaptiveScentToggle
-        enabled={adaptive.enabled}
-        onChange={adaptive.setAdaptiveEnabled}
-      />
       <AdaptiveScentPanel
         enabled={adaptive.enabled}
+        onToggleEnabled={adaptive.setAdaptiveEnabled}
         loading={adaptive.status.loading}
         error={adaptive.status.error}
         current={adaptive.adaptiveData.current}
@@ -153,6 +149,7 @@ function Shop() {
         recommendations={adaptive.adaptiveData.recommendations}
         usingDefault={adaptive.status.usingDefault}
         locationLabel={adaptive.locationLabel}
+        onUseDefaultLocation={adaptive.useDefaultLocation}
         onViewProduct={(productId) => navigate(`/product/${productId}`)}
       />
 

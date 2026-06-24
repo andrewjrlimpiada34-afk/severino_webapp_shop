@@ -1,10 +1,11 @@
+import AdaptiveScentToggle from './AdaptiveScentToggle.jsx'
 import { SkeletonLine } from './Skeleton.jsx'
 import ScentForecastCard from './ScentForecastCard.jsx'
 import WeatherMoodCard from './WeatherMoodCard.jsx'
 
-function AdaptivePanelSkeleton({ locationLabel }) {
+function AdaptivePanelSkeleton({ locationLabel, onUseDefaultLocation }) {
   return (
-    <div className="adaptive-panel card mood-loading">
+    <div className="adaptive-panel__body mood-loading">
       <div className="adaptive-panel__header">
         <div>
           <div className="tag">Adaptive Scent Forecast</div>
@@ -24,12 +25,16 @@ function AdaptivePanelSkeleton({ locationLabel }) {
           </div>
         ))}
       </div>
+      <button className="button adaptive-default-button" type="button" onClick={onUseDefaultLocation}>
+        Use Default Location
+      </button>
     </div>
   )
 }
 
 function AdaptiveScentPanel({
   enabled,
+  onToggleEnabled,
   loading,
   error,
   current,
@@ -37,86 +42,113 @@ function AdaptiveScentPanel({
   recommendations,
   usingDefault,
   locationLabel = 'Marinduque',
+  onUseDefaultLocation,
   onViewProduct,
 }) {
-  if (!enabled) return null
-  if (loading) return <AdaptivePanelSkeleton locationLabel={locationLabel} />
+  const moodClass = current ? `mood-${current.mood}` : 'mood-loading'
 
-  if (error) {
-    return (
-      <div className="adaptive-panel card mood-error">
+  return (
+    <section className={`adaptive-panel card ${moodClass}`}>
+      <AdaptiveScentToggle enabled={enabled} onChange={onToggleEnabled} compact />
+
+      {!enabled && (
+        <div className="adaptive-panel__body adaptive-panel__body--idle">
+          <div>
+            <div className="tag">Adaptive Scent Forecast</div>
+            <h2>Find scents for the weather</h2>
+            <p className="section-subtitle">
+              Turn this on to ask for location access, or instantly use {locationLabel}'s forecast.
+            </p>
+          </div>
+          <button className="button adaptive-default-button" type="button" onClick={onUseDefaultLocation}>
+            Use Default Location
+          </button>
+        </div>
+      )}
+
+      {enabled && loading && (
+        <AdaptivePanelSkeleton
+          locationLabel={locationLabel}
+          onUseDefaultLocation={onUseDefaultLocation}
+        />
+      )}
+
+      {enabled && error && (
+        <div className="adaptive-panel__body mood-error">
+          <div className="adaptive-panel__header">
+            <div>
+              <div className="tag">Adaptive Scent Forecast</div>
+              <h2>Weather unavailable</h2>
+              <p className="section-subtitle">{error}</p>
+            </div>
+          </div>
+          <button className="button adaptive-default-button" type="button" onClick={onUseDefaultLocation}>
+            Use Default Location
+          </button>
+        </div>
+      )}
+
+      {enabled && current && (
+        <div className="adaptive-panel__body">
         <div className="adaptive-panel__header">
           <div>
             <div className="tag">Adaptive Scent Forecast</div>
-            <h2>Weather unavailable</h2>
-            <p className="section-subtitle">{error}</p>
+            <h2>Recommended for this week's weather</h2>
+            <p className="section-subtitle">
+              {usingDefault
+                ? `You're using your default location: ${locationLabel}. This is according to ${locationLabel}'s Weather Forecast.`
+                : "Matched using forecast conditions and each perfume's notes."}
+            </p>
           </div>
         </div>
-      </div>
-    )
-  }
 
-  if (!current) return null
+        <WeatherMoodCard current={current} usingDefault={usingDefault} locationLabel={locationLabel} />
 
-  return (
-    <section className={`adaptive-panel card mood-${current.mood}`}>
-      <div className="adaptive-panel__header">
-        <div>
-          <div className="tag">Adaptive Scent Forecast</div>
-          <h2>Recommended for this week's weather</h2>
-          <p className="section-subtitle">
-            {usingDefault
-              ? `You're using your default location: ${locationLabel}. This is according to ${locationLabel}'s Weather Forecast.`
-              : "Matched using forecast conditions and each perfume's notes."}
-          </p>
-        </div>
-      </div>
-
-      <WeatherMoodCard current={current} usingDefault={usingDefault} locationLabel={locationLabel} />
-
-      <div className="adaptive-forecast-grid">
-        {dailyForecast.map((day) => (
-          <ScentForecastCard key={day.date} day={day} />
-        ))}
-      </div>
-
-      <div className="adaptive-recommendations">
-        <div>
-          <div className="tag">Adaptive Picks</div>
-          <h3>Recommended Products</h3>
+        <div className="adaptive-forecast-grid">
+          {dailyForecast.map((day) => (
+            <ScentForecastCard key={day.date} day={day} />
+          ))}
         </div>
 
-        {recommendations.length === 0 ? (
-          <p className="section-subtitle">
-            No strong note match yet. Try adding clearer scent notes like citrus, musk, amber, or
-            aquatic in product details.
-          </p>
-        ) : (
-          <div className="adaptive-product-grid">
-            {recommendations.map(({ product, matchedNotes, reason }) => (
-              <button
-                key={product.id}
-                className="adaptive-product-card"
-                type="button"
-                onClick={() => onViewProduct(product.id)}
-              >
-                <div
-                  className="adaptive-product-card__image"
-                  style={{
-                    backgroundImage: `url(${product.imageUrls?.[0] || product.imageUrl || ''})`,
-                  }}
-                />
-                <div>
-                  <span className="adaptive-pick-badge">Adaptive Pick</span>
-                  <strong>{product.name}</strong>
-                  <p>{reason}</p>
-                  <small>Matched: {matchedNotes.slice(0, 4).join(', ')}</small>
-                </div>
-              </button>
-            ))}
+        <div className="adaptive-recommendations">
+          <div>
+            <div className="tag">Adaptive Picks</div>
+            <h3>Recommended Products</h3>
           </div>
-        )}
+
+          {recommendations.length === 0 ? (
+            <p className="section-subtitle">
+              No strong note match yet. Try adding clearer scent notes like citrus, musk, amber, or
+              aquatic in product details.
+            </p>
+          ) : (
+            <div className="adaptive-product-grid">
+              {recommendations.map(({ product, matchedNotes, reason }) => (
+                <button
+                  key={product.id}
+                  className="adaptive-product-card"
+                  type="button"
+                  onClick={() => onViewProduct(product.id)}
+                >
+                  <div
+                    className="adaptive-product-card__image"
+                    style={{
+                      backgroundImage: `url(${product.imageUrls?.[0] || product.imageUrl || ''})`,
+                    }}
+                  />
+                  <div>
+                    <span className="adaptive-pick-badge">Adaptive Pick</span>
+                    <strong>{product.name}</strong>
+                    <p>{reason}</p>
+                    <small>Matched: {matchedNotes.slice(0, 4).join(', ')}</small>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+      )}
     </section>
   )
 }

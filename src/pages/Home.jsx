@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
-import AdaptiveScentToggle from '../components/AdaptiveScentToggle.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
@@ -140,13 +139,9 @@ function Home() {
       </div>
 
       <div className="grid">
-        <AdaptiveScentToggle
-          enabled={adaptive.enabled}
-          onChange={adaptive.setAdaptiveEnabled}
-          compact
-        />
         <AdaptiveScentPanel
           enabled={adaptive.enabled}
+          onToggleEnabled={adaptive.setAdaptiveEnabled}
           loading={adaptive.status.loading}
           error={adaptive.status.error}
           current={adaptive.adaptiveData.current}
@@ -154,6 +149,7 @@ function Home() {
           recommendations={adaptive.adaptiveData.recommendations.slice(0, 3)}
           usingDefault={adaptive.status.usingDefault}
           locationLabel={adaptive.locationLabel}
+          onUseDefaultLocation={adaptive.useDefaultLocation}
           onViewProduct={(productId) => navigate(`/product/${productId}`)}
         />
       </div>

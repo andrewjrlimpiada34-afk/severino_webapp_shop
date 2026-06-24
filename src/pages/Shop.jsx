@@ -152,8 +152,7 @@ function Shop() {
         dailyForecast={adaptive.adaptiveData.dailyForecast}
         recommendations={adaptive.adaptiveData.recommendations}
         usingDefault={adaptive.status.usingDefault}
-        onUseDefault={adaptive.useDefaultLocation}
-        onContinueWithout={() => adaptive.setAdaptiveEnabled(false)}
+        locationLabel={adaptive.locationLabel}
         onViewProduct={(productId) => navigate(`/product/${productId}`)}
       />
 

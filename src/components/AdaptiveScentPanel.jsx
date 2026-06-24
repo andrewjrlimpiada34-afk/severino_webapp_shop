@@ -2,15 +2,15 @@ import { SkeletonLine } from './Skeleton.jsx'
 import ScentForecastCard from './ScentForecastCard.jsx'
 import WeatherMoodCard from './WeatherMoodCard.jsx'
 
-function AdaptivePanelSkeleton({ onUseDefault, onContinueWithout }) {
+function AdaptivePanelSkeleton({ locationLabel }) {
   return (
     <div className="adaptive-panel card mood-loading">
       <div className="adaptive-panel__header">
         <div>
           <div className="tag">Adaptive Scent Forecast</div>
-          <h2>Checking your local weather…</h2>
+          <h2>Checking {locationLabel} weather...</h2>
           <p className="section-subtitle">
-            Location can take a few seconds depending on browser permission and GPS signal.
+            You're using your default location: {locationLabel}.
           </p>
         </div>
         <SkeletonLine width="110px" height={34} className="skeleton-pill" />
@@ -24,14 +24,6 @@ function AdaptivePanelSkeleton({ onUseDefault, onContinueWithout }) {
           </div>
         ))}
       </div>
-      <div className="adaptive-actions">
-        <button className="button" type="button" onClick={onUseDefault}>
-          Use default location
-        </button>
-        <button className="button secondary" type="button" onClick={onContinueWithout}>
-          Continue without Adaptive Scent
-        </button>
-      </div>
     </div>
   )
 }
@@ -44,19 +36,11 @@ function AdaptiveScentPanel({
   dailyForecast,
   recommendations,
   usingDefault,
-  onUseDefault,
-  onContinueWithout,
+  locationLabel = 'Marinduque',
   onViewProduct,
 }) {
   if (!enabled) return null
-  if (loading) {
-    return (
-      <AdaptivePanelSkeleton
-        onUseDefault={onUseDefault}
-        onContinueWithout={onContinueWithout}
-      />
-    )
-  }
+  if (loading) return <AdaptivePanelSkeleton locationLabel={locationLabel} />
 
   if (error) {
     return (
@@ -64,17 +48,9 @@ function AdaptiveScentPanel({
         <div className="adaptive-panel__header">
           <div>
             <div className="tag">Adaptive Scent Forecast</div>
-            <h2>Location needed</h2>
+            <h2>Weather unavailable</h2>
             <p className="section-subtitle">{error}</p>
           </div>
-        </div>
-        <div className="adaptive-actions">
-          <button className="button" type="button" onClick={onUseDefault}>
-            Use default location
-          </button>
-          <button className="button secondary" type="button" onClick={onContinueWithout}>
-            Continue without Adaptive Scent
-          </button>
         </div>
       </div>
     )
@@ -87,16 +63,16 @@ function AdaptiveScentPanel({
       <div className="adaptive-panel__header">
         <div>
           <div className="tag">Adaptive Scent Forecast</div>
-          <h2>Recommended for this week’s weather</h2>
+          <h2>Recommended for this week's weather</h2>
           <p className="section-subtitle">
             {usingDefault
-              ? "This is according to Marinduque's Weather Forecast."
+              ? `You're using your default location: ${locationLabel}. This is according to ${locationLabel}'s Weather Forecast.`
               : "Matched using forecast conditions and each perfume's notes."}
           </p>
         </div>
       </div>
 
-      <WeatherMoodCard current={current} usingDefault={usingDefault} />
+      <WeatherMoodCard current={current} usingDefault={usingDefault} locationLabel={locationLabel} />
 
       <div className="adaptive-forecast-grid">
         {dailyForecast.map((day) => (

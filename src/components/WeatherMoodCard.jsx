@@ -1,4 +1,4 @@
-function WeatherMoodCard({ current, usingDefault = false }) {
+function WeatherMoodCard({ current, usingDefault = false, locationLabel = 'Marinduque' }) {
   if (!current) return null
 
   return (
@@ -12,7 +12,7 @@ function WeatherMoodCard({ current, usingDefault = false }) {
         <p>
           {current.temperature}°C · {current.humidity}% humidity · Rain {current.rain} mm
         </p>
-        {usingDefault && <span className="pill">Using Marinduque fallback</span>}
+        {usingDefault && <span className="pill">You're using your default location: {locationLabel}</span>}
       </div>
     </div>
   )

@@ -153,8 +153,7 @@ function Home() {
           dailyForecast={adaptive.adaptiveData.dailyForecast}
           recommendations={adaptive.adaptiveData.recommendations.slice(0, 3)}
           usingDefault={adaptive.status.usingDefault}
-          onUseDefault={adaptive.useDefaultLocation}
-          onContinueWithout={() => adaptive.setAdaptiveEnabled(false)}
+          locationLabel={adaptive.locationLabel}
           onViewProduct={(productId) => navigate(`/product/${productId}`)}
         />
       </div>

@@ -1,22 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  fetchForecastForCurrentLocation,
-  fetchForecastForDefaultLocation,
-} from '../services/weatherService.js'
+import { DEFAULT_LOCATION, fetchForecastForDefaultLocation } from '../services/weatherService.js'
 import { buildAdaptiveScentData } from '../utils/scentMatcher.js'
-
-function getLocationErrorMessage(error) {
-  if (error?.code === 1) {
-    return 'Location permission was denied. You can use the default location or continue without Adaptive Scent.'
-  }
-  if (error?.code === 2) {
-    return 'Your location is currently unavailable. You can use the default location instead.'
-  }
-  if (error?.code === 3) {
-    return 'Location request timed out. You can try the default location instead.'
-  }
-  return error?.message || 'Unable to load weather data right now.'
-}
 
 function useAdaptiveScent(products = []) {
   const [enabled, setEnabled] = useState(false)
@@ -33,17 +17,17 @@ function useAdaptiveScent(products = []) {
     let active = true
     const load = async () => {
       try {
-        setStatus({ loading: true, error: '', usingDefault: false })
-        const data = await fetchForecastForCurrentLocation()
+        setStatus({ loading: true, error: '', usingDefault: true })
+        const data = await fetchForecastForDefaultLocation()
         if (!active) return
         setForecast(data)
-        setStatus({ loading: false, error: '', usingDefault: false })
+        setStatus({ loading: false, error: '', usingDefault: true })
       } catch (error) {
         if (!active) return
         setStatus({
           loading: false,
-          error: getLocationErrorMessage(error),
-          usingDefault: false,
+          error: error?.message || 'Unable to load Marinduque weather forecast right now.',
+          usingDefault: true,
         })
       }
     }
@@ -62,22 +46,6 @@ function useAdaptiveScent(products = []) {
     }
   }
 
-  const useDefaultLocation = async () => {
-    try {
-      setEnabled(true)
-      setStatus({ loading: true, error: '', usingDefault: true })
-      const data = await fetchForecastForDefaultLocation()
-      setForecast(data)
-      setStatus({ loading: false, error: '', usingDefault: true })
-    } catch (error) {
-      setStatus({
-        loading: false,
-        error: getLocationErrorMessage(error),
-        usingDefault: true,
-      })
-    }
-  }
-
   const adaptiveData = useMemo(
     () => buildAdaptiveScentData(products, forecast),
     [products, forecast]
@@ -86,9 +54,9 @@ function useAdaptiveScent(products = []) {
   return {
     adaptiveData,
     enabled,
+    locationLabel: DEFAULT_LOCATION.label,
     setAdaptiveEnabled,
     status,
-    useDefaultLocation,
   }
 }
 

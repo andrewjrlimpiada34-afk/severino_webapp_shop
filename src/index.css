@@ -2429,6 +2429,44 @@ img {
   color: color-mix(in srgb, var(--page-hero-text) 78%, var(--olive-600));
 }
 
+.account-form-title {
+  margin: 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.account-update-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+}
+
+.account-update-actions .button {
+  min-width: min(360px, 100%);
+}
+
+.account-success-modal {
+  max-width: 460px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.account-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--olive-700), var(--olive-500));
+  color: #fff;
+  font-size: 34px;
+  font-weight: 800;
+  box-shadow: 0 18px 34px rgba(26, 31, 20, 0.18);
+}
+
 .nav-bottom-bar {
   display: none;
 }

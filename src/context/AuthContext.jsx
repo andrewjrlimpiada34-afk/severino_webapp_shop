@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { clearLocalProfile, setLocalProfile } from '../lib/auth.js'
 
@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
     return api.verifyRegisterOtp(payload)
   }
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await api.logout()
     setUser(null)
     clearLocalProfile()
@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
     Object.keys(sessionStorage)
       .filter((key) => key.startsWith('severino_login_popup_seen_'))
       .forEach((key) => sessionStorage.removeItem(key))
-  }
+  }, [])
 
   const value = useMemo(
     () => ({

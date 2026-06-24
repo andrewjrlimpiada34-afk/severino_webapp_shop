@@ -2,13 +2,16 @@ import { SkeletonLine } from './Skeleton.jsx'
 import ScentForecastCard from './ScentForecastCard.jsx'
 import WeatherMoodCard from './WeatherMoodCard.jsx'
 
-function AdaptivePanelSkeleton() {
+function AdaptivePanelSkeleton({ onUseDefault, onContinueWithout }) {
   return (
     <div className="adaptive-panel card mood-loading">
       <div className="adaptive-panel__header">
         <div>
-          <SkeletonLine width="160px" height={16} />
-          <SkeletonLine width="260px" height={34} />
+          <div className="tag">Adaptive Scent Forecast</div>
+          <h2>Checking your local weather…</h2>
+          <p className="section-subtitle">
+            Location can take a few seconds depending on browser permission and GPS signal.
+          </p>
         </div>
         <SkeletonLine width="110px" height={34} className="skeleton-pill" />
       </div>
@@ -20,6 +23,14 @@ function AdaptivePanelSkeleton() {
             <SkeletonLine width="60%" />
           </div>
         ))}
+      </div>
+      <div className="adaptive-actions">
+        <button className="button" type="button" onClick={onUseDefault}>
+          Use default location
+        </button>
+        <button className="button secondary" type="button" onClick={onContinueWithout}>
+          Continue without Adaptive Scent
+        </button>
       </div>
     </div>
   )
@@ -38,7 +49,14 @@ function AdaptiveScentPanel({
   onViewProduct,
 }) {
   if (!enabled) return null
-  if (loading) return <AdaptivePanelSkeleton />
+  if (loading) {
+    return (
+      <AdaptivePanelSkeleton
+        onUseDefault={onUseDefault}
+        onContinueWithout={onContinueWithout}
+      />
+    )
+  }
 
   if (error) {
     return (
@@ -71,7 +89,9 @@ function AdaptiveScentPanel({
           <div className="tag">Adaptive Scent Forecast</div>
           <h2>Recommended for this week’s weather</h2>
           <p className="section-subtitle">
-            Matched using forecast conditions and each perfume’s notes.
+            {usingDefault
+              ? "This is according to Marinduque's Weather Forecast."
+              : "Matched using forecast conditions and each perfume's notes."}
           </p>
         </div>
       </div>

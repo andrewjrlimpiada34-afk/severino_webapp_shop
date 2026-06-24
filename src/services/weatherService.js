@@ -1,8 +1,8 @@
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 const DEFAULT_LOCATION = {
-  label: 'Metro Manila',
-  latitude: 14.5995,
-  longitude: 120.9842,
+  label: 'Marinduque',
+  latitude: 13.4463,
+  longitude: 121.8392,
 }
 
 function getBrowserPosition() {
@@ -14,7 +14,7 @@ function getBrowserPosition() {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: false,
       maximumAge: 10 * 60 * 1000,
-      timeout: 12000,
+      timeout: 7000,
     })
   })
 }

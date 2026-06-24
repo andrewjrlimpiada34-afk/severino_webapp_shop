@@ -113,5 +113,6 @@ export const sanitizeUser = (user) => {
     backupAddress: user.backupAddress || '',
     profileImage: user.profileImage || '',
     preferredTheme: user.preferredTheme || 'Default',
+    hasPassword: Boolean(user.passwordHash),
   }
 }

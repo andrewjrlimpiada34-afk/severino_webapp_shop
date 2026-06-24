@@ -1,9 +1,8 @@
 ﻿import express from 'express'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
-import { getUserById, updateUser } from '../db/users.js'
+import { getUserById, sanitizeUser, updateUser } from '../db/users.js'
 import { requireAuth } from '../middleware/auth.js'
-import { normalizeId } from '../db/util.js'
 import { isDataUrl } from '../lib/images.js'
 
 const router = express.Router()
@@ -38,7 +37,7 @@ const passwordSchema = z.object({
 router.get('/me', requireAuth, async (req, res) => {
   const user = await getUserById(req.user.id)
   if (!user) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(user))
+  return res.json(sanitizeUser(user))
 })
 
 router.patch('/me', requireAuth, async (req, res) => {
@@ -49,7 +48,7 @@ router.patch('/me', requireAuth, async (req, res) => {
   const address = `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`
   const user = await updateUser(req.user.id, { ...parsed.data, address })
   if (!user) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(user))
+  return res.json(sanitizeUser(user))
 })
 
 router.patch('/password', requireAuth, async (req, res) => {

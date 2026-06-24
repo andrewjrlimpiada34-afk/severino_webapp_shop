@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 function Account() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -20,7 +24,9 @@ function Account() {
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
   const [theme, setTheme] = useState('Default')
   const [userId, setUserId] = useState('')
+  const [canManageSecurity, setCanManageSecurity] = useState(false)
   const [securityOpen, setSecurityOpen] = useState(false)
+  const [profileUpdatedOpen, setProfileUpdatedOpen] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -50,6 +56,7 @@ function Account() {
           profileImage: data.profileImage || '',
         })
         setUserId(data.id || '')
+        setCanManageSecurity(Boolean(data.hasPassword ?? data.passwordHash))
         const savedTheme =
           data.preferredTheme ||
           (data.id ? localStorage.getItem(`severino_theme_${data.id}`) : '') ||
@@ -62,11 +69,16 @@ function Account() {
         }
         setStatus({ loading: false, error: '', success: '' })
       } catch (error) {
+        if (error.status === 401) {
+          await logout().catch(() => {})
+          navigate('/login', { replace: true })
+          return
+        }
         setStatus({ loading: false, error: error.message, success: '' })
       }
     }
     load()
-  }, [])
+  }, [logout, navigate])
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -90,7 +102,8 @@ function Account() {
     try {
       setStatus({ loading: true, error: '', success: '' })
       await api.updateProfile(form)
-      setStatus({ loading: false, error: '', success: 'Profile updated.' })
+      setStatus({ loading: false, error: '', success: '' })
+      setProfileUpdatedOpen(true)
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
     }
@@ -167,10 +180,10 @@ function Account() {
 
       {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      {status.success && <div className="card">{status.success}</div>}
 
       <form className="grid two" onSubmit={handleSubmit}>
         <div className="card form">
+          <h3 className="account-form-title">Profile</h3>
           <div>
             <div className="label">Profile Picture (Optional)</div>
             <input
@@ -220,12 +233,10 @@ function Account() {
               onChange={(event) => updateField('phone', event.target.value)}
             />
           </div>
-          <button className="button" type="submit" disabled={status.loading}>
-            Update Profile
-          </button>
         </div>
 
         <div className="card form">
+          <h3 className="account-form-title">Contact Info</h3>
           <div className="label">Street Address (Optional)</div>
           <input
             className="input"
@@ -281,21 +292,28 @@ function Account() {
             onChange={(event) => updateField('country', event.target.value)}
           />
         </div>
+        <div className="account-update-actions">
+          <button className="button" type="submit" disabled={status.loading}>
+            {status.loading ? 'Updating...' : 'Update Profile'}
+          </button>
+        </div>
       </form>
 
-      <div className="card form">
-        <h2 className="section-title" style={{ fontSize: '24px' }}>Security</h2>
-        <div className="pill">Two-factor verification enabled</div>
-        <button
-          className="button secondary"
-          type="button"
-          onClick={() => setSecurityOpen((prev) => !prev)}
-        >
-          {securityOpen ? 'Hide Security' : 'Manage Security'}
-        </button>
-      </div>
+      {canManageSecurity && (
+        <div className="card form">
+          <h2 className="section-title" style={{ fontSize: '24px' }}>Security</h2>
+          <div className="pill">Two-factor verification enabled</div>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() => setSecurityOpen((prev) => !prev)}
+          >
+            {securityOpen ? 'Hide Security' : 'Manage Security'}
+          </button>
+        </div>
+      )}
 
-      {securityOpen && (
+      {canManageSecurity && securityOpen && (
         <form className="card form" onSubmit={handlePasswordChange}>
           <div className="label">Change Password</div>
           <div>
@@ -392,6 +410,42 @@ function Account() {
             {passwordStatus.loading ? 'Updating...' : 'Update Password'}
           </button>
         </form>
+      )}
+
+      {profileUpdatedOpen && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onClick={() => setProfileUpdatedOpen(false)}
+        >
+          <div
+            className="modal-card account-success-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-updated-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setProfileUpdatedOpen(false)}
+            >
+              X
+            </button>
+            <div className="account-success-icon" aria-hidden="true">✓</div>
+            <div className="tag">Profile Updated</div>
+            <h2 id="profile-updated-title" className="section-title" style={{ fontSize: '30px' }}>
+              Changes saved
+            </h2>
+            <p className="section-subtitle">
+              Your profile and contact information were updated successfully.
+            </p>
+            <button className="button" type="button" onClick={() => setProfileUpdatedOpen(false)}>
+              Done
+            </button>
+          </div>
+        </div>
       )}
     </section>
   )

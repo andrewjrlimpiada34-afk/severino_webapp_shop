@@ -12,7 +12,7 @@ function WeatherMoodCard({ current, usingDefault = false }) {
         <p>
           {current.temperature}°C · {current.humidity}% humidity · Rain {current.rain} mm
         </p>
-        {usingDefault && <span className="pill">Using Metro Manila fallback</span>}
+        {usingDefault && <span className="pill">Using Marinduque fallback</span>}
       </div>
     </div>
   )

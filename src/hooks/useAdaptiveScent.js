@@ -6,8 +6,15 @@ import {
 } from '../services/weatherService.js'
 import { buildAdaptiveScentData } from '../utils/scentMatcher.js'
 
+const ADAPTIVE_SCENT_SESSION_KEY = 'severino_adaptive_scent_enabled'
+
+function getSessionEnabled() {
+  if (typeof window === 'undefined') return false
+  return sessionStorage.getItem(ADAPTIVE_SCENT_SESSION_KEY) === 'true'
+}
+
 function useAdaptiveScent(products = []) {
-  const [enabled, setEnabled] = useState(false)
+  const [enabled, setEnabled] = useState(getSessionEnabled)
   const [forecast, setForecast] = useState(null)
   const requestIdRef = useRef(0)
   const [status, setStatus] = useState({
@@ -58,6 +65,7 @@ function useAdaptiveScent(products = []) {
 
   const setAdaptiveEnabled = (nextEnabled) => {
     setEnabled(nextEnabled)
+    sessionStorage.setItem(ADAPTIVE_SCENT_SESSION_KEY, String(nextEnabled))
     if (!nextEnabled) {
       requestIdRef.current += 1
       setForecast(null)
@@ -69,6 +77,7 @@ function useAdaptiveScent(products = []) {
     const requestId = requestIdRef.current + 1
     requestIdRef.current = requestId
     setEnabled(true)
+    sessionStorage.setItem(ADAPTIVE_SCENT_SESSION_KEY, 'true')
     setStatus({ loading: true, error: '', usingDefault: true })
 
     try {

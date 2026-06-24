@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
-import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
+import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
@@ -145,21 +145,11 @@ function Home() {
         </div>
       </div>
 
-      <div className="grid home-adaptive-wrap">
-        <AdaptiveScentPanel
-          enabled={adaptive.enabled}
-          onToggleEnabled={adaptive.setAdaptiveEnabled}
-          loading={adaptive.status.loading}
-          error={adaptive.status.error}
-          current={adaptive.adaptiveData.current}
-          dailyForecast={adaptive.adaptiveData.dailyForecast}
-          recommendations={adaptive.adaptiveData.recommendations.slice(0, 3)}
-          usingDefault={adaptive.status.usingDefault}
-          locationLabel={adaptive.locationLabel}
-          onUseDefaultLocation={adaptive.useDefaultLocation}
-          onViewProduct={(productId) => navigate(`/product/${productId}`)}
-        />
-      </div>
+      <AdaptiveScentFloating
+        adaptive={adaptive}
+        recommendationsLimit={3}
+        onViewProduct={(productId) => navigate(`/product/${productId}`)}
+      />
 
       {banners.length > 0 && (
         <section className="home-banner-rail" aria-label="Homepage banner stories">

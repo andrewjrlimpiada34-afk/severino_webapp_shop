@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
-import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
+import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 function Shop() {
@@ -139,17 +139,8 @@ function Shop() {
         </p>
       </div>
 
-      <AdaptiveScentPanel
-        enabled={adaptive.enabled}
-        onToggleEnabled={adaptive.setAdaptiveEnabled}
-        loading={adaptive.status.loading}
-        error={adaptive.status.error}
-        current={adaptive.adaptiveData.current}
-        dailyForecast={adaptive.adaptiveData.dailyForecast}
-        recommendations={adaptive.adaptiveData.recommendations}
-        usingDefault={adaptive.status.usingDefault}
-        locationLabel={adaptive.locationLabel}
-        onUseDefaultLocation={adaptive.useDefaultLocation}
+      <AdaptiveScentFloating
+        adaptive={adaptive}
         onViewProduct={(productId) => navigate(`/product/${productId}`)}
       />
 

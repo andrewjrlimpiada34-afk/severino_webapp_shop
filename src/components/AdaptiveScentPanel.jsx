@@ -8,9 +8,9 @@ function AdaptivePanelSkeleton({ locationLabel }) {
       <div className="adaptive-panel__header">
         <div>
           <div className="tag">Adaptive Scent Forecast</div>
-          <h2>Checking {locationLabel} weather...</h2>
+          <h2>Checking your weather...</h2>
           <p className="section-subtitle">
-            You're using your default location: {locationLabel}.
+            Please allow location access. If unavailable, Adaptive Scent will use {locationLabel}.
           </p>
         </div>
         <SkeletonLine width="110px" height={34} className="skeleton-pill" />

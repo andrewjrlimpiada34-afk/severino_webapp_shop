@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DEFAULT_LOCATION, fetchForecastForDefaultLocation } from '../services/weatherService.js'
+import {
+  DEFAULT_LOCATION,
+  fetchForecastForCurrentLocation,
+  fetchForecastForDefaultLocation,
+} from '../services/weatherService.js'
 import { buildAdaptiveScentData } from '../utils/scentMatcher.js'
 
 function useAdaptiveScent(products = []) {
@@ -17,18 +21,29 @@ function useAdaptiveScent(products = []) {
     let active = true
     const load = async () => {
       try {
-        setStatus({ loading: true, error: '', usingDefault: true })
-        const data = await fetchForecastForDefaultLocation()
+        setStatus({ loading: true, error: '', usingDefault: false })
+        const data = await fetchForecastForCurrentLocation()
         if (!active) return
         setForecast(data)
-        setStatus({ loading: false, error: '', usingDefault: true })
+        setStatus({ loading: false, error: '', usingDefault: false })
       } catch (error) {
         if (!active) return
-        setStatus({
-          loading: false,
-          error: error?.message || 'Unable to load Marinduque weather forecast right now.',
-          usingDefault: true,
-        })
+        try {
+          const fallback = await fetchForecastForDefaultLocation()
+          if (!active) return
+          setForecast(fallback)
+          setStatus({ loading: false, error: '', usingDefault: true })
+        } catch (fallbackError) {
+          if (!active) return
+          setStatus({
+            loading: false,
+            error:
+              fallbackError?.message ||
+              error?.message ||
+              'Unable to load weather forecast right now.',
+            usingDefault: true,
+          })
+        }
       }
     }
 

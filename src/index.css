@@ -2598,6 +2598,33 @@ img {
   gap: 16px;
 }
 
+.account-profile-grid {
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-profile-grid > .card.form {
+  align-self: start;
+}
+
+.account-form-title {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 24px;
+}
+
+.account-update-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.account-update-actions .button {
+  min-width: min(100%, 260px);
+}
+
 .filter-header {
   display: flex;
   align-items: center;
@@ -2870,6 +2897,23 @@ img {
 
   .page {
     padding: 24px 16px 56px;
+  }
+
+  .account-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-form-title {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .account-update-actions {
+    justify-content: stretch;
+  }
+
+  .account-update-actions .button {
+    width: 100%;
   }
 
   .app-shell > .page:has(.home-page) {

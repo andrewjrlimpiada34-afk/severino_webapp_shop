@@ -181,7 +181,7 @@ function Account() {
       {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
 
-      <form className="grid two" onSubmit={handleSubmit}>
+      <form className="grid two account-profile-grid" onSubmit={handleSubmit}>
         <div className="card form">
           <h3 className="account-form-title">Profile</h3>
           <div>

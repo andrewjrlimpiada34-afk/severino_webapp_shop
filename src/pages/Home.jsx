@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
+import AdaptiveScentToggle from '../components/AdaptiveScentToggle.jsx'
+import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -33,7 +36,9 @@ function Home() {
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [featuredBanners, setFeaturedBanners] = useState([])
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
+  const [adaptiveProducts, setAdaptiveProducts] = useState([])
   const [openBannerStory, setOpenBannerStory] = useState(null)
+  const adaptive = useAdaptiveScent(adaptiveProducts)
 
 
 
@@ -85,6 +90,11 @@ function Home() {
     return () => clearInterval(interval)
   }, [featuredBanners.length])
 
+  useEffect(() => {
+    if (!adaptive.enabled || adaptiveProducts.length) return
+    api.products().then(setAdaptiveProducts).catch(() => setAdaptiveProducts([]))
+  }, [adaptive.enabled, adaptiveProducts.length])
+
   const handleBannerRailScroll = () => {
     const track = bannerRailRef.current
     if (!track || !track.firstElementChild) return
@@ -127,6 +137,26 @@ function Home() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="grid">
+        <AdaptiveScentToggle
+          enabled={adaptive.enabled}
+          onChange={adaptive.setAdaptiveEnabled}
+          compact
+        />
+        <AdaptiveScentPanel
+          enabled={adaptive.enabled}
+          loading={adaptive.status.loading}
+          error={adaptive.status.error}
+          current={adaptive.adaptiveData.current}
+          dailyForecast={adaptive.adaptiveData.dailyForecast}
+          recommendations={adaptive.adaptiveData.recommendations.slice(0, 3)}
+          usingDefault={adaptive.status.usingDefault}
+          onUseDefault={adaptive.useDefaultLocation}
+          onContinueWithout={() => adaptive.setAdaptiveEnabled(false)}
+          onViewProduct={(productId) => navigate(`/product/${productId}`)}
+        />
       </div>
 
       {banners.length > 0 && (

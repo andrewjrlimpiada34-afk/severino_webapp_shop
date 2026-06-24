@@ -661,6 +661,256 @@ img {
   color: var(--olive-700);
 }
 
+.adaptive-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 48%),
+    color-mix(in srgb, var(--glass) 92%, var(--olive-100));
+  border: 1px solid color-mix(in srgb, var(--page-hero-border) 80%, transparent);
+  box-shadow: 0 18px 34px rgba(26, 31, 20, 0.1);
+}
+
+.adaptive-toggle.compact {
+  padding: 14px 16px;
+}
+
+.adaptive-switch {
+  width: 92px;
+  height: 44px;
+  border: 1px solid rgba(43, 52, 34, 0.18);
+  border-radius: 999px;
+  background: color-mix(in srgb, white 74%, var(--olive-100));
+  color: var(--olive-800);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 5px 13px 5px 5px;
+  cursor: pointer;
+  transition:
+    background 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.adaptive-switch.on {
+  justify-content: flex-start;
+  padding: 5px 5px 5px 13px;
+  background: linear-gradient(135deg, var(--olive-700), var(--olive-500));
+  color: #fff;
+  box-shadow: 0 14px 24px rgba(26, 31, 20, 0.18);
+}
+
+.adaptive-switch__thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.24;
+}
+
+.adaptive-switch__text {
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.adaptive-panel {
+  display: grid;
+  gap: 18px;
+  overflow: hidden;
+  transition:
+    background 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}
+
+.adaptive-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.adaptive-panel h2,
+.adaptive-panel h3,
+.weather-mood-card h3 {
+  margin: 0;
+}
+
+.mood-sunny {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 232, 152, 0.55), transparent 36%),
+    linear-gradient(135deg, rgba(255, 249, 232, 0.95), rgba(246, 204, 126, 0.45));
+}
+
+.mood-rainy {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.5), transparent 36%),
+    linear-gradient(135deg, rgba(232, 241, 246, 0.88), rgba(105, 138, 158, 0.36));
+  backdrop-filter: blur(12px);
+}
+
+.mood-cloudy {
+  background: linear-gradient(135deg, rgba(246, 246, 242, 0.95), rgba(202, 202, 194, 0.42));
+}
+
+.mood-humid {
+  background: linear-gradient(135deg, rgba(239, 255, 249, 0.94), rgba(119, 202, 185, 0.36));
+}
+
+.mood-cool {
+  background: linear-gradient(135deg, rgba(252, 241, 224, 0.95), rgba(126, 77, 46, 0.38));
+}
+
+.mood-error,
+.mood-loading {
+  background: color-mix(in srgb, var(--glass) 94%, var(--olive-100));
+}
+
+.weather-mood-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(43, 52, 34, 0.1);
+}
+
+.weather-mood-card__icon {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.52);
+  font-size: 30px;
+}
+
+.adaptive-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.scent-forecast-card {
+  min-width: 120px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(43, 52, 34, 0.1);
+}
+
+.scent-forecast-card p {
+  margin: 0;
+  color: rgba(26, 31, 20, 0.68);
+  font-size: 12px;
+}
+
+.scent-forecast-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.adaptive-recommendations {
+  display: grid;
+  gap: 14px;
+}
+
+.adaptive-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.adaptive-product-card {
+  border: 1px solid rgba(43, 52, 34, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.adaptive-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 30px rgba(26, 31, 20, 0.12);
+}
+
+.adaptive-product-card__image {
+  min-height: 110px;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(232, 239, 220, 0.5)),
+    var(--olive-100);
+  background-size: cover;
+  background-position: center;
+}
+
+.adaptive-product-card strong,
+.adaptive-product-card small {
+  display: block;
+}
+
+.adaptive-product-card p {
+  margin: 6px 0;
+  color: rgba(26, 31, 20, 0.7);
+  font-size: 13px;
+}
+
+.adaptive-pick-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--olive-700), var(--olive-500));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.product-card {
+  position: relative;
+}
+
+.product-card .adaptive-pick-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  box-shadow: 0 10px 18px rgba(26, 31, 20, 0.18);
+}
+
+.adaptive-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .home-shop-icon-actions {
   display: flex;
   align-items: center;
@@ -766,6 +1016,25 @@ img {
 [data-theme='Shadow Dark Mode'] .featured-banner-card__title,
 [data-theme='Shadow Dark Mode'] .featured-banner-card .tag {
   color: #f4ead5;
+}
+
+[data-theme='Shadow Dark Mode'] .adaptive-toggle,
+[data-theme='Shadow Dark Mode'] .adaptive-panel,
+[data-theme='Shadow Dark Mode'] .weather-mood-card,
+[data-theme='Shadow Dark Mode'] .scent-forecast-card,
+[data-theme='Shadow Dark Mode'] .adaptive-product-card {
+  background: rgba(30, 27, 21, 0.94);
+  border-color: rgba(229, 206, 162, 0.22);
+  color: #f4ead5;
+}
+
+[data-theme='Shadow Dark Mode'] .adaptive-product-card p,
+[data-theme='Shadow Dark Mode'] .scent-forecast-card p {
+  color: rgba(244, 234, 213, 0.76);
+}
+
+[data-theme='Shadow Dark Mode'] .weather-mood-card__icon {
+  background: rgba(229, 206, 162, 0.14);
 }
 
 .facebook-follow-section {
@@ -2413,6 +2682,47 @@ img {
     border-width: 7px;
     border-radius: 18px;
     scroll-snap-align: start;
+  }
+
+  .adaptive-toggle {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .adaptive-switch {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .adaptive-switch.on {
+    justify-content: space-between;
+  }
+
+  .adaptive-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .adaptive-panel__header {
+    display: grid;
+  }
+
+  .weather-mood-card {
+    grid-template-columns: 1fr;
+  }
+
+  .adaptive-forecast-grid {
+    grid-template-columns: repeat(7, minmax(132px, 1fr));
+  }
+
+  .adaptive-product-card {
+    grid-template-columns: 86px 1fr;
+  }
+
+  .adaptive-product-card__image {
+    min-height: 98px;
   }
 
   .home-banner-dots {

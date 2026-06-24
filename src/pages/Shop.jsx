@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
+import AdaptiveScentPanel from '../components/AdaptiveScentPanel.jsx'
+import AdaptiveScentToggle from '../components/AdaptiveScentToggle.jsx'
+import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 function Shop() {
   const [query, setQuery] = useState('')
@@ -18,6 +21,7 @@ function Shop() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState([])
+  const adaptive = useAdaptiveScent(items)
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -136,6 +140,23 @@ function Shop() {
         </p>
       </div>
 
+      <AdaptiveScentToggle
+        enabled={adaptive.enabled}
+        onChange={adaptive.setAdaptiveEnabled}
+      />
+      <AdaptiveScentPanel
+        enabled={adaptive.enabled}
+        loading={adaptive.status.loading}
+        error={adaptive.status.error}
+        current={adaptive.adaptiveData.current}
+        dailyForecast={adaptive.adaptiveData.dailyForecast}
+        recommendations={adaptive.adaptiveData.recommendations}
+        usingDefault={adaptive.status.usingDefault}
+        onUseDefault={adaptive.useDefaultLocation}
+        onContinueWithout={() => adaptive.setAdaptiveEnabled(false)}
+        onViewProduct={(productId) => navigate(`/product/${productId}`)}
+      />
+
       <div className="card shop-filter-card">
         <div className="filter-header">
           <div className="tag">Filters</div>
@@ -211,8 +232,11 @@ function Shop() {
       {!status.loading && <div className="grid four shop-product-grid">
         {filtered.map((product) => {
           const isFav = favorites.includes(product.id)
+          const isAdaptivePick =
+            adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)
           return (
             <article key={product.id} className="product-card">
+              {isAdaptivePick && <span className="adaptive-pick-badge">Adaptive Pick</span>}
 
 
               <div className="product-image">

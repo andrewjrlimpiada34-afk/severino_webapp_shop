@@ -112,6 +112,13 @@ function Home() {
     setActiveBannerIndex(index)
   }
 
+  const goToFeaturedBanner = (direction) => {
+    setActiveFeaturedIndex((prev) => {
+      if (!featuredBanners.length) return 0
+      return (prev + direction + featuredBanners.length) % featuredBanners.length
+    })
+  }
+
   return (
     <section className="grid home-page" style={{ gap: '32px' }}>
       <div
@@ -138,7 +145,7 @@ function Home() {
         </div>
       </div>
 
-      <div className="grid">
+      <div className="grid home-adaptive-wrap">
         <AdaptiveScentPanel
           enabled={adaptive.enabled}
           onToggleEnabled={adaptive.setAdaptiveEnabled}
@@ -194,7 +201,7 @@ function Home() {
         </section>
       )}
 
-      <div className="grid">
+      <div className="grid home-shop-section">
         <div>
           <h2 className="section-title">Explore the Shop</h2>
           <p className="section-subtitle">Browse new scents, find your signature, and build your collection.</p>
@@ -238,6 +245,26 @@ function Home() {
         {featuredBanners.length > 0 && (
           <section className="featured-banner-slider" aria-label="Featured banner slider">
             <div className="featured-banner-slider__viewport">
+              {featuredBanners.length > 1 && (
+                <>
+                  <button
+                    className="featured-banner-arrow featured-banner-arrow--prev"
+                    type="button"
+                    aria-label="Previous featured banner"
+                    onClick={() => goToFeaturedBanner(-1)}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    className="featured-banner-arrow featured-banner-arrow--next"
+                    type="button"
+                    aria-label="Next featured banner"
+                    onClick={() => goToFeaturedBanner(1)}
+                  >
+                    ›
+                  </button>
+                </>
+              )}
               <div
                 className="featured-banner-slider__track"
                 style={{ transform: `translateX(-${activeFeaturedIndex * 100}%)` }}

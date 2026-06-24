@@ -1114,20 +1114,7 @@ img {
     justify-self: end;
   }
 
-  .home-page {
-    grid-template-columns: minmax(0, 1fr) minmax(330px, 420px);
-    align-items: start;
-    column-gap: 24px;
-  }
-
-  .home-adaptive-wrap {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
   .home-page > .hero {
-    grid-column: 1;
-    grid-row: 2;
     min-height: clamp(300px, 30vw, 420px);
     padding: clamp(28px, 4vw, 52px);
   }
@@ -1140,37 +1127,6 @@ img {
     max-width: 760px;
   }
 
-  .home-page > .home-banner-rail,
-  .home-page > .home-shop-section {
-    grid-column: 1 / -1;
-  }
-
-  .home-page > .facebook-follow-section {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    grid-template-columns: 1fr;
-    gap: 0;
-    padding: 18px;
-    border-radius: 20px;
-    align-self: stretch;
-  }
-
-  .home-page > .facebook-follow-section .facebook-follow-copy {
-    display: none;
-  }
-
-  .home-page > .facebook-follow-section .facebook-page-card {
-    min-height: 100%;
-  }
-
-  .home-page > .facebook-follow-section .facebook-embed-frame {
-    min-height: 390px;
-    max-height: 430px;
-  }
-
-  .home-page > .facebook-follow-section .facebook-embed-frame iframe {
-    min-height: 620px;
-  }
 }
 
 [data-theme='Shadow Dark Mode'] .featured-banner-card {

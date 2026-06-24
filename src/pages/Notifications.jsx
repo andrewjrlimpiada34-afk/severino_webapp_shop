@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { CardSkeleton } from '../components/Skeleton.jsx'
 
 const tabs = ['All Inboxes', 'Unread Inboxes', 'Opened Inboxes']
 
@@ -86,7 +87,7 @@ function Notifications() {
         </div>
       </div>
 
-      {status.loading && <div className="card">Loading inboxes...</div>}
+      {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
       {!status.loading && !status.error && (
         <div className="card notif-list">

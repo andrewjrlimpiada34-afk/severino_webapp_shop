@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import { CardSkeleton } from '../components/Skeleton.jsx'
 
 function OrderHistory() {
   const [orders, setOrders] = useState([])
@@ -56,12 +57,7 @@ function OrderHistory() {
         </p>
       </div>
 
-      {status.loading && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="loader" />
-          Loading orders...
-        </div>
-      )}
+      {status.loading && <CardSkeleton lines={5} />}
       {status.error && <div className="card">Error: {status.error}</div>}
       {successMessage && <div className="card">{successMessage}</div>}
 

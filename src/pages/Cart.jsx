@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { CardSkeleton } from '../components/Skeleton.jsx'
 
 function Cart() {
   const [items, setItems] = useState([])
@@ -69,13 +70,9 @@ function Cart() {
         <p className="section-subtitle">Review your selections. Secure COD checkout only.</p>
       </div>
 
-      {status.loading && (
-        <div className="card">
-          <div className="loader" /> Loading cart...
-        </div>
-      )}
+      {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      <div className="grid two">
+      {!status.loading && <div className="grid two">
         <div className="card table-scroll">
           <table className="table">
             <thead>
@@ -187,7 +184,7 @@ function Cart() {
             </a>
           </div>
         </div>
-      </div>
+      </div>}
     </section>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
+import { CardSkeleton } from '../components/Skeleton.jsx'
 
 function Account() {
   const [form, setForm] = useState({
@@ -164,12 +165,7 @@ function Account() {
         </select>
       </div>
 
-      {status.loading && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="loader" />
-          Loading profile...
-        </div>
-      )}
+      {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
       {status.success && <div className="card">{status.success}</div>}
 

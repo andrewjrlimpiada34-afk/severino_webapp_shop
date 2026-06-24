@@ -4,6 +4,7 @@ import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet, buildCloudinaryUrl } from '../lib/image.js'
+import { DetailSkeleton } from '../components/Skeleton.jsx'
 
 function ProductDetail() {
   const { id } = useParams()
@@ -151,12 +152,7 @@ function ProductDetail() {
   }
 
   if (status.loading) {
-    return (
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div className="loader" />
-        Loading product...
-      </div>
-    )
+    return <DetailSkeleton />
   }
 
   if (!product) {

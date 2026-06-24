@@ -1349,9 +1349,129 @@ img {
   animation: spin 0.8s linear infinite;
 }
 
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--olive-100) 72%, white) 0%,
+      color-mix(in srgb, var(--glass) 82%, white) 46%,
+      color-mix(in srgb, var(--olive-100) 72%, white) 100%
+    );
+  background-size: 220% 100%;
+  animation: skeletonShimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-line {
+  max-width: 100%;
+}
+
+.skeleton-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.skeleton-actions,
+.skeleton-button-row,
+.skeleton-thumb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skeleton-product-image {
+  width: 100%;
+  height: clamp(190px, 18vw, 280px);
+  border-radius: 12px;
+}
+
+.skeleton-detail-image {
+  width: 100%;
+  min-height: 380px;
+  border-radius: 18px;
+}
+
+.skeleton-thumb {
+  width: 70px;
+  height: 58px;
+  border-radius: 12px;
+}
+
+.skeleton-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.skeleton-button {
+  width: 78px;
+  height: 38px;
+}
+
+.skeleton-wide-button {
+  width: 126px;
+  height: 44px;
+}
+
+.skeleton-pill {
+  border-radius: 12px;
+}
+
+.skeleton-grid {
+  width: 100%;
+}
+
+.skeleton-detail-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+[data-theme='Shadow Dark Mode'] .skeleton {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(47, 42, 33, 0.92) 0%,
+      rgba(84, 72, 51, 0.86) 46%,
+      rgba(47, 42, 33, 0.92) 100%
+    );
+  background-size: 220% 100%;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
   }
 }
 

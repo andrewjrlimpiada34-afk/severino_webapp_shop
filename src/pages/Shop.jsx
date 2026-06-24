@@ -4,6 +4,7 @@ import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
+import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 
 function Shop() {
   const [query, setQuery] = useState('')
@@ -205,14 +206,9 @@ function Shop() {
         </div>
       </div>
 
-      {status.loading && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="loader" />
-          Loading products...
-        </div>
-      )}
+      {status.loading && <ProductGridSkeleton count={8} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      <div className="grid four shop-product-grid">
+      {!status.loading && <div className="grid four shop-product-grid">
         {filtered.map((product) => {
           const isFav = favorites.includes(product.id)
           return (
@@ -294,7 +290,7 @@ function Shop() {
             </article>
           )
         })}
-      </div>
+      </div>}
 
       {cartModal.open && cartModal.product && (
         <div className="modal-backdrop" role="presentation">

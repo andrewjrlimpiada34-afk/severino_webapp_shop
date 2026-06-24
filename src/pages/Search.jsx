@@ -4,6 +4,7 @@ import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
+import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 
 function Search() {
   const [query, setQuery] = useState('')
@@ -91,14 +92,9 @@ function Search() {
         </div>
       </div>
 
-      {status.loading && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="loader" />
-          Loading products...
-        </div>
-      )}
+      {status.loading && <ProductGridSkeleton count={8} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      <div className="grid four">
+      {!status.loading && <div className="grid four">
         {results.map((product) => {
 
           const isFav = favorites.includes(product.id)
@@ -163,7 +159,7 @@ function Search() {
             </article>
           )
         })}
-      </div>
+      </div>}
 
       {cartModal.open && cartModal.product && (
         <div className="modal-backdrop" role="presentation">

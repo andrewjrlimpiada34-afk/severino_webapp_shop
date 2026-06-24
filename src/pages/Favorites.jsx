@@ -4,6 +4,7 @@ import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { buildCloudinarySrcSet } from '../lib/image.js'
+import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 
 function Favorites() {
   const [items, setItems] = useState([])
@@ -32,12 +33,7 @@ function Favorites() {
         <h1 className="section-title">Favorites</h1>
         <p className="section-subtitle">Your saved scents.</p>
       </div>
-      {status.loading && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="loader" />
-          Loading favorites...
-        </div>
-      )}
+      {status.loading && <ProductGridSkeleton count={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
       {!status.loading && items.length === 0 && (
         <div className="card empty-state">

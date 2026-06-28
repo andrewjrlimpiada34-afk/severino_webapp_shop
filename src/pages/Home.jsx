@@ -21,9 +21,12 @@ const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.f
 const facebookPluginUrlDesktop = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
   facebookPageUrl
 )}&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
-const facebookPluginUrlMobile = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
-  facebookPageUrl
-)}&tabs=timeline&width=340&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+
+function getFacebookPluginUrl(width) {
+  return `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
+    facebookPageUrl
+  )}&tabs=timeline&width=${width}&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+}
 
 function Home() {
   const { user } = useAuth()
@@ -31,6 +34,7 @@ function Home() {
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
   const bannerRailRef = useRef(null)
+  const facebookEmbedFrameRef = useRef(null)
   const [activeBannerIndex, setActiveBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
@@ -38,6 +42,7 @@ function Home() {
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
   const [adaptiveProducts, setAdaptiveProducts] = useState([])
   const [openBannerStory, setOpenBannerStory] = useState(null)
+  const [facebookMobileWidth, setFacebookMobileWidth] = useState(320)
   const adaptive = useAdaptiveScent(adaptiveProducts)
 
 
@@ -94,6 +99,29 @@ function Home() {
     if (!adaptive.enabled || adaptiveProducts.length) return
     api.products().then(setAdaptiveProducts).catch(() => setAdaptiveProducts([]))
   }, [adaptive.enabled, adaptiveProducts.length])
+
+  useEffect(() => {
+    const frame = facebookEmbedFrameRef.current
+    if (!frame) return undefined
+
+    const updateFacebookWidth = () => {
+      if (window.innerWidth > 768) return
+      const rect = frame.getBoundingClientRect()
+      const nextWidth = Math.max(180, Math.min(500, Math.floor(rect.width)))
+      setFacebookMobileWidth((prev) => (prev === nextWidth ? prev : nextWidth))
+      window.FB?.XFBML?.parse?.()
+    }
+
+    updateFacebookWidth()
+    const observer = new ResizeObserver(updateFacebookWidth)
+    observer.observe(frame)
+    window.addEventListener('resize', updateFacebookWidth)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateFacebookWidth)
+    }
+  }, [])
 
   const handleBannerRailScroll = () => {
     const track = bannerRailRef.current
@@ -331,7 +359,7 @@ function Home() {
             <div className="tag">Follow us on Facebook</div>
             <h3>Latest Posts</h3>
           </div>
-          <div className="facebook-embed-frame">
+          <div className="facebook-embed-frame" ref={facebookEmbedFrameRef}>
             <iframe
               className="facebook-embed-desktop"
               title="Severino Facebook Page"
@@ -344,10 +372,11 @@ function Home() {
               allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
             />
             <iframe
+              key={`facebook-mobile-${facebookMobileWidth}`}
               className="facebook-embed-mobile"
               title="Severino Facebook Page Mobile"
-              src={facebookPluginUrlMobile}
-              width="340"
+              src={getFacebookPluginUrl(facebookMobileWidth)}
+              width={facebookMobileWidth}
               height="620"
               style={{ border: 'none', overflow: 'hidden' }}
               scrolling="no"

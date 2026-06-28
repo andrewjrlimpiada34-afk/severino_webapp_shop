@@ -12,7 +12,7 @@ const FRAME_FOLDERS = {
 }
 
 const MAX_DISCOVERY_FRAMES = 420
-const FRAME_STEP_EASE = 0.34
+const SEQUENCE_END_PROGRESS = 0.86
 
 function getCurrentTheme() {
   if (typeof document === 'undefined') return 'Default'
@@ -203,10 +203,11 @@ function HomeScrollVideo() {
       const rect = section.getBoundingClientRect()
       const scrollRange = Math.max(section.offsetHeight - window.innerHeight, 1)
       const progress = clamp(-rect.top / scrollRange)
+      const sequenceProgress = clamp(progress / SEQUENCE_END_PROGRESS)
       const totalFrames = Math.max(frameCount, loadedCount, 1)
-      const destination = progress * (totalFrames - 1)
+      const destination = sequenceProgress * (totalFrames - 1)
 
-      latestFrameRef.current += (destination - latestFrameRef.current) * FRAME_STEP_EASE
+      latestFrameRef.current = destination
       requestDraw()
     }
 

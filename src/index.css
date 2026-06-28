@@ -1213,7 +1213,7 @@ img {
 .home-scroll-video {
   width: 100%;
   max-width: 100%;
-  min-height: 180vh;
+  min-height: 250vh;
   border-radius: 28px;
   overflow: clip;
   isolation: isolate;
@@ -3024,7 +3024,7 @@ img {
   }
 
   .home-scroll-video {
-    min-height: 170vh;
+    min-height: 240vh;
     border-radius: 22px;
   }
 
@@ -3357,12 +3357,26 @@ img {
   .facebook-embed-frame {
     display: grid;
     justify-items: center;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
     min-height: 500px;
+    overflow: hidden;
   }
 
   .facebook-embed-frame iframe {
-    width: min(100%, 340px);
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     min-height: 500px;
+    margin: 0 !important;
+  }
+
+  .facebook-embed-frame .fb-page,
+  .facebook-embed-frame span,
+  .facebook-embed-frame iframe {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .facebook-embed-desktop {

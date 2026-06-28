@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
+import HomeScrollVideo from '../components/HomeScrollVideo.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
@@ -121,6 +122,8 @@ function Home() {
 
   return (
     <section className="grid home-page" style={{ gap: '32px' }}>
+      <HomeScrollVideo />
+
       <div
         className="hero"
         style={heroImage ? { '--hero-image': `url(${heroImage})` } : undefined}

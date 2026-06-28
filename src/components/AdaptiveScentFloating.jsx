@@ -38,7 +38,7 @@ function AdaptiveScentFloating({
   onViewProduct,
 }) {
   const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState(getStoredPosition)
+  const [position, setPosition] = useState(() => clampPosition(getStoredPosition()))
   const dragRef = useRef({
     dragging: false,
     moved: false,

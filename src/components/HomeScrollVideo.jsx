@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-const THEME_VIDEO_MAP = {
-  Default: { desktop: '/desktop_homevideo/default.mp4', mobile: '/mobile_homevideo/defaultm.mp4' },
-  Daylight: { desktop: '/desktop_homevideo/daylight.mp4', mobile: '/mobile_homevideo/daylightm.mp4' },
-  'Pink Splush': { desktop: '/desktop_homevideo/pink.mp4', mobile: '/mobile_homevideo/pinkm.mp4' },
-  'Blazing Maroon': { desktop: '/desktop_homevideo/maroon.mp4', mobile: '/mobile_homevideo/maroonm.mp4' },
-  'Forest Brown': { desktop: '/desktop_homevideo/forest.mp4', mobile: '/mobile_homevideo/forestm.mp4' },
-  'Beach Blue': { desktop: '/desktop_homevideo/beach.mp4', mobile: '/mobile_homevideo/beachm.mp4' },
-  'Luxurious Gold': { desktop: '/desktop_homevideo/gold.mp4', mobile: '/mobile_homevideo/goldm.mp4' },
-  'Shadow Dark Mode': { desktop: '/desktop_homevideo/dark.mp4', mobile: '/mobile_homevideo/darkm.mp4' },
+const FRAME_FOLDERS = {
+  Default: 'default',
+  Daylight: 'daylight',
+  'Pink Splush': 'pink',
+  'Blazing Maroon': 'maroon',
+  'Forest Brown': 'forest',
+  'Beach Blue': 'beach',
+  'Luxurious Gold': 'gold',
+  'Shadow Dark Mode': 'dark',
 }
+
+const MAX_DISCOVERY_FRAMES = 420
+const FRAME_STEP_EASE = 0.34
 
 function getCurrentTheme() {
   if (typeof document === 'undefined') return 'Default'
@@ -25,18 +28,74 @@ function clamp(value, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max)
 }
 
+function framePath(folder, index, isMobile) {
+  const rootFolder = isMobile ? 'mobile_homevideo' : 'desktop_homevideo'
+  return `/${rootFolder}/${folder}/ezgif-frame-${String(index).padStart(3, '0')}.jpg`
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.decoding = 'async'
+    image.onload = () => resolve(image)
+    image.onerror = reject
+    image.src = src
+  })
+}
+
+function drawCoverImage(canvas, image) {
+  const context = canvas.getContext('2d')
+  if (!context || !image) return
+
+  const canvasWidth = canvas.width
+  const canvasHeight = canvas.height
+  const imageRatio = image.naturalWidth / image.naturalHeight
+  const canvasRatio = canvasWidth / canvasHeight
+  let drawWidth = canvasWidth
+  let drawHeight = canvasHeight
+  let offsetX = 0
+  let offsetY = 0
+
+  if (imageRatio > canvasRatio) {
+    drawHeight = canvasHeight
+    drawWidth = drawHeight * imageRatio
+    offsetX = (canvasWidth - drawWidth) / 2
+  } else {
+    drawWidth = canvasWidth
+    drawHeight = drawWidth / imageRatio
+    offsetY = (canvasHeight - drawHeight) / 2
+  }
+
+  context.clearRect(0, 0, canvasWidth, canvasHeight)
+  context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
+}
+
+function resizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect()
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+  const width = Math.max(Math.round(rect.width * pixelRatio), 1)
+  const height = Math.max(Math.round(rect.height * pixelRatio), 1)
+
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width
+    canvas.height = height
+  }
+}
+
 function HomeScrollVideo() {
   const sectionRef = useRef(null)
-  const videoRef = useRef(null)
-  const frameRef = useRef(0)
+  const canvasRef = useRef(null)
+  const imagesRef = useRef([])
+  const latestFrameRef = useRef(0)
+  const renderedFrameRef = useRef(-1)
+  const animationFrameRef = useRef(0)
+  const preloadRunRef = useRef(0)
   const [theme, setTheme] = useState(getCurrentTheme)
   const [isMobile, setIsMobile] = useState(getIsMobile)
-  const [duration, setDuration] = useState(0)
+  const [loadedCount, setLoadedCount] = useState(0)
+  const [frameCount, setFrameCount] = useState(0)
 
-  const source = useMemo(() => {
-    const videos = THEME_VIDEO_MAP[theme] || THEME_VIDEO_MAP.Default
-    return isMobile ? videos.mobile : videos.desktop
-  }, [isMobile, theme])
+  const folder = useMemo(() => FRAME_FOLDERS[theme] || FRAME_FOLDERS.Default, [theme])
 
   useEffect(() => {
     const observer = new MutationObserver(() => setTheme(getCurrentTheme()))
@@ -57,70 +116,121 @@ function HomeScrollVideo() {
   }, [])
 
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return undefined
+    const runId = preloadRunRef.current + 1
+    preloadRunRef.current = runId
+    imagesRef.current = []
+    renderedFrameRef.current = -1
+    latestFrameRef.current = 0
+    setLoadedCount(0)
+    setFrameCount(0)
 
-    setDuration(0)
-    video.pause()
-    video.currentTime = 0
-    video.load()
+    let cancelled = false
 
-    const handleMetadata = () => {
-      setDuration(Number.isFinite(video.duration) ? video.duration : 0)
-      video.pause()
+    const discoverAndPreload = async () => {
+      for (let frameNumber = 1; frameNumber <= MAX_DISCOVERY_FRAMES; frameNumber += 1) {
+        if (cancelled || preloadRunRef.current !== runId) return
+
+        try {
+          const image = await loadImage(framePath(folder, frameNumber, isMobile))
+          if (cancelled || preloadRunRef.current !== runId) return
+
+          imagesRef.current[frameNumber - 1] = image
+          setLoadedCount(frameNumber)
+          setFrameCount(frameNumber)
+
+          if (frameNumber === 1) {
+            const canvas = canvasRef.current
+            if (canvas) {
+              resizeCanvas(canvas)
+              drawCoverImage(canvas, image)
+            }
+          }
+        } catch {
+          if (frameNumber === 1 && folder !== FRAME_FOLDERS.Default) {
+            const fallback = FRAME_FOLDERS.Default
+            try {
+              const image = await loadImage(framePath(fallback, 1, isMobile))
+              if (cancelled || preloadRunRef.current !== runId) return
+              imagesRef.current[0] = image
+              setLoadedCount(1)
+              setFrameCount(1)
+              const canvas = canvasRef.current
+              if (canvas) {
+                resizeCanvas(canvas)
+                drawCoverImage(canvas, image)
+              }
+            } catch {
+              return
+            }
+          }
+          return
+        }
+      }
     }
 
-    video.addEventListener('loadedmetadata', handleMetadata)
-    return () => video.removeEventListener('loadedmetadata', handleMetadata)
-  }, [source])
+    discoverAndPreload()
+    return () => {
+      cancelled = true
+    }
+  }, [folder, isMobile])
 
   useEffect(() => {
-    const updateFrame = () => {
-      frameRef.current = 0
-      const section = sectionRef.current
-      const video = videoRef.current
-      if (!section || !video || !duration) return
+    const drawCurrentFrame = () => {
+      animationFrameRef.current = 0
+      const canvas = canvasRef.current
+      const images = imagesRef.current
+      if (!canvas || images.length === 0) return
 
+      resizeCanvas(canvas)
+      const highestLoadedIndex = Math.max(loadedCount - 1, 0)
+      const targetFrame = Math.min(Math.round(latestFrameRef.current), highestLoadedIndex)
+      const image = images[targetFrame] || images[0]
+
+      if (image && renderedFrameRef.current !== targetFrame) {
+        drawCoverImage(canvas, image)
+        renderedFrameRef.current = targetFrame
+      }
+    }
+
+    const requestDraw = () => {
+      if (animationFrameRef.current) return
+      animationFrameRef.current = window.requestAnimationFrame(drawCurrentFrame)
+    }
+
+    const updateByScroll = () => {
+      const section = sectionRef.current
+      if (!section) return
       const rect = section.getBoundingClientRect()
       const scrollRange = Math.max(section.offsetHeight - window.innerHeight, 1)
       const progress = clamp(-rect.top / scrollRange)
-      const nextTime = progress * duration
+      const totalFrames = Math.max(frameCount, loadedCount, 1)
+      const destination = progress * (totalFrames - 1)
 
-      if (Math.abs(video.currentTime - nextTime) > 0.035) {
-        video.currentTime = nextTime
-      }
-      video.pause()
+      latestFrameRef.current += (destination - latestFrameRef.current) * FRAME_STEP_EASE
+      requestDraw()
     }
 
-    const requestUpdate = () => {
-      if (frameRef.current) return
-      frameRef.current = window.requestAnimationFrame(updateFrame)
-    }
-
-    updateFrame()
-    window.addEventListener('scroll', requestUpdate, { passive: true })
-    window.addEventListener('resize', requestUpdate)
+    updateByScroll()
+    window.addEventListener('scroll', updateByScroll, { passive: true })
+    window.addEventListener('resize', updateByScroll)
     return () => {
-      window.removeEventListener('scroll', requestUpdate)
-      window.removeEventListener('resize', requestUpdate)
-      if (frameRef.current) window.cancelAnimationFrame(frameRef.current)
+      window.removeEventListener('scroll', updateByScroll)
+      window.removeEventListener('resize', updateByScroll)
+      if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current)
     }
-  }, [duration, source])
+  }, [frameCount, loadedCount])
 
   return (
     <section className="home-scroll-video" ref={sectionRef} aria-label="Severino cinematic preview">
       <div className="home-scroll-video__stage">
-        <video
-          ref={videoRef}
+        <canvas
+          ref={canvasRef}
           className="home-scroll-video__media"
-          src={source}
-          muted
-          playsInline
-          preload="metadata"
-          aria-label={`${theme} Severino homepage video preview`}
+          aria-label={`${theme} Severino homepage frame preview`}
+          role="img"
         />
         <div className="home-scroll-video__hint">
-          <span>Scroll to preview</span>
+          <span>{loadedCount ? 'Scroll to preview' : 'Loading preview'}</span>
         </div>
       </div>
     </section>

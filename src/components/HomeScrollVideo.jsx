@@ -13,6 +13,8 @@ const FRAME_FOLDERS = {
 
 const MAX_DISCOVERY_FRAMES = 420
 const SEQUENCE_END_PROGRESS = 0.86
+const PRELOAD_BATCH_SIZE = 8
+const FRAME_SMOOTHING = 0.18
 
 function getCurrentTheme() {
   if (typeof document === 'undefined') return 'Default'
@@ -43,12 +45,7 @@ function loadImage(src) {
   })
 }
 
-function drawCoverImage(canvas, image) {
-  const context = canvas.getContext('2d')
-  if (!context || !image) return
-
-  const canvasWidth = canvas.width
-  const canvasHeight = canvas.height
+function getCoverRect(canvasWidth, canvasHeight, image) {
   const imageRatio = image.naturalWidth / image.naturalHeight
   const canvasRatio = canvasWidth / canvasHeight
   let drawWidth = canvasWidth
@@ -66,8 +63,71 @@ function drawCoverImage(canvas, image) {
     offsetY = (canvasHeight - drawHeight) / 2
   }
 
+  return { drawWidth, drawHeight, offsetX, offsetY }
+}
+
+function getContainRect(canvasWidth, canvasHeight, image) {
+  const imageRatio = image.naturalWidth / image.naturalHeight
+  const canvasRatio = canvasWidth / canvasHeight
+  let drawWidth = canvasWidth
+  let drawHeight = canvasHeight
+  let offsetX = 0
+  let offsetY = 0
+
+  if (imageRatio > canvasRatio) {
+    drawWidth = canvasWidth
+    drawHeight = drawWidth / imageRatio
+    offsetY = (canvasHeight - drawHeight) / 2
+  } else {
+    drawHeight = canvasHeight
+    drawWidth = drawHeight * imageRatio
+    offsetX = (canvasWidth - drawWidth) / 2
+  }
+
+  return { drawWidth, drawHeight, offsetX, offsetY }
+}
+
+function drawImageRect(context, image, rect) {
+  context.drawImage(image, rect.offsetX, rect.offsetY, rect.drawWidth, rect.drawHeight)
+}
+
+function drawCinematicFrame(canvas, image, nextImage, blend = 0) {
+  const context = canvas.getContext('2d')
+  if (!context || !image) return
+
+  const canvasWidth = canvas.width
+  const canvasHeight = canvas.height
+  const coverRect = getCoverRect(canvasWidth, canvasHeight, image)
+  const containRect = getContainRect(canvasWidth, canvasHeight, image)
+
   context.clearRect(0, 0, canvasWidth, canvasHeight)
-  context.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
+
+  context.save()
+  context.filter = `blur(${Math.max(canvasWidth, canvasHeight) * 0.018}px)`
+  context.globalAlpha = 0.58
+  drawImageRect(context, image, coverRect)
+  context.restore()
+
+  const backdrop = context.createLinearGradient(0, 0, canvasWidth, canvasHeight)
+  backdrop.addColorStop(0, 'rgba(8, 10, 7, 0.24)')
+  backdrop.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)')
+  backdrop.addColorStop(1, 'rgba(8, 10, 7, 0.28)')
+  context.fillStyle = backdrop
+  context.fillRect(0, 0, canvasWidth, canvasHeight)
+
+  context.save()
+  context.shadowColor = 'rgba(0, 0, 0, 0.22)'
+  context.shadowBlur = Math.max(canvasWidth, canvasHeight) * 0.02
+  context.shadowOffsetY = Math.max(canvasHeight * 0.012, 4)
+  drawImageRect(context, image, containRect)
+  context.restore()
+
+  if (nextImage && blend > 0.02) {
+    context.save()
+    context.globalAlpha = Math.min(blend, 0.82)
+    drawImageRect(context, nextImage, getContainRect(canvasWidth, canvasHeight, nextImage))
+    context.restore()
+  }
 }
 
 function resizeCanvas(canvas) {
@@ -86,8 +146,10 @@ function HomeScrollVideo() {
   const sectionRef = useRef(null)
   const canvasRef = useRef(null)
   const imagesRef = useRef([])
-  const latestFrameRef = useRef(0)
+  const currentFrameRef = useRef(0)
+  const targetFrameRef = useRef(0)
   const renderedFrameRef = useRef(-1)
+  const lastBlendRef = useRef(-1)
   const animationFrameRef = useRef(0)
   const preloadRunRef = useRef(0)
   const [theme, setTheme] = useState(getCurrentTheme)
@@ -120,32 +182,30 @@ function HomeScrollVideo() {
     preloadRunRef.current = runId
     imagesRef.current = []
     renderedFrameRef.current = -1
-    latestFrameRef.current = 0
+    lastBlendRef.current = -1
+    currentFrameRef.current = 0
+    targetFrameRef.current = 0
     setLoadedCount(0)
     setFrameCount(0)
 
     let cancelled = false
 
     const discoverAndPreload = async () => {
-      for (let frameNumber = 1; frameNumber <= MAX_DISCOVERY_FRAMES; frameNumber += 1) {
+      for (let frameNumber = 1; frameNumber <= MAX_DISCOVERY_FRAMES; frameNumber += PRELOAD_BATCH_SIZE) {
         if (cancelled || preloadRunRef.current !== runId) return
 
-        try {
-          const image = await loadImage(framePath(folder, frameNumber, isMobile))
-          if (cancelled || preloadRunRef.current !== runId) return
+        const batchIndexes = Array.from(
+          { length: PRELOAD_BATCH_SIZE },
+          (_, index) => frameNumber + index
+        ).filter((index) => index <= MAX_DISCOVERY_FRAMES)
+        const results = await Promise.allSettled(
+          batchIndexes.map((index) => loadImage(framePath(folder, index, isMobile)))
+        )
+        const firstMissingIndex = results.findIndex((result) => result.status === 'rejected')
+        const loadedResults =
+          firstMissingIndex === -1 ? results : results.slice(0, firstMissingIndex)
 
-          imagesRef.current[frameNumber - 1] = image
-          setLoadedCount(frameNumber)
-          setFrameCount(frameNumber)
-
-          if (frameNumber === 1) {
-            const canvas = canvasRef.current
-            if (canvas) {
-              resizeCanvas(canvas)
-              drawCoverImage(canvas, image)
-            }
-          }
-        } catch {
+        if (loadedResults.length === 0) {
           if (frameNumber === 1 && folder !== FRAME_FOLDERS.Default) {
             const fallback = FRAME_FOLDERS.Default
             try {
@@ -157,7 +217,7 @@ function HomeScrollVideo() {
               const canvas = canvasRef.current
               if (canvas) {
                 resizeCanvas(canvas)
-                drawCoverImage(canvas, image)
+                drawCinematicFrame(canvas, image)
               }
             } catch {
               return
@@ -165,6 +225,27 @@ function HomeScrollVideo() {
           }
           return
         }
+
+        loadedResults.forEach((result, index) => {
+          imagesRef.current[frameNumber + index - 1] = result.value
+        })
+
+        if (cancelled || preloadRunRef.current !== runId) return
+
+        const nextCount = frameNumber + loadedResults.length - 1
+        setLoadedCount(nextCount)
+        setFrameCount(nextCount)
+
+        if (frameNumber === 1) {
+          const canvas = canvasRef.current
+          const image = loadedResults[0]?.value
+          if (canvas && image) {
+            resizeCanvas(canvas)
+            drawCinematicFrame(canvas, image)
+          }
+        }
+
+        if (firstMissingIndex !== -1) return
       }
     }
 
@@ -176,19 +257,45 @@ function HomeScrollVideo() {
 
   useEffect(() => {
     const drawCurrentFrame = () => {
-      animationFrameRef.current = 0
       const canvas = canvasRef.current
       const images = imagesRef.current
-      if (!canvas || images.length === 0) return
+      if (!canvas || images.length === 0) {
+        animationFrameRef.current = 0
+        return
+      }
 
       resizeCanvas(canvas)
       const highestLoadedIndex = Math.max(loadedCount - 1, 0)
-      const targetFrame = Math.min(Math.round(latestFrameRef.current), highestLoadedIndex)
-      const image = images[targetFrame] || images[0]
+      const safeTarget = Math.min(targetFrameRef.current, highestLoadedIndex)
+      const distance = safeTarget - currentFrameRef.current
 
-      if (image && renderedFrameRef.current !== targetFrame) {
-        drawCoverImage(canvas, image)
-        renderedFrameRef.current = targetFrame
+      if (Math.abs(distance) < 0.025) {
+        currentFrameRef.current = safeTarget
+      } else {
+        currentFrameRef.current += distance * FRAME_SMOOTHING
+      }
+
+      const frameValue = clamp(currentFrameRef.current, 0, highestLoadedIndex)
+      const baseFrame = Math.min(Math.floor(frameValue), highestLoadedIndex)
+      const nextFrame = Math.min(baseFrame + 1, highestLoadedIndex)
+      const blend = frameValue - baseFrame
+      const image = images[baseFrame] || images[0]
+      const nextImage = images[nextFrame]
+      const roundedBlend = Math.round(blend * 100) / 100
+
+      if (
+        image &&
+        (renderedFrameRef.current !== baseFrame || lastBlendRef.current !== roundedBlend)
+      ) {
+        drawCinematicFrame(canvas, image, nextImage, blend)
+        renderedFrameRef.current = baseFrame
+        lastBlendRef.current = roundedBlend
+      }
+
+      if (Math.abs(targetFrameRef.current - currentFrameRef.current) > 0.025) {
+        animationFrameRef.current = window.requestAnimationFrame(drawCurrentFrame)
+      } else {
+        animationFrameRef.current = 0
       }
     }
 
@@ -207,7 +314,10 @@ function HomeScrollVideo() {
       const totalFrames = Math.max(frameCount, loadedCount, 1)
       const destination = sequenceProgress * (totalFrames - 1)
 
-      latestFrameRef.current = destination
+      targetFrameRef.current = destination
+      if (sequenceProgress >= 1) {
+        currentFrameRef.current = destination
+      }
       requestDraw()
     }
 

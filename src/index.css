@@ -399,7 +399,18 @@ img {
 }
 
 [data-theme='Shadow Dark Mode'] .nav-links a.active {
-  color: #fff7e2;
+  color: #15140f;
+  background: #e5cea2 !important;
+  border-color: rgba(255, 247, 226, 0.72) !important;
+}
+
+[data-theme='Shadow Dark Mode'] .nav-mobile-float .icon-button.active {
+  background: #e5cea2;
+  color: #15140f;
+}
+
+[data-theme='Shadow Dark Mode'] .nav-mobile-float .icon-button.active .icon {
+  color: #15140f;
 }
 
 [data-theme='Shadow Dark Mode'] .nav-links a,
@@ -3149,6 +3160,14 @@ img {
   .nav {
     gap: 10px;
     padding: 10px 16px;
+    transition: transform 0.26s ease, opacity 0.22s ease;
+    will-change: transform;
+  }
+
+  .nav.nav-hidden {
+    transform: translateY(calc(-100% - 10px));
+    opacity: 0;
+    pointer-events: none;
   }
 
   .nav-logo-link {
@@ -3257,11 +3276,21 @@ img {
   .nav-links a,
   .nav-links .icon-button,
   .nav-links .button.ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     background: rgba(255, 255, 255, 0.75);
     border-radius: 14px;
     padding: 8px 12px;
     box-shadow: 0 12px 18px rgba(26, 31, 20, 0.12);
     backdrop-filter: blur(8px);
+  }
+
+  .nav-links a.active {
+    background: var(--olive-700);
+    color: var(--cream);
+    border-color: color-mix(in srgb, var(--olive-700) 80%, white);
   }
 
   .notif-tabs {
@@ -3860,6 +3889,14 @@ img {
     align-items: center;
     justify-content: center;
     z-index: 7;
+    transition: opacity 0.2s ease, transform 0.24s ease, visibility 0.2s ease;
+  }
+
+  .nav-mobile-toggle-row.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-8px);
   }
 
   .nav-mobile-toggle {
@@ -3925,6 +3962,7 @@ img {
   .nav-mobile-actions {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     overflow: hidden;
     max-width: 0;
@@ -3939,7 +3977,14 @@ img {
     transform: translateY(0);
   }
 
+  .nav-mobile-float.auto-open {
+    top: 12px;
+    z-index: 20002;
+  }
+
   .nav-mobile-float .icon-button {
+    display: inline-grid;
+    place-items: center;
     padding: 10px;
     border-radius: 999px;
     background: transparent;
@@ -3950,8 +3995,13 @@ img {
 
   .nav-mobile-float .icon-button.active {
     transform: scale(1.12);
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 18px rgba(10, 10, 10, 0.2);
+    background: var(--olive-700);
+    color: var(--cream);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--olive-700) 42%, transparent);
+  }
+
+  .nav-mobile-float .icon-button.active .icon {
+    color: var(--cream);
   }
 }
 

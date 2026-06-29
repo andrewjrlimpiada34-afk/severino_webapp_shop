@@ -7,6 +7,7 @@ function NavBar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
+  const [mobileNavHidden, setMobileNavHidden] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
@@ -61,9 +62,42 @@ function NavBar() {
     return () => document.body.classList.remove('nav-quick-open')
   }, [mobileQuickOpen])
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY
+
+    const handleMobileNav = () => {
+      const isMobile = window.innerWidth <= 640
+      if (!isMobile) {
+        setMobileNavHidden(false)
+        return
+      }
+
+      const currentScrollY = window.scrollY
+      const scrollingDown = currentScrollY > lastScrollY + 4
+      const scrollingUp = currentScrollY < lastScrollY - 4
+
+      if (scrollingDown && currentScrollY > 80) {
+        setOpen(false)
+        setMobileNavHidden(true)
+      } else if (scrollingUp || currentScrollY < 48) {
+        setMobileNavHidden(false)
+      }
+
+      lastScrollY = Math.max(currentScrollY, 0)
+    }
+
+    handleMobileNav()
+    window.addEventListener('scroll', handleMobileNav, { passive: true })
+    window.addEventListener('resize', handleMobileNav)
+    return () => {
+      window.removeEventListener('scroll', handleMobileNav)
+      window.removeEventListener('resize', handleMobileNav)
+    }
+  }, [])
+
   return (
     <>
-      <nav className="nav">
+      <nav className={`nav ${mobileNavHidden ? 'nav-hidden' : ''}`}>
         <NavLink className="nav-logo nav-logo-link" to="/" onClick={() => setOpen(false)} aria-label="Severino home">
           <img className="nav-logo-image" src="/logo.svg" alt="Severino" />
         </NavLink>
@@ -201,7 +235,7 @@ function NavBar() {
       </nav>
       {user && (
         <>
-          <div className={`nav-mobile-toggle-row ${mobileQuickOpen ? 'open' : ''}`}>
+          <div className={`nav-mobile-toggle-row ${mobileQuickOpen ? 'open' : ''} ${mobileNavHidden ? 'hidden' : ''}`}>
             <button
               className="icon-button nav-mobile-toggle"
               type="button"
@@ -220,7 +254,7 @@ function NavBar() {
               </svg>
             </button>
           </div>
-          <div className={`nav-mobile-float ${mobileQuickOpen ? 'open' : ''}`}>
+          <div className={`nav-mobile-float ${mobileQuickOpen || mobileNavHidden ? 'open' : ''} ${mobileNavHidden ? 'auto-open' : ''}`}>
             <div className="nav-mobile-actions">
             <button
               className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}

@@ -34,6 +34,7 @@ function Home() {
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
   const bannerRailRef = useRef(null)
+  const featuredRailRef = useRef(null)
   const facebookEmbedFrameRef = useRef(null)
   const [activeBannerIndex, setActiveBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
@@ -90,7 +91,11 @@ function Home() {
   useEffect(() => {
     if (featuredBanners.length <= 1) return undefined
     const interval = setInterval(() => {
-      setActiveFeaturedIndex((prev) => (prev + 1) % featuredBanners.length)
+      setActiveFeaturedIndex((prev) => {
+        const next = (prev + 1) % featuredBanners.length
+        scrollToFeaturedBanner(next)
+        return next
+      })
     }, 5200)
     return () => clearInterval(interval)
   }, [featuredBanners.length])
@@ -141,11 +146,28 @@ function Home() {
     setActiveBannerIndex(index)
   }
 
+  const handleFeaturedRailScroll = () => {
+    const track = featuredRailRef.current
+    if (!track || !track.firstElementChild) return
+    const firstCard = track.firstElementChild
+    const cardWidth = firstCard.getBoundingClientRect().width
+    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap || '0') || 0
+    const nextIndex = Math.round(track.scrollLeft / Math.max(cardWidth + gap, 1))
+    setActiveFeaturedIndex(Math.max(0, Math.min(featuredBanners.length - 1, nextIndex)))
+  }
+
+  const scrollToFeaturedBanner = (index) => {
+    const track = featuredRailRef.current
+    const card = track?.children?.[index]
+    if (!track || !card) return
+    track.scrollTo({ left: card.offsetLeft, behavior: 'smooth' })
+    setActiveFeaturedIndex(index)
+  }
+
   const goToFeaturedBanner = (direction) => {
-    setActiveFeaturedIndex((prev) => {
-      if (!featuredBanners.length) return 0
-      return (prev + direction + featuredBanners.length) % featuredBanners.length
-    })
+    if (!featuredBanners.length) return
+    const next = (activeFeaturedIndex + direction + featuredBanners.length) % featuredBanners.length
+    scrollToFeaturedBanner(next)
   }
 
   return (
@@ -288,7 +310,8 @@ function Home() {
               )}
               <div
                 className="featured-banner-slider__track"
-                style={{ transform: `translateX(-${activeFeaturedIndex * 100}%)` }}
+                ref={featuredRailRef}
+                onScroll={handleFeaturedRailScroll}
               >
                 {featuredBanners.map((banner, index) => (
                   <button
@@ -304,8 +327,6 @@ function Home() {
                       })
                     }
                     aria-label={`Open ${banner.title}`}
-                    aria-hidden={activeFeaturedIndex === index ? undefined : 'true'}
-                    tabIndex={activeFeaturedIndex === index ? 0 : -1}
                   >
                     <div
                       className="featured-banner-slide__image"
@@ -329,7 +350,7 @@ function Home() {
                   type="button"
                   aria-label={`Show featured banner ${index + 1}`}
                   aria-current={activeFeaturedIndex === index ? 'true' : undefined}
-                  onClick={() => setActiveFeaturedIndex(index)}
+                  onClick={() => scrollToFeaturedBanner(index)}
                 />
               ))}
             </div>

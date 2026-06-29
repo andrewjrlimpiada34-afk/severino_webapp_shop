@@ -4003,6 +4003,59 @@ img {
   .nav-mobile-float .icon-button.active .icon {
     color: var(--cream);
   }
+
+  .scroll-top-button {
+    position: fixed;
+    right: 18px;
+    bottom: 22px;
+    z-index: 20003;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--olive-700) 36%, white);
+    background: var(--olive-700);
+    color: var(--cream);
+    box-shadow: 0 16px 32px color-mix(in srgb, var(--olive-700) 34%, transparent);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(12px) scale(0.92);
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease, background 0.22s ease;
+  }
+
+  .scroll-top-button.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  .scroll-top-button .icon {
+    width: 20px;
+    height: 20px;
+    color: currentColor;
+  }
+}
+
+.scroll-top-button {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .scroll-top-button {
+    display: grid;
+  }
+}
+
+[data-theme='Shadow Dark Mode'] .scroll-top-button {
+  background: #e5cea2;
+  color: #15140f;
+  border-color: rgba(255, 247, 226, 0.72);
+  box-shadow: 0 16px 34px rgba(229, 206, 162, 0.24);
 }
 
 .spray-particle {

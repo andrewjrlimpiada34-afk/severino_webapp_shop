@@ -8,6 +8,7 @@ function NavBar() {
   const [open, setOpen] = useState(false)
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
   const [mobileNavHidden, setMobileNavHidden] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
@@ -69,18 +70,21 @@ function NavBar() {
       const isMobile = window.innerWidth <= 640
       if (!isMobile) {
         setMobileNavHidden(false)
+        setShowScrollTop(false)
         return
       }
 
       const currentScrollY = window.scrollY
       const scrollingDown = currentScrollY > lastScrollY + 4
-      const scrollingUp = currentScrollY < lastScrollY - 4
+      const isAtTop = currentScrollY < 48
 
-      if (scrollingDown && currentScrollY > 80) {
+      setShowScrollTop(currentScrollY > 180)
+
+      if (isAtTop) {
+        setMobileNavHidden(false)
+      } else if (scrollingDown || currentScrollY > 80) {
         setOpen(false)
         setMobileNavHidden(true)
-      } else if (scrollingUp || currentScrollY < 48) {
-        setMobileNavHidden(false)
       }
 
       lastScrollY = Math.max(currentScrollY, 0)
@@ -321,6 +325,28 @@ function NavBar() {
           </div>
         </>
       )}
+      <button
+        className={`scroll-top-button ${showScrollTop ? 'visible' : ''}`}
+        type="button"
+        aria-label="Scroll to top"
+        onClick={() => {
+          setOpen(false)
+          setMobileQuickOpen(false)
+          setMobileNavHidden(false)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }}
+      >
+        <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M6 14l6-6 6 6M12 8v11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
     </>
   )
 }

@@ -4027,19 +4027,24 @@ img {
   }
 
   .app-shell > .page:has(.home-page) {
-    padding-top: 12px;
+    padding-top: 8px;
   }
 
   .nav {
     position: sticky;
-    z-index: 10001;
+    z-index: 20000;
     pointer-events: auto;
   }
 
   .nav-actions,
   .nav-toggle {
     position: relative;
-    z-index: 10002;
+    z-index: 20001;
+    pointer-events: auto;
+  }
+
+  .nav-toggle,
+  .nav-toggle * {
     pointer-events: auto;
   }
 
@@ -4069,15 +4074,16 @@ img {
   }
 
   .home-scroll-video {
-    min-height: 120svh;
+    min-height: 0;
+    margin-bottom: 8px;
     border-radius: 20px;
   }
 
   .home-scroll-video__stage {
-    position: sticky;
-    top: 76px;
-    height: min(78svh, 620px);
-    min-height: 360px;
+    position: relative;
+    top: auto;
+    height: min(72svh, 520px);
+    min-height: 280px;
   }
 
   .home-banner-rail,
@@ -4163,7 +4169,7 @@ img {
     padding: 0;
     overflow: visible;
     pointer-events: auto;
-    z-index: 10000;
+    z-index: 9000;
   }
 
   .adaptive-modal-backdrop {

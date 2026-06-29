@@ -32,6 +32,9 @@ const normalizePhilippineMobile = (value = '') => {
   if (/^09\d{9}$/.test(compact)) {
     return `+63${compact.slice(1)}`
   }
+  if (/^9\d{9}$/.test(compact)) {
+    return `+63${compact}`
+  }
   if (/^\+639\d{9}$/.test(compact)) {
     return compact
   }
@@ -83,7 +86,7 @@ const otpSendSchema = z.object({
 
 const otpVerifySchema = z.object({
   challengeId: z.string().min(8),
-  code: z.string().min(6),
+  code: z.string().regex(/^\d{4}$/, 'Enter the 4-digit OTP'),
 })
 
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
@@ -158,7 +161,7 @@ const isRateLimited = (key, limit = 5, windowMs = 10 * 60 * 1000) => {
 }
 
 const generateOtp = () => {
-  const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0')
+  const code = crypto.randomInt(0, 10000).toString().padStart(4, '0')
   return code
 }
 

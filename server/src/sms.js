@@ -10,7 +10,7 @@ export const isSmsConfigured = () => {
 
 export const send_sms_otp = async ({ to, code }) => {
   const provider = normalizeSmsProvider()
-  const message = `Your Severino verification code is ${code}. It expires in 5 minutes.`
+  const message = `Your Severino 4-digit verification code is ${code}. It expires in 5 minutes.`
 
   if (provider === 'semaphore') {
     const body = new URLSearchParams({

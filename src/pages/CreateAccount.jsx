@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
+const normalizePhilippineMobile = (value = '') => {
+  const compact = value.replace(/[\s-]/g, '')
+  if (/^09\d{9}$/.test(compact)) return `+63${compact.slice(1)}`
+  if (/^\+639\d{9}$/.test(compact)) return compact
+  if (/^639\d{9}$/.test(compact)) return `+${compact}`
+  return ''
+}
+
 function CreateAccount() {
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
-    email: '',
     mobile: '',
     password: '',
     confirmPassword: '',
@@ -27,7 +34,7 @@ function CreateAccount() {
     verified: false,
     message: '',
     challengeId: '',
-    email: '',
+    mobile: '',
   })
   const { register, sendRegisterOtp, verifyRegisterOtp } = useAuth()
   const navigate = useNavigate()
@@ -40,8 +47,7 @@ function CreateAccount() {
     event.preventDefault()
     const firstName = form.firstName.trim()
     const lastName = form.lastName.trim()
-    const email = form.email.trim()
-    const mobile = form.mobile.trim()
+    const mobile = normalizePhilippineMobile(form.mobile)
     const addressLine = form.addressLine.trim()
     const barangay = form.barangay.trim()
     const city = form.city.trim()
@@ -60,7 +66,6 @@ function CreateAccount() {
     if (
       !firstName ||
       !lastName ||
-      !email ||
       !mobile ||
       !barangay ||
       !city ||
@@ -71,13 +76,15 @@ function CreateAccount() {
       setStatus({ loading: false, error: 'Please complete all fields.', success: '' })
       return
     }
-    if (!otpState.verified || !otpState.challengeId || otpState.email !== email.toLowerCase()) {
-      setStatus({ loading: false, error: 'Please verify your email with OTP.', success: '' })
+    if (!otpState.verified || !otpState.challengeId || otpState.mobile !== mobile) {
+      setStatus({ loading: false, error: 'Verify OTP before creating account', success: '' })
       return
     }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      const result = await register(`${firstName} ${lastName}`, email, form.password, {
+      await register({
+        name: `${firstName} ${lastName}`,
+        password: form.password,
         phone: mobile,
         addressLine,
         barangay,
@@ -99,8 +106,8 @@ function CreateAccount() {
   }
 
   useEffect(() => {
-    const email = form.email.trim().toLowerCase()
-    if (!otpState.email || otpState.email === email) return
+    const mobile = normalizePhilippineMobile(form.mobile)
+    if (!otpState.mobile || otpState.mobile === mobile) return
     setOtp('')
     setOtpState({
       sending: false,
@@ -108,27 +115,32 @@ function CreateAccount() {
       verified: false,
       message: '',
       challengeId: '',
-      email: '',
+      mobile: '',
     })
-  }, [form.email, otpState.email])
+  }, [form.mobile, otpState.mobile])
 
   const sendOtp = async () => {
-    const email = form.email.trim().toLowerCase()
-    if (!email) {
-      setStatus({ loading: false, error: 'Please enter your email first.', success: '' })
+    const mobile = normalizePhilippineMobile(form.mobile)
+    if (!mobile) {
+      setStatus({
+        loading: false,
+        error: 'Enter a valid Philippine mobile number before sending OTP.',
+        success: '',
+      })
       return
     }
     try {
+      setStatus({ loading: false, error: '', success: '' })
       setOtpState((prev) => ({ ...prev, sending: true, message: '', verified: false }))
-      const result = await sendRegisterOtp(email)
+      const result = await sendRegisterOtp(mobile)
       setOtp('')
       setOtpState({
         sending: false,
         verifying: false,
         verified: false,
-        message: result?.message || 'OTP sent to your email',
+        message: result?.message || 'OTP sent to mobile number',
         challengeId: result.challengeId,
-        email,
+        mobile,
       })
     } catch (error) {
       setOtpState((prev) => ({ ...prev, sending: false }))
@@ -151,7 +163,7 @@ function CreateAccount() {
         ...prev,
         verifying: false,
         verified: true,
-        message: result?.message || 'OTP verified successfully',
+        message: result?.message || 'Mobile OTP verified',
       }))
     } catch (error) {
       setOtpState((prev) => ({ ...prev, verifying: false }))
@@ -195,16 +207,15 @@ function CreateAccount() {
         </div>
         <div className="grid two">
           <div>
-            <div className="label">Email</div>
+            <div className="label">Mobile Number</div>
             <div className="input-row">
               <input
                 className="input"
-                type="email"
-                placeholder="you@email.com"
-                autoComplete="email"
+                placeholder="+63 9xx xxx xxxx"
+                autoComplete="tel"
                 required
-                value={form.email}
-                onChange={(event) => updateField('email', event.target.value)}
+                value={form.mobile}
+                onChange={(event) => updateField('mobile', event.target.value)}
               />
               <button
                 type="button"
@@ -218,20 +229,15 @@ function CreateAccount() {
             {otpState.message && <div className="pill">{otpState.message}</div>}
           </div>
           <div>
-            <div className="label">Mobile Number</div>
-            <input
-              className="input"
-              placeholder="+63 9xx xxx xxxx"
-              autoComplete="tel"
-              required
-              value={form.mobile}
-              onChange={(event) => updateField('mobile', event.target.value)}
-            />
+            <div className="label">OTP Status</div>
+            <div className="pill" style={{ minHeight: '54px', display: 'flex', alignItems: 'center' }}>
+              {otpState.verified ? 'Mobile OTP verified' : 'Verify OTP before creating account'}
+            </div>
           </div>
         </div>
         <div className="grid two">
           <div>
-            <div className="label">Email OTP</div>
+            <div className="label">OTP</div>
             <div className="input-row">
               <input
                 className="input"
@@ -251,7 +257,7 @@ function CreateAccount() {
             </div>
           </div>
           <div className="pill" style={{ alignSelf: 'end' }}>
-            {otpState.verified ? 'OTP verified successfully' : 'Verify OTP before creating account'}
+            {otpState.verified ? 'Mobile OTP verified' : 'Verify OTP before creating account'}
           </div>
         </div>
         <div className="grid two">

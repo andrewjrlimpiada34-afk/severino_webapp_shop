@@ -45,6 +45,12 @@ export const getUserByEmail = async (email) => {
   return db.collection('users').findOne({ email })
 }
 
+export const getUserByPhone = async (phone) => {
+  await ensureAdmin()
+  const db = await getDb()
+  return db.collection('users').findOne({ phone })
+}
+
 export const getUserById = async (id) => {
   if (!id) return null
   await ensureAdmin()
@@ -99,7 +105,7 @@ export const sanitizeUser = (user) => {
   return {
     id: user._id.toString(),
     name: user.name,
-    email: user.email,
+    email: user.email || '',
     role: user.role,
     verified: user.verified,
     phone: user.phone || '',

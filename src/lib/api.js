@@ -41,8 +41,8 @@ async function upload(path, file) {
 
 export const api = {
   login: (data) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-  sendRegisterOtp: (email) =>
-    request('/api/auth/otp/send', { method: 'POST', body: JSON.stringify({ email }) }),
+  sendRegisterOtp: (mobile) =>
+    request('/api/auth/otp/send', { method: 'POST', body: JSON.stringify({ mobile }) }),
   verifyRegisterOtp: (data) =>
     request('/api/auth/otp/verify', { method: 'POST', body: JSON.stringify(data) }),
   verify2fa: (data) => request('/api/auth/verify', { method: 'POST', body: JSON.stringify(data) }),

@@ -55,8 +55,8 @@ export function AuthProvider({ children }) {
     refresh()
   }, [])
 
-  const startLogin = async (email, password) => {
-    await api.login({ email, password })
+  const startLogin = async (identifier, password) => {
+    await api.login({ identifier, email: identifier, password })
     const data = await api.me()
     const resolved = await resolveUserTheme(data)
     setUser(resolved)
@@ -88,12 +88,12 @@ export function AuthProvider({ children }) {
     return resolved
   }
 
-  const register = async (name, email, password, extra = {}) => {
-    return api.register({ name, email, password, ...extra })
+  const register = async (data) => {
+    return api.register(data)
   }
 
-  const sendRegisterOtp = async (email) => {
-    return api.sendRegisterOtp(email)
+  const sendRegisterOtp = async (mobile) => {
+    return api.sendRegisterOtp(mobile)
   }
 
   const verifyRegisterOtp = async (payload) => {

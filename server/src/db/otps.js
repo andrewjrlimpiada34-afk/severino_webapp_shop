@@ -22,6 +22,16 @@ export const getLatestOtpByEmail = async (email, type = 'register') => {
     .next()
 }
 
+export const getLatestOtpByPhone = async (phone, type = 'register') => {
+  const db = await getDb()
+  return db
+    .collection('otps')
+    .find({ phone, type })
+    .sort({ createdAt: -1 })
+    .limit(1)
+    .next()
+}
+
 export const markOtpVerified = async (id) => {
   const db = await getDb()
   await db.collection('otps').updateOne({ id }, { $set: { verifiedAt: new Date() } })

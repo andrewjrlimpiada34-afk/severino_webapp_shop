@@ -10,7 +10,7 @@ const router = express.Router()
 const profileSchema = z
   .object({
     name: z.string().min(2),
-    email: z.string().email(),
+    email: z.string().email().optional().or(z.literal('')),
     phone: z.string().min(7),
   addressLine: z.string().optional(),
   barangay: z.string().min(2),
@@ -45,8 +45,14 @@ router.patch('/me', requireAuth, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
+  const currentUser = await getUserById(req.user.id)
+  if (!currentUser) return res.status(404).json({ message: 'Not found' })
+  const nextData = { ...parsed.data }
+  if (currentUser.passwordHash && !currentUser.email) {
+    delete nextData.email
+  }
   const address = `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`
-  const user = await updateUser(req.user.id, { ...parsed.data, address })
+  const user = await updateUser(req.user.id, { ...nextData, address })
   if (!user) return res.status(404).json({ message: 'Not found' })
   return res.json(sanitizeUser(user))
 })

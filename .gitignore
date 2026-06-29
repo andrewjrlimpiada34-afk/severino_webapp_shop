@@ -23,5 +23,20 @@ dist-ssr
 *.sln
 *.sw?
 
+# Secrets and local environment config
 .env
-server/.env
+.env*
+**/.env
+**/.env*
+
+# Private deployment/local metadata
+.vercel
+.netlify
+
+# Private keys and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json

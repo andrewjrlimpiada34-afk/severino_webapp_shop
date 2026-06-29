@@ -88,7 +88,6 @@ function Account() {
     event.preventDefault()
     if (
       !form.name ||
-      !form.email ||
       !form.phone ||
       !form.barangay ||
       !form.city ||
@@ -216,15 +215,17 @@ function Account() {
               onChange={(event) => updateField('name', event.target.value)}
             />
           </div>
-          <div>
-            <div className="label">Email</div>
-            <input
-              className="input"
-              type="email"
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
-            />
-          </div>
+          {!canManageSecurity && (
+            <div>
+              <div className="label">Email</div>
+              <input
+                className="input"
+                type="email"
+                value={form.email}
+                onChange={(event) => updateField('email', event.target.value)}
+              />
+            </div>
+          )}
           <div>
             <div className="label">Mobile Number</div>
             <input
@@ -301,14 +302,14 @@ function Account() {
 
       {canManageSecurity && (
         <div className="card form">
-          <h2 className="section-title" style={{ fontSize: '24px' }}>Security</h2>
-          <div className="pill">Two-factor verification enabled</div>
+          <h2 className="section-title" style={{ fontSize: '24px' }}>Password Manager</h2>
+          <div className="pill">Use your current password before setting a new one.</div>
           <button
             className="button secondary"
             type="button"
             onClick={() => setSecurityOpen((prev) => !prev)}
           >
-            {securityOpen ? 'Hide Security' : 'Manage Security'}
+            {securityOpen ? 'Hide Password Manager' : 'Manage Password'}
           </button>
         </div>
       )}

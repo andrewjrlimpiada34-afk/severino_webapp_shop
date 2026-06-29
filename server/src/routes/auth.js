@@ -6,10 +6,12 @@ import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import { z } from 'zod'
 import { send_otp } from '../mailer.js'
+import { isSmsConfigured, send_sms_otp } from '../sms.js'
 import {
   createUser,
   getUserByEmail,
   getUserById,
+  getUserByPhone,
   removeUser,
   updateUser,
   sanitizeUser,
@@ -17,7 +19,7 @@ import {
 import {
   consumeOtp,
   createOtp,
-  getLatestOtpByEmail,
+  getLatestOtpByPhone,
   getOtpById,
   incrementOtpAttempts,
   markOtpVerified,
@@ -25,11 +27,28 @@ import {
 
 const router = express.Router()
 
+const normalizePhilippineMobile = (value = '') => {
+  const compact = String(value).replace(/[\s-]/g, '')
+  if (/^09\d{9}$/.test(compact)) {
+    return `+63${compact.slice(1)}`
+  }
+  if (/^\+639\d{9}$/.test(compact)) {
+    return compact
+  }
+  if (/^639\d{9}$/.test(compact)) {
+    return `+${compact}`
+  }
+  return ''
+}
+
 const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
-  email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().trim().min(7, 'Phone number is too short'),
+  phone: z
+    .string()
+    .trim()
+    .transform((value) => normalizePhilippineMobile(value))
+    .refine(Boolean, 'Enter a valid Philippine mobile number'),
   addressLine: z.string().trim().optional(),
   barangay: z.string().trim().min(2, 'Barangay is required'),
   city: z.string().trim().min(2, 'City is required'),
@@ -40,7 +59,8 @@ const registerSchema = z.object({
 })
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().trim().min(3, 'Mobile number or email is required').optional(),
+  email: z.string().trim().optional(),
   password: z.string().min(8),
 })
 
@@ -54,7 +74,11 @@ const resendSchema = z.object({
 })
 
 const otpSendSchema = z.object({
-  email: z.string().email(),
+  mobile: z
+    .string()
+    .trim()
+    .transform((value) => normalizePhilippineMobile(value))
+    .refine(Boolean, 'Enter a valid Philippine mobile number'),
 })
 
 const otpVerifySchema = z.object({
@@ -143,22 +167,22 @@ router.post('/otp/send', async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
-  if (!isMailConfigured()) {
-    return res.status(500).json({ message: 'Email service not configured' })
+  if (!isSmsConfigured()) {
+    return res.status(500).json({ message: 'SMS service not configured' })
   }
 
-  const email = parsed.data.email.toLowerCase()
-  const existing = await getUserByEmail(email)
+  const phone = parsed.data.mobile
+  const existing = await getUserByPhone(phone)
   if (existing) {
-    return res.status(409).json({ message: 'Email already registered' })
+    return res.status(409).json({ message: 'Mobile number already registered' })
   }
 
-  const rateKey = `${req.ip || 'ip'}:${email}`
+  const rateKey = `${req.ip || 'ip'}:${phone}`
   if (isRateLimited(rateKey)) {
     return res.status(429).json({ message: 'Too many requests. Try again later.' })
   }
 
-  const recent = await getLatestOtpByEmail(email, 'register')
+  const recent = await getLatestOtpByPhone(phone, 'register')
   if (recent && Date.now() - new Date(recent.createdAt).getTime() < OTP_RESEND_MS) {
     return res.status(429).json({ message: 'Please wait before requesting another OTP.' })
   }
@@ -166,8 +190,8 @@ router.post('/otp/send', async (req, res) => {
   const code = generateOtp()
   const expiresAt = Date.now() + OTP_TTL_MS
   const challenge = await createOtp({
-    id: `${email}-${Date.now()}`,
-    email,
+    id: `${phone}-${Date.now()}`,
+    phone,
     code,
     expiresAt,
     type: 'register',
@@ -175,24 +199,20 @@ router.post('/otp/send', async (req, res) => {
   })
 
   try {
-    const result = await send_otp({
-      to: email,
-      subject: 'Your Severino verification code',
-      text: `Your verification code is ${code}. It expires in 5 minutes.`,
-    })
+    const result = await send_sms_otp({ to: phone, code })
     if (!result.success) {
-      throw result.error || new Error('SMTP send failed')
+      throw result.error || new Error('SMS send failed')
     }
   } catch (error) {
     await consumeOtp(challenge.id)
     return res.status(502).json({
-      message: 'Unable to send OTP email. Please verify SMTP settings and try again.',
+      message: 'Unable to send mobile OTP. Please verify SMS settings and try again.',
     })
   }
 
   return res.json({
     challengeId: challenge.id,
-    message: 'OTP sent to your email',
+    message: 'OTP sent to mobile number',
   })
 })
 
@@ -216,11 +236,11 @@ router.post('/otp/verify', async (req, res) => {
   }
   if (entry.code !== parsed.data.code) {
     await incrementOtpAttempts(parsed.data.challengeId)
-    return res.status(400).json({ message: 'Invalid or expired OTP' })
+    return res.status(400).json({ message: 'Invalid mobile OTP' })
   }
 
   await markOtpVerified(parsed.data.challengeId)
-  return res.json({ verified: true, message: 'OTP verified successfully' })
+  return res.json({ verified: true, message: 'Mobile OTP verified' })
 })
 
 router.post('/register', async (req, res) => {
@@ -229,29 +249,29 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
-  const existing = await getUserByEmail(parsed.data.email)
+  const existing = await getUserByPhone(parsed.data.phone)
   if (existing) {
-    return res.status(409).json({ message: 'Email already registered' })
+    return res.status(409).json({ message: 'Mobile number already registered' })
   }
 
   const verification = await getOtpById(parsed.data.verificationId)
   if (
     !verification ||
     verification.type !== 'register' ||
-    verification.email !== parsed.data.email.toLowerCase() ||
+    verification.phone !== parsed.data.phone ||
     !verification.verifiedAt ||
     Date.now() > verification.expiresAt
   ) {
-    return res.status(403).json({ message: 'Email not verified' })
+    return res.status(403).json({ message: 'Verify OTP before creating account' })
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12)
   const user = await createUser({
     name: parsed.data.name,
-    email: parsed.data.email.toLowerCase(),
+    email: '',
     passwordHash,
     verified: true,
-    phone: parsed.data.phone || '',
+    phone: parsed.data.phone,
     addressLine: parsed.data.addressLine || '',
     barangay: parsed.data.barangay || '',
     city: parsed.data.city || '',
@@ -264,7 +284,7 @@ router.post('/register', async (req, res) => {
 
   return res.status(201).json({
     id: user._id.toString(),
-    email: user.email,
+    phone: user.phone,
     requiresVerification: false,
   })
 })
@@ -275,12 +295,17 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
-  const user = await getUserByEmail(parsed.data.email)
+  const identifier = parsed.data.identifier || parsed.data.email || ''
+  const normalizedPhone = normalizePhilippineMobile(identifier)
+  const normalizedEmail = identifier.toLowerCase()
+  const user = normalizedPhone
+    ? await getUserByPhone(normalizedPhone)
+    : await getUserByEmail(normalizedEmail)
   if (!user || !user.passwordHash) {
-    return res.status(404).json({ message: 'Email not found' })
+    return res.status(404).json({ message: 'Account not found' })
   }
   if (!user.verified && user.role !== 'admin') {
-    return res.status(403).json({ message: 'Email not verified' })
+    return res.status(403).json({ message: 'Account not verified' })
   }
 
   const match = await bcrypt.compare(parsed.data.password, user.passwordHash)

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
 
 function Login() {
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [announcements, setAnnouncements] = useState([])
@@ -65,7 +65,7 @@ function Login() {
     }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      const data = await startLogin(form.email, form.password)
+      const data = await startLogin(form.identifier, form.password)
       setStatus({ loading: false, error: '', success: 'Logged in successfully.' })
       if (data?.role === 'admin') {
         navigate('/admin')
@@ -104,14 +104,14 @@ function Login() {
       <div className="grid two">
         <form className="card form" onSubmit={handleSubmit}>
           <div>
-            <div className="label">Email</div>
+            <div className="label">Mobile Number</div>
             <input
               className="input"
-              type="email"
-              placeholder="you@email.com"
-              autoComplete="email"
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
+              type="tel"
+              placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+              autoComplete="tel"
+              value={form.identifier}
+              onChange={(event) => updateField('identifier', event.target.value)}
             />
           </div>
           <div>

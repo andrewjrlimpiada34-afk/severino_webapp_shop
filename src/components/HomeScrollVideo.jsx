@@ -46,52 +46,19 @@ function loadFrame(src) {
   })
 }
 
-function getCoverRect(canvasWidth, canvasHeight, image) {
-  const imageRatio = image.naturalWidth / image.naturalHeight
-  const canvasRatio = canvasWidth / canvasHeight
+function getContainRect(canvasWidth, canvasHeight, image) {
+  const scale = Math.min(
+    1,
+    canvasWidth / image.naturalWidth,
+    canvasHeight / image.naturalHeight
+  )
+  const drawWidth = image.naturalWidth * scale
+  const drawHeight = image.naturalHeight * scale
 
-  if (canvasRatio > imageRatio) {
-    const drawWidth = canvasWidth
-    const drawHeight = drawWidth / imageRatio
-    return {
-      drawWidth,
-      drawHeight,
-      offsetX: 0,
-      offsetY: (canvasHeight - drawHeight) / 2,
-    }
-  }
-
-  const drawHeight = canvasHeight
-  const drawWidth = drawHeight * imageRatio
   return {
     drawWidth,
     drawHeight,
     offsetX: (canvasWidth - drawWidth) / 2,
-    offsetY: 0,
-  }
-}
-
-function getContainRect(canvasWidth, canvasHeight, image) {
-  const imageRatio = image.naturalWidth / image.naturalHeight
-  const canvasRatio = canvasWidth / canvasHeight
-
-  if (canvasRatio > imageRatio) {
-    const drawHeight = canvasHeight
-    const drawWidth = drawHeight * imageRatio
-    return {
-      drawWidth,
-      drawHeight,
-      offsetX: (canvasWidth - drawWidth) / 2,
-      offsetY: 0,
-    }
-  }
-
-  const drawWidth = canvasWidth
-  const drawHeight = drawWidth / imageRatio
-  return {
-    drawWidth,
-    drawHeight,
-    offsetX: 0,
     offsetY: (canvasHeight - drawHeight) / 2,
   }
 }
@@ -132,42 +99,12 @@ function HomeScrollVideo() {
 
     const canvasWidth = canvas.width
     const canvasHeight = canvas.height
-    const isMobileCanvas = isMobileRef.current
-    const coverRect = getCoverRect(canvasWidth, canvasHeight, image)
     const containRect = getContainRect(canvasWidth, canvasHeight, image)
 
     context.clearRect(0, 0, canvasWidth, canvasHeight)
-
-    context.save()
-    if (!isMobileCanvas) {
-      context.filter = `blur(${Math.max(canvasWidth, canvasHeight) * 0.018}px)`
-    }
-    context.globalAlpha = isMobileCanvas ? 0.42 : 0.56
-    drawImage(context, image, coverRect)
-    context.restore()
-
-    const vignette = context.createRadialGradient(
-      canvasWidth / 2,
-      canvasHeight * 0.55,
-      canvasHeight * 0.15,
-      canvasWidth / 2,
-      canvasHeight * 0.55,
-      Math.max(canvasWidth, canvasHeight) * 0.74
-    )
-    vignette.addColorStop(0, 'rgba(255, 255, 255, 0.05)')
-    vignette.addColorStop(0.62, 'rgba(12, 14, 10, 0.16)')
-    vignette.addColorStop(1, 'rgba(12, 14, 10, 0.62)')
-    context.fillStyle = vignette
-    context.fillRect(0, 0, canvasWidth, canvasHeight)
-
-    context.save()
-    if (!isMobileCanvas) {
-      context.shadowColor = 'rgba(0, 0, 0, 0.24)'
-      context.shadowBlur = Math.max(canvasWidth, canvasHeight) * 0.018
-      context.shadowOffsetY = Math.max(canvasHeight * 0.01, 3)
-    }
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
     drawImage(context, image, containRect)
-    context.restore()
   }, [])
 
   const resizeCanvas = useCallback(() => {

@@ -1215,7 +1215,7 @@ img {
   max-width: 100%;
   min-height: 250vh;
   border-radius: 28px;
-  overflow: clip;
+  overflow: visible;
   isolation: isolate;
 }
 
@@ -1227,12 +1227,9 @@ img {
   min-height: 520px;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
   border-radius: inherit;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.26), transparent 34%),
-    var(--hero-overlay),
-    var(--home-page-bg);
+  background: var(--home-page-bg);
   box-shadow: var(--shadow);
 }
 
@@ -1240,7 +1237,7 @@ img {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 

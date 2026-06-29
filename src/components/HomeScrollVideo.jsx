@@ -12,7 +12,9 @@ const FRAME_FOLDERS = {
 }
 
 const MAX_DISCOVERY_FRAMES = 420
+const MOBILE_BREAKPOINT = 768
 const SMOOTHING_FACTOR = 0.14
+const MOBILE_SMOOTHING_FACTOR = 0.24
 const PROGRESS_EPSILON = 0.0012
 
 function getCurrentTheme() {
@@ -22,7 +24,7 @@ function getCurrentTheme() {
 
 function getIsMobile() {
   if (typeof window === 'undefined') return false
-  return window.matchMedia('(max-width: 720px)').matches
+  return window.innerWidth <= MOBILE_BREAKPOINT
 }
 
 function clamp(value, min = 0, max = 1) {
@@ -109,6 +111,7 @@ function HomeScrollVideo() {
   const targetProgressRef = useRef(0)
   const currentProgressRef = useRef(0)
   const isSectionActiveRef = useRef(false)
+  const isMobileRef = useRef(getIsMobile())
   const progressFillRef = useRef(null)
   const sequenceReadoutRef = useRef(null)
 
@@ -129,14 +132,17 @@ function HomeScrollVideo() {
 
     const canvasWidth = canvas.width
     const canvasHeight = canvas.height
+    const isMobileCanvas = isMobileRef.current
     const coverRect = getCoverRect(canvasWidth, canvasHeight, image)
     const containRect = getContainRect(canvasWidth, canvasHeight, image)
 
     context.clearRect(0, 0, canvasWidth, canvasHeight)
 
     context.save()
-    context.filter = `blur(${Math.max(canvasWidth, canvasHeight) * 0.018}px)`
-    context.globalAlpha = 0.56
+    if (!isMobileCanvas) {
+      context.filter = `blur(${Math.max(canvasWidth, canvasHeight) * 0.018}px)`
+    }
+    context.globalAlpha = isMobileCanvas ? 0.42 : 0.56
     drawImage(context, image, coverRect)
     context.restore()
 
@@ -155,9 +161,11 @@ function HomeScrollVideo() {
     context.fillRect(0, 0, canvasWidth, canvasHeight)
 
     context.save()
-    context.shadowColor = 'rgba(0, 0, 0, 0.24)'
-    context.shadowBlur = Math.max(canvasWidth, canvasHeight) * 0.018
-    context.shadowOffsetY = Math.max(canvasHeight * 0.01, 3)
+    if (!isMobileCanvas) {
+      context.shadowColor = 'rgba(0, 0, 0, 0.24)'
+      context.shadowBlur = Math.max(canvasWidth, canvasHeight) * 0.018
+      context.shadowOffsetY = Math.max(canvasHeight * 0.01, 3)
+    }
     drawImage(context, image, containRect)
     context.restore()
   }, [])
@@ -167,7 +175,9 @@ function HomeScrollVideo() {
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+    const devicePixelRatio = isMobileRef.current
+      ? Math.min(window.devicePixelRatio || 1, 1.5)
+      : Math.min(window.devicePixelRatio || 1, 2)
     const width = Math.max(Math.round(rect.width * devicePixelRatio), 1)
     const height = Math.max(Math.round(rect.height * devicePixelRatio), 1)
 
@@ -223,10 +233,11 @@ function HomeScrollVideo() {
       const targetProgress = clamp(targetProgressRef.current)
       const currentProgress = clamp(currentProgressRef.current)
       const distance = targetProgress - currentProgress
+      const smoothingFactor = isMobileRef.current ? MOBILE_SMOOTHING_FACTOR : SMOOTHING_FACTOR
       const shouldSnap = Math.abs(distance) <= PROGRESS_EPSILON
       const nextProgress = shouldSnap
         ? targetProgress
-        : currentProgress + distance * SMOOTHING_FACTOR
+        : currentProgress + distance * smoothingFactor
 
       currentProgressRef.current = clamp(nextProgress)
       renderProgressFrame(currentProgressRef.current)
@@ -255,12 +266,15 @@ function HomeScrollVideo() {
   }, [])
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 720px)')
-    const updateMobileState = () => setIsMobile(mediaQuery.matches)
+    const updateMobileState = () => {
+      const nextIsMobile = getIsMobile()
+      isMobileRef.current = nextIsMobile
+      setIsMobile(nextIsMobile)
+    }
 
     updateMobileState()
-    mediaQuery.addEventListener('change', updateMobileState)
-    return () => mediaQuery.removeEventListener('change', updateMobileState)
+    window.addEventListener('resize', updateMobileState)
+    return () => window.removeEventListener('resize', updateMobileState)
   }, [])
 
   useEffect(() => {
@@ -283,6 +297,7 @@ function HomeScrollVideo() {
 
     let cancelled = false
     let loadedCount = 0
+    const stateUpdateStride = isMobile ? 12 : 4
     const images = []
 
     const loadSequence = async () => {
@@ -296,8 +311,11 @@ function HomeScrollVideo() {
           images.push(image)
           framesRef.current = images
           loadedCount += 1
-          setFrameCount(loadedCount)
-          setLoadProgress(Math.min(loadedCount / MAX_DISCOVERY_FRAMES, 0.96))
+
+          if (loadedCount === 1 || loadedCount % stateUpdateStride === 0) {
+            setFrameCount(loadedCount)
+            setLoadProgress(Math.min(loadedCount / MAX_DISCOVERY_FRAMES, 0.96))
+          }
 
           if (loadedCount === 1) {
             loadedRef.current = true
@@ -315,6 +333,7 @@ function HomeScrollVideo() {
               const fallback = await loadFrame(framePath(FRAME_FOLDERS.Default, 1, isMobile))
               if (cancelled || preloadRunRef.current !== runId) return
               framesRef.current = [fallback]
+              loadedCount = 1
               loadedRef.current = true
               setFrameCount(1)
               setLoadProgress(1)
@@ -329,9 +348,11 @@ function HomeScrollVideo() {
             }
           }
           setLoadProgress(1)
+          setFrameCount(loadedCount)
           return
         }
       }
+      setFrameCount(loadedCount)
       setLoadProgress(1)
     }
 
@@ -355,6 +376,8 @@ function HomeScrollVideo() {
 
       if (progress === 0 || progress === 1) {
         targetProgressRef.current = progress
+        currentProgressRef.current = progress
+        renderProgressFrame(progress)
       }
 
       startRenderLoop()
@@ -368,7 +391,7 @@ function HomeScrollVideo() {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleScroll)
     }
-  }, [frameCount, startRenderLoop, stopRenderLoop])
+  }, [renderProgressFrame, startRenderLoop, stopRenderLoop])
 
   return (
     <section className="home-scroll-video" ref={sectionRef} aria-label="Severino cinematic preview">

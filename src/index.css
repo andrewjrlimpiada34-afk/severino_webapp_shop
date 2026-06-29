@@ -3230,6 +3230,27 @@ img {
   }
 
   .nav-links {
+    z-index: 20002;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  }
+
+  .nav-links.open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .nav-links.open a,
+  .nav-links.open button {
+    pointer-events: auto;
+  }
+
+  .nav-links {
     gap: 10px;
   }
 

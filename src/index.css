@@ -4000,7 +4000,6 @@ img {
   .nav,
   .footer,
   .home-page section,
-  .home-page > *,
   .home-page .grid,
   .home-page .card {
     width: 100%;
@@ -4027,8 +4026,31 @@ img {
     padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
   }
 
+  .app-shell > .page:has(.home-page) {
+    padding-top: 12px;
+  }
+
+  .nav {
+    position: sticky;
+    z-index: 10001;
+    pointer-events: auto;
+  }
+
+  .nav-actions,
+  .nav-toggle {
+    position: relative;
+    z-index: 10002;
+    pointer-events: auto;
+  }
+
   .home-page {
     justify-items: stretch;
+  }
+
+  .home-page > :not(.adaptive-floating-button):not(.adaptive-modal-backdrop) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .home-scroll-video,
@@ -4044,6 +4066,18 @@ img {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  .home-scroll-video {
+    min-height: 120svh;
+    border-radius: 20px;
+  }
+
+  .home-scroll-video__stage {
+    position: sticky;
+    top: 76px;
+    height: min(78svh, 620px);
+    min-height: 360px;
   }
 
   .home-banner-rail,
@@ -4102,8 +4136,34 @@ img {
     transform: translateX(-50%) translateY(0);
   }
 
+  .nav-mobile-toggle-row {
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .nav-mobile-toggle-row .nav-mobile-toggle {
+    pointer-events: auto;
+  }
+
+  .nav-mobile-float {
+    z-index: 9998;
+  }
+
   .adaptive-floating-button {
-    max-width: calc(100% - 24px);
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    min-height: 56px;
+    max-height: 56px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 56px;
+    padding: 0;
+    overflow: visible;
+    pointer-events: auto;
+    z-index: 10000;
   }
 
   .adaptive-modal-backdrop {

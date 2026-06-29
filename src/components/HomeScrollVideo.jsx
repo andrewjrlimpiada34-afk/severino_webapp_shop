@@ -12,7 +12,8 @@ const FRAME_FOLDERS = {
 }
 
 const MAX_DISCOVERY_FRAMES = 420
-const SEQUENCE_END_PROGRESS = 0.88
+const SMOOTHING_FACTOR = 0.14
+const PROGRESS_EPSILON = 0.0012
 
 function getCurrentTheme() {
   if (typeof document === 'undefined') return 'Default'
@@ -101,10 +102,13 @@ function HomeScrollVideo() {
   const sectionRef = useRef(null)
   const canvasRef = useRef(null)
   const framesRef = useRef([])
-  const tickingRef = useRef(false)
+  const animationFrameRef = useRef(null)
   const loadedRef = useRef(false)
   const lastFrameRef = useRef(-1)
   const preloadRunRef = useRef(0)
+  const targetProgressRef = useRef(0)
+  const currentProgressRef = useRef(0)
+  const isSectionActiveRef = useRef(false)
   const progressFillRef = useRef(null)
   const sequenceReadoutRef = useRef(null)
 
@@ -175,6 +179,72 @@ function HomeScrollVideo() {
     drawFrame(lastFrameRef.current >= 0 ? lastFrameRef.current : 0)
   }, [drawFrame])
 
+  const updateProgressUi = useCallback((progress, frameIndex, loadedFrames) => {
+    if (progressFillRef.current) {
+      progressFillRef.current.style.transform = `scaleX(${progress})`
+    }
+
+    if (sequenceReadoutRef.current) {
+      sequenceReadoutRef.current.textContent = `SEQ ${String(frameIndex + 1).padStart(
+        3,
+        '0'
+      )} / ${loadedFrames}`
+    }
+  }, [])
+
+  const renderProgressFrame = useCallback((progress) => {
+    const loadedFrames = framesRef.current.length
+    if (!loadedRef.current || loadedFrames === 0) return
+
+    const clampedProgress = clamp(progress)
+    const frameIndex = loadedFrames === 1
+      ? 0
+      : Math.round(clampedProgress * (loadedFrames - 1))
+
+    updateProgressUi(clampedProgress, frameIndex, loadedFrames)
+
+    if (frameIndex !== lastFrameRef.current) {
+      lastFrameRef.current = frameIndex
+      drawFrame(frameIndex)
+    }
+  }, [drawFrame, updateProgressUi])
+
+  const stopRenderLoop = useCallback(() => {
+    if (animationFrameRef.current) {
+      window.cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+  }, [])
+
+  const startRenderLoop = useCallback(() => {
+    if (animationFrameRef.current) return
+
+    const render = () => {
+      const targetProgress = clamp(targetProgressRef.current)
+      const currentProgress = clamp(currentProgressRef.current)
+      const distance = targetProgress - currentProgress
+      const shouldSnap = Math.abs(distance) <= PROGRESS_EPSILON
+      const nextProgress = shouldSnap
+        ? targetProgress
+        : currentProgress + distance * SMOOTHING_FACTOR
+
+      currentProgressRef.current = clamp(nextProgress)
+      renderProgressFrame(currentProgressRef.current)
+
+      const stillMoving = Math.abs(targetProgressRef.current - currentProgressRef.current) > PROGRESS_EPSILON
+      const keepRendering = isSectionActiveRef.current || stillMoving
+
+      if (keepRendering) {
+        animationFrameRef.current = window.requestAnimationFrame(render)
+        return
+      }
+
+      animationFrameRef.current = null
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(render)
+  }, [renderProgressFrame])
+
   useEffect(() => {
     const observer = new MutationObserver(() => setTheme(getCurrentTheme()))
     observer.observe(document.documentElement, {
@@ -205,8 +275,11 @@ function HomeScrollVideo() {
     loadedRef.current = false
     framesRef.current = []
     lastFrameRef.current = -1
+    targetProgressRef.current = 0
+    currentProgressRef.current = 0
     setFrameCount(0)
     setLoadProgress(0)
+    updateProgressUi(0, 0, '---')
 
     let cancelled = false
     let loadedCount = 0
@@ -230,8 +303,11 @@ function HomeScrollVideo() {
             loadedRef.current = true
             setLoadProgress(1)
             lastFrameRef.current = 0
+            targetProgressRef.current = 0
+            currentProgressRef.current = 0
             resizeCanvas()
             drawFrame(0)
+            updateProgressUi(0, 0, 1)
           }
         } catch {
           if (index === 1 && folder !== FRAME_FOLDERS.Default) {
@@ -243,8 +319,11 @@ function HomeScrollVideo() {
               setFrameCount(1)
               setLoadProgress(1)
               lastFrameRef.current = 0
+              targetProgressRef.current = 0
+              currentProgressRef.current = 0
               resizeCanvas()
               drawFrame(0)
+              updateProgressUi(0, 0, 1)
             } catch {
               return
             }
@@ -260,54 +339,36 @@ function HomeScrollVideo() {
     return () => {
       cancelled = true
     }
-  }, [drawFrame, folder, isMobile, resizeCanvas])
+  }, [drawFrame, folder, isMobile, resizeCanvas, updateProgressUi])
 
   useEffect(() => {
     const handleScroll = () => {
-      if (tickingRef.current) return
-      tickingRef.current = true
+      const section = sectionRef.current
+      if (!section || !loadedRef.current || framesRef.current.length === 0) return
 
-      window.requestAnimationFrame(() => {
-        tickingRef.current = false
-        const section = sectionRef.current
-        const loadedFrames = framesRef.current.length
-        if (!section || !loadedRef.current || loadedFrames === 0) return
+      const rect = section.getBoundingClientRect()
+      const scrollable = Math.max(section.offsetHeight - window.innerHeight, 1)
+      const progress = clamp(-rect.top / scrollable)
 
-        const rect = section.getBoundingClientRect()
-        const scrollable = Math.max(section.offsetHeight - window.innerHeight, 1)
-        const progress = clamp(-rect.top / scrollable)
-        const sequenceProgress = clamp(progress / SEQUENCE_END_PROGRESS)
-        const frameIndex = Math.min(
-          loadedFrames - 1,
-          Math.floor(sequenceProgress * loadedFrames)
-        )
+      targetProgressRef.current = progress
+      isSectionActiveRef.current = rect.bottom > 0 && rect.top < window.innerHeight
 
-        if (progressFillRef.current) {
-          progressFillRef.current.style.transform = `scaleX(${progress})`
-        }
+      if (progress === 0 || progress === 1) {
+        targetProgressRef.current = progress
+      }
 
-        if (sequenceReadoutRef.current) {
-          sequenceReadoutRef.current.textContent = `SEQ ${String(frameIndex + 1).padStart(
-            3,
-            '0'
-          )} / ${loadedFrames}`
-        }
-
-        if (frameIndex !== lastFrameRef.current) {
-          lastFrameRef.current = frameIndex
-          drawFrame(frameIndex)
-        }
-      })
+      startRenderLoop()
     }
 
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('resize', handleScroll)
     return () => {
+      stopRenderLoop()
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleScroll)
     }
-  }, [drawFrame, frameCount])
+  }, [frameCount, startRenderLoop, stopRenderLoop])
 
   return (
     <section className="home-scroll-video" ref={sectionRef} aria-label="Severino cinematic preview">

@@ -11,6 +11,7 @@ const promailerApiKey = process.env.PROMAILER_API_KEY || ''
 const promailerFrom =
   process.env.PROMAILER_FROM || process.env.SMTP_EMAIL || process.env.GMAIL_USER || ''
 const promailerAuthScheme = process.env.PROMAILER_AUTH_SCHEME || 'Bearer'
+const promailerSmtpConnectionId = process.env.PROMAILER_SMTP_CONNECTION_ID || ''
 
 const transporter =
   smtpEmail && smtpPass
@@ -29,10 +30,20 @@ const canUsePromailer = () => Boolean(promailerApiUrl && promailerApiKey)
 const sendWithPromailer = async ({ to, subject, text, pdfBuffer }) => {
   const payload = {
     from: promailerFrom,
+    fromName: mailFromName,
     name: mailFromName,
     to,
     subject,
     text,
+    body: text,
+    html: text.replace(/\n/g, '<br />'),
+  }
+
+  if (promailerSmtpConnectionId) {
+    payload.smtpConnectionId = promailerSmtpConnectionId
+    payload.smtp_connection_id = promailerSmtpConnectionId
+    payload.connectionId = promailerSmtpConnectionId
+    payload.connection_id = promailerSmtpConnectionId
   }
 
   if (pdfBuffer) {
@@ -54,9 +65,26 @@ const sendWithPromailer = async ({ to, subject, text, pdfBuffer }) => {
     body: JSON.stringify(payload),
   })
 
-  const body = await response.json().catch(() => ({}))
+  const rawBody = await response.text().catch(() => '')
+  let body = {}
+  try {
+    body = rawBody ? JSON.parse(rawBody) : {}
+  } catch {
+    body = { message: rawBody }
+  }
+
   if (!response.ok) {
-    throw new Error(body.message || body.error || 'Promailer send failed')
+    const message =
+      body.message ||
+      body.error ||
+      body.errors?.[0]?.message ||
+      `Promailer send failed (${response.status})`
+    console.error('Promailer send failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      response: body,
+    })
+    throw new Error(message)
   }
 
   return {

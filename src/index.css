@@ -3290,17 +3290,32 @@ img {
 
   .nav-links .notif-wrapper {
     align-self: center;
+    display: grid;
+    place-items: center;
     width: 44px;
-    min-height: 40px;
+    height: 44px;
+    min-height: 44px;
     padding: 0;
+    margin: 0;
+    flex: 0 0 44px;
   }
 
   .nav-links .notif-wrapper .icon-button {
-    width: 100%;
-    height: 100%;
-    padding: 8px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    margin: 0;
     box-shadow: none;
     background: transparent;
+  }
+
+  .nav-links .notif-wrapper .badge-dot {
+    top: 7px;
+    right: 7px;
   }
 
   .nav-links a.active {

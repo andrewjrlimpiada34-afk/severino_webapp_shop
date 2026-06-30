@@ -6,20 +6,18 @@ import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import { z } from 'zod'
 import { send_otp } from '../mailer.js'
-import { isSmsConfigured, send_sms_otp } from '../sms.js'
 import {
   createUser,
   getUserByEmail,
   getUserById,
   getUserByPhone,
-  removeUser,
   updateUser,
   sanitizeUser,
 } from '../db/users.js'
 import {
   consumeOtp,
   createOtp,
-  getLatestOtpByPhone,
+  getLatestOtpByEmail,
   getOtpById,
   incrementOtpAttempts,
   markOtpVerified,
@@ -46,6 +44,7 @@ const normalizePhilippineMobile = (value = '') => {
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
+  email: z.string().trim().email('Enter a valid email address').transform((value) => value.toLowerCase()),
   password: z.string().min(8),
   phone: z
     .string()
@@ -77,16 +76,12 @@ const resendSchema = z.object({
 })
 
 const otpSendSchema = z.object({
-  mobile: z
-    .string()
-    .trim()
-    .transform((value) => normalizePhilippineMobile(value))
-    .refine(Boolean, 'Enter a valid Philippine mobile number'),
+  email: z.string().trim().email('Enter a valid email address').transform((value) => value.toLowerCase()),
 })
 
 const otpVerifySchema = z.object({
   challengeId: z.string().min(8),
-  code: z.string().regex(/^\d{4}$/, 'Enter the 4-digit OTP'),
+  code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit OTP'),
 })
 
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
@@ -96,8 +91,9 @@ const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
 
 const isMailConfigured = () =>
   !!(
-    (process.env.RESEND_API_KEY && (process.env.RESEND_FROM || process.env.SMTP_EMAIL)) ||
-    (process.env.SMTP_EMAIL && process.env.SMTP_PASS)
+    (process.env.PROMAILER_API_URL && process.env.PROMAILER_API_KEY) ||
+    (process.env.SMTP_EMAIL && process.env.SMTP_PASS) ||
+    (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
   )
 
 const OTP_TTL_MS = Number(process.env.OTP_TTL_MS || 5 * 60 * 1000)
@@ -161,7 +157,7 @@ const isRateLimited = (key, limit = 5, windowMs = 10 * 60 * 1000) => {
 }
 
 const generateOtp = () => {
-  const code = crypto.randomInt(0, 10000).toString().padStart(4, '0')
+  const code = crypto.randomInt(100000, 1000000).toString()
   return code
 }
 
@@ -170,22 +166,22 @@ router.post('/otp/send', async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
-  if (!isSmsConfigured()) {
-    return res.status(500).json({ message: 'SMS service not configured' })
+  if (!isMailConfigured()) {
+    return res.status(500).json({ message: 'Email service not configured' })
   }
 
-  const phone = parsed.data.mobile
-  const existing = await getUserByPhone(phone)
+  const email = parsed.data.email
+  const existing = await getUserByEmail(email)
   if (existing) {
-    return res.status(409).json({ message: 'Mobile number already registered' })
+    return res.status(409).json({ message: 'Email already registered' })
   }
 
-  const rateKey = `${req.ip || 'ip'}:${phone}`
+  const rateKey = `${req.ip || 'ip'}:${email}`
   if (isRateLimited(rateKey)) {
     return res.status(429).json({ message: 'Too many requests. Try again later.' })
   }
 
-  const recent = await getLatestOtpByPhone(phone, 'register')
+  const recent = await getLatestOtpByEmail(email, 'register')
   if (recent && Date.now() - new Date(recent.createdAt).getTime() < OTP_RESEND_MS) {
     return res.status(429).json({ message: 'Please wait before requesting another OTP.' })
   }
@@ -193,8 +189,8 @@ router.post('/otp/send', async (req, res) => {
   const code = generateOtp()
   const expiresAt = Date.now() + OTP_TTL_MS
   const challenge = await createOtp({
-    id: `${phone}-${Date.now()}`,
-    phone,
+    id: `${email}-${Date.now()}`,
+    email,
     code,
     expiresAt,
     type: 'register',
@@ -202,20 +198,24 @@ router.post('/otp/send', async (req, res) => {
   })
 
   try {
-    const result = await send_sms_otp({ to: phone, code })
+    const result = await send_otp({
+      to: email,
+      subject: 'Verify your Severino account',
+      text: `Your Severino verification code is ${code}. It expires in 5 minutes.`,
+    })
     if (!result.success) {
-      throw result.error || new Error('SMS send failed')
+      throw result.error || new Error('Email send failed')
     }
   } catch (error) {
     await consumeOtp(challenge.id)
     return res.status(502).json({
-      message: 'Unable to send mobile OTP. Please verify SMS settings and try again.',
+      message: 'Unable to send OTP email. Please verify Gmail settings and try again.',
     })
   }
 
   return res.json({
     challengeId: challenge.id,
-    message: 'OTP sent to mobile number',
+    message: 'OTP sent to email',
   })
 })
 
@@ -239,11 +239,11 @@ router.post('/otp/verify', async (req, res) => {
   }
   if (entry.code !== parsed.data.code) {
     await incrementOtpAttempts(parsed.data.challengeId)
-    return res.status(400).json({ message: 'Invalid mobile OTP' })
+    return res.status(400).json({ message: 'Invalid email OTP' })
   }
 
   await markOtpVerified(parsed.data.challengeId)
-  return res.json({ verified: true, message: 'Mobile OTP verified' })
+  return res.json({ verified: true, message: 'Email OTP verified' })
 })
 
 router.post('/register', async (req, res) => {
@@ -256,12 +256,16 @@ router.post('/register', async (req, res) => {
   if (existing) {
     return res.status(409).json({ message: 'Mobile number already registered' })
   }
+  const existingEmail = await getUserByEmail(parsed.data.email)
+  if (existingEmail) {
+    return res.status(409).json({ message: 'Email already registered' })
+  }
 
   const verification = await getOtpById(parsed.data.verificationId)
   if (
     !verification ||
     verification.type !== 'register' ||
-    verification.phone !== parsed.data.phone ||
+    verification.email !== parsed.data.email ||
     !verification.verifiedAt ||
     Date.now() > verification.expiresAt
   ) {
@@ -271,7 +275,7 @@ router.post('/register', async (req, res) => {
   const passwordHash = await bcrypt.hash(parsed.data.password, 12)
   const user = await createUser({
     name: parsed.data.name,
-    email: '',
+    email: parsed.data.email,
     passwordHash,
     verified: true,
     phone: parsed.data.phone,

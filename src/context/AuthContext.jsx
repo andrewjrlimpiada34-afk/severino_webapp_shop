@@ -92,8 +92,8 @@ export function AuthProvider({ children }) {
     return api.register(data)
   }
 
-  const sendRegisterOtp = async (mobile) => {
-    return api.sendRegisterOtp(mobile)
+  const sendRegisterOtp = async (email) => {
+    return api.sendRegisterOtp(email)
   }
 
   const verifyRegisterOtp = async (payload) => {

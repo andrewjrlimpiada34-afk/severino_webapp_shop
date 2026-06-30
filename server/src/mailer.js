@@ -1,44 +1,74 @@
 import nodemailer from 'nodemailer'
-import { Resend } from 'resend'
 import { config } from 'dotenv'
 
 config()
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const resendFrom = process.env.RESEND_FROM || process.env.SMTP_EMAIL || ''
+const smtpEmail = process.env.SMTP_EMAIL || process.env.GMAIL_USER || ''
+const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || ''
+const mailFromName = process.env.MAIL_FROM_NAME || 'Severino Atelier'
+const promailerApiUrl = process.env.PROMAILER_API_URL || ''
+const promailerApiKey = process.env.PROMAILER_API_KEY || ''
+const promailerFrom =
+  process.env.PROMAILER_FROM || process.env.SMTP_EMAIL || process.env.GMAIL_USER || ''
+const promailerAuthScheme = process.env.PROMAILER_AUTH_SCHEME || 'Bearer'
 
 const transporter =
-  process.env.SMTP_EMAIL && process.env.SMTP_PASS
+  smtpEmail && smtpPass
     ? nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: process.env.SMTP_EMAIL,
-          pass: process.env.SMTP_PASS,
+          user: smtpEmail,
+          pass: smtpPass,
         },
       })
     : null
 
-const canUseResend = () => !!(resend && resendFrom)
 const canUseSmtp = () => !!transporter
+const canUsePromailer = () => Boolean(promailerApiUrl && promailerApiKey)
+
+const sendWithPromailer = async ({ to, subject, text, pdfBuffer }) => {
+  const payload = {
+    from: promailerFrom,
+    name: mailFromName,
+    to,
+    subject,
+    text,
+  }
+
+  if (pdfBuffer) {
+    payload.attachments = [
+      {
+        filename: 'Schedule.pdf',
+        content: pdfBuffer.toString('base64'),
+        contentType: 'application/pdf',
+      },
+    ]
+  }
+
+  const response = await fetch(promailerApiUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `${promailerAuthScheme} ${promailerApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(body.message || body.error || 'Promailer send failed')
+  }
+
+  return {
+    success: true,
+    messageId: body.messageId || body.id || body.data?.id || '',
+  }
+}
 
 export async function send_mail({ to, subject, text, pdfBuffer }) {
   try {
-    if (canUseResend()) {
-      const info = await resend.emails.send({
-        from: resendFrom,
-        to,
-        subject,
-        text,
-        attachments: pdfBuffer
-          ? [
-              {
-                filename: 'Schedule.pdf',
-                content: pdfBuffer.toString('base64'),
-              },
-            ]
-          : undefined,
-      })
-      return { success: true, messageId: info?.data?.id }
+    if (canUsePromailer()) {
+      return await sendWithPromailer({ to, subject, text, pdfBuffer })
     }
 
     if (!canUseSmtp()) {
@@ -46,7 +76,7 @@ export async function send_mail({ to, subject, text, pdfBuffer }) {
     }
 
     const info = await transporter.sendMail({
-      from: `"Severino Atelier" <${process.env.SMTP_EMAIL}>`,
+      from: `"${mailFromName}" <${smtpEmail}>`,
       to,
       subject,
       text,
@@ -70,14 +100,8 @@ export async function send_mail({ to, subject, text, pdfBuffer }) {
 
 export async function send_otp({ to, subject, text }) {
   try {
-    if (canUseResend()) {
-      const info = await resend.emails.send({
-        from: resendFrom,
-        to,
-        subject,
-        text,
-      })
-      return { success: true, messageId: info?.data?.id }
+    if (canUsePromailer()) {
+      return await sendWithPromailer({ to, subject, text })
     }
 
     if (!canUseSmtp()) {
@@ -85,7 +109,7 @@ export async function send_otp({ to, subject, text }) {
     }
 
     const info = await transporter.sendMail({
-      from: `"Severino Atelier" <${process.env.SMTP_EMAIL}>`,
+      from: `"${mailFromName}" <${smtpEmail}>`,
       to,
       subject,
       text,

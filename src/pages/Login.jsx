@@ -104,12 +104,12 @@ function Login() {
       <div className="grid two">
         <form className="card form" onSubmit={handleSubmit}>
           <div>
-            <div className="label">Mobile Number</div>
+            <div className="label">Email or Contact Number</div>
             <input
               className="input"
-              type="tel"
-              placeholder="09XXXXXXXXX or +639XXXXXXXXX"
-              autoComplete="tel"
+              type="text"
+              placeholder="email@example.com or 09XXXXXXXXX"
+              autoComplete="username"
               value={form.identifier}
               onChange={(event) => updateField('identifier', event.target.value)}
             />

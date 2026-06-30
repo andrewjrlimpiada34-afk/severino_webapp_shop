@@ -44,6 +44,7 @@ function CreateAccount() {
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [otpDigits, setOtpDigits] = useState(Array(OTP_LENGTH).fill(''))
   const [createdOpen, setCreatedOpen] = useState(false)
+  const [activeStep, setActiveStep] = useState(1)
   const [resendCooldown, setResendCooldown] = useState(0)
   const otpRefs = useRef([])
   const [otpState, setOtpState] = useState({
@@ -57,6 +58,16 @@ function CreateAccount() {
   const { register, sendRegisterOtp, verifyRegisterOtp } = useAuth()
   const navigate = useNavigate()
   const otp = otpDigits.join('')
+  const firstName = form.firstName.trim()
+  const lastName = form.lastName.trim()
+  const email = form.email.trim().toLowerCase()
+  const mobile = normalizePhilippineMobile(form.mobile)
+  const profileStepComplete = Boolean(firstName && lastName && email && mobile)
+  const passwordStepComplete =
+    otpState.verified &&
+    otpState.email === email &&
+    form.password.length >= 8 &&
+    form.password === form.confirmPassword
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -106,10 +117,6 @@ function CreateAccount() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const firstName = form.firstName.trim()
-    const lastName = form.lastName.trim()
-    const email = form.email.trim().toLowerCase()
-    const mobile = normalizePhilippineMobile(form.mobile)
     const addressLine = form.addressLine.trim()
     const barangay = form.barangay.trim()
     const city = form.city.trim()
@@ -181,7 +188,6 @@ function CreateAccount() {
   }, [resendCooldown])
 
   const sendOtp = async () => {
-    const email = form.email.trim().toLowerCase()
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setStatus({
         loading: false,
@@ -210,6 +216,32 @@ function CreateAccount() {
       setOtpState((prev) => ({ ...prev, sending: false }))
       setStatus({ loading: false, error: error.message, success: '' })
     }
+  }
+
+  const goToVerificationStep = () => {
+    if (!profileStepComplete) {
+      setStatus({
+        loading: false,
+        error: 'Please complete first name, last name, email, and mobile number first.',
+        success: '',
+      })
+      return
+    }
+    setStatus({ loading: false, error: '', success: '' })
+    setActiveStep(2)
+  }
+
+  const goToAddressStep = () => {
+    if (!passwordStepComplete) {
+      setStatus({
+        loading: false,
+        error: 'Verify your email OTP and make sure your passwords match first.',
+        success: '',
+      })
+      return
+    }
+    setStatus({ loading: false, error: '', success: '' })
+    setActiveStep(3)
   }
 
   const verifyOtp = async () => {
@@ -332,173 +364,205 @@ function CreateAccount() {
             </div>
           </div>
 
-          <SectionTitle number="2">Email Verification</SectionTitle>
-          <p className="create-helper">Please enter the 6-digit OTP sent to your email:</p>
-          <div className="create-otp-row">
-            <div className="create-otp-boxes" onPaste={handleOtpPaste}>
-              {otpDigits.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(node) => {
-                    otpRefs.current[index] = node
-                  }}
-                  className="create-otp-input"
-                  inputMode="numeric"
-                  maxLength={1}
-                  aria-label={`OTP digit ${index + 1}`}
-                  value={digit}
-                  onChange={(event) => handleOtpDigitChange(index, event.target.value)}
-                  onKeyDown={(event) => handleOtpKeyDown(index, event)}
-                />
-              ))}
-            </div>
+          {activeStep === 1 && (
             <button
               type="button"
-              className="button secondary create-verify-otp"
-              onClick={verifyOtp}
-              disabled={otpState.verifying || otpState.verified}
+              className="button create-step-next"
+              onClick={goToVerificationStep}
+              disabled={!profileStepComplete}
             >
-              {otpState.verified ? 'Verified' : otpState.verifying ? 'Verifying...' : 'Verify OTP'}
+              Continue to Email Verification
             </button>
-          </div>
-          <div className="pill create-status-pill">
-            {otpState.verified ? 'Email OTP verified' : 'Verify OTP before creating account'}
-          </div>
+          )}
 
-          <div className="grid two create-two">
-            <div>
-              <div className="label">Password</div>
-              <div className="input-row">
-                <input
-                  className="input"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Minimum 8 characters"
-                  autoComplete="new-password"
-                  required
-                  value={form.password}
-                  onChange={(event) => updateField('password', event.target.value)}
-                />
+          {activeStep >= 2 && (
+            <>
+              <SectionTitle number="2">Email Verification</SectionTitle>
+              <p className="create-helper">Please enter the 6-digit OTP sent to your email:</p>
+              <div className="create-otp-row">
+                <div className="create-otp-boxes" onPaste={handleOtpPaste}>
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(node) => {
+                        otpRefs.current[index] = node
+                      }}
+                      className="create-otp-input"
+                      inputMode="numeric"
+                      maxLength={1}
+                      aria-label={`OTP digit ${index + 1}`}
+                      value={digit}
+                      onChange={(event) => handleOtpDigitChange(index, event.target.value)}
+                      onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                    />
+                  ))}
+                </div>
                 <button
                   type="button"
-                  className="icon-button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label="Toggle password"
+                  className="button secondary create-verify-otp"
+                  onClick={verifyOtp}
+                  disabled={otpState.verifying || otpState.verified}
                 >
-                  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                    />
-                    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                  </svg>
+                  {otpState.verified ? 'Verified' : otpState.verifying ? 'Verifying...' : 'Verify OTP'}
                 </button>
               </div>
-            </div>
-            <div>
-              <div className="label">Confirm Password</div>
-              <div className="input-row">
-                <input
-                  className="input"
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="Re-enter password"
-                  autoComplete="new-password"
-                  required
-                  value={form.confirmPassword}
-                  onChange={(event) => updateField('confirmPassword', event.target.value)}
-                />
+              <div className="pill create-status-pill">
+                {otpState.verified ? 'Email OTP verified' : 'Verify OTP before creating account'}
+              </div>
+
+              <div className="grid two create-two">
+                <div>
+                  <div className="label">Password</div>
+                  <div className="input-row">
+                    <input
+                      className="input"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Minimum 8 characters"
+                      autoComplete="new-password"
+                      required
+                      value={form.password}
+                      onChange={(event) => updateField('password', event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label="Toggle password"
+                    >
+                      <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        />
+                        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <div className="label">Confirm Password</div>
+                  <div className="input-row">
+                    <input
+                      className="input"
+                      type={showConfirm ? 'text' : 'password'}
+                      placeholder="Re-enter password"
+                      autoComplete="new-password"
+                      required
+                      value={form.confirmPassword}
+                      onChange={(event) => updateField('confirmPassword', event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="icon-button"
+                      onClick={() => setShowConfirm((prev) => !prev)}
+                      aria-label="Toggle password"
+                    >
+                      <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        />
+                        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {activeStep === 2 && (
                 <button
                   type="button"
-                  className="icon-button"
-                  onClick={() => setShowConfirm((prev) => !prev)}
-                  aria-label="Toggle password"
+                  className="button create-step-next"
+                  onClick={goToAddressStep}
+                  disabled={!passwordStepComplete}
                 >
-                  <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                    />
-                    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                  </svg>
+                  Continue to Address Info
                 </button>
-              </div>
-            </div>
-          </div>
+              )}
+            </>
+          )}
 
-          <SectionTitle number="3">Address Info</SectionTitle>
-          <div className="grid two create-two">
-            <div>
-              <div className="label">Street Address (Optional)</div>
-              <input
-                className="input"
-                placeholder="House number, street, building, etc."
-                value={form.addressLine}
-                onChange={(event) => updateField('addressLine', event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="label">Barangay (Required)</div>
-              <input
-                className="input"
-                required
-                placeholder="Enter barangay"
-                value={form.barangay}
-                onChange={(event) => updateField('barangay', event.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid two create-two">
-            <div>
-              <div className="label">City/Municipality (Required)</div>
-              <input
-                className="input"
-                required
-                placeholder="Enter city or municipality"
-                value={form.city}
-                onChange={(event) => updateField('city', event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="label">Province/State (Required)</div>
-              <input
-                className="input"
-                required
-                placeholder="Enter province or state"
-                value={form.province}
-                onChange={(event) => updateField('province', event.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid two create-two">
-            <div>
-              <div className="label">ZIP Code (Required)</div>
-              <input
-                className="input"
-                required
-                placeholder="Enter ZIP code"
-                value={form.zip}
-                onChange={(event) => updateField('zip', event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="label">Country (Required)</div>
-              <input
-                className="input"
-                required
-                value={form.country}
-                onChange={(event) => updateField('country', event.target.value)}
-              />
-            </div>
-          </div>
+          {activeStep >= 3 && (
+            <>
+              <SectionTitle number="3">Address Info</SectionTitle>
+              <div className="grid two create-two">
+                <div>
+                  <div className="label">Street Address (Optional)</div>
+                  <input
+                    className="input"
+                    placeholder="House number, street, building, etc."
+                    value={form.addressLine}
+                    onChange={(event) => updateField('addressLine', event.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="label">Barangay (Required)</div>
+                  <input
+                    className="input"
+                    required
+                    placeholder="Enter barangay"
+                    value={form.barangay}
+                    onChange={(event) => updateField('barangay', event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid two create-two">
+                <div>
+                  <div className="label">City/Municipality (Required)</div>
+                  <input
+                    className="input"
+                    required
+                    placeholder="Enter city or municipality"
+                    value={form.city}
+                    onChange={(event) => updateField('city', event.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="label">Province/State (Required)</div>
+                  <input
+                    className="input"
+                    required
+                    placeholder="Enter province or state"
+                    value={form.province}
+                    onChange={(event) => updateField('province', event.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid two create-two">
+                <div>
+                  <div className="label">ZIP Code (Required)</div>
+                  <input
+                    className="input"
+                    required
+                    placeholder="Enter ZIP code"
+                    value={form.zip}
+                    onChange={(event) => updateField('zip', event.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="label">Country (Required)</div>
+                  <input
+                    className="input"
+                    required
+                    value={form.country}
+                    onChange={(event) => updateField('country', event.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="pill create-status-pill">Data is encrypted at rest</div>
           {status.error && <div className="card create-error-card">Error: {status.error}</div>}
-          <button className="button create-submit" type="submit" disabled={status.loading}>
-            {status.loading ? 'Please wait...' : 'Confirm'}
-          </button>
+          {activeStep >= 3 && (
+            <button className="button create-submit" type="submit" disabled={status.loading}>
+              {status.loading ? 'Please wait...' : 'Confirm'}
+            </button>
+          )}
           <div className="create-bottom-ornament" aria-hidden="true">— ୨୧ —</div>
         </form>
       </div>

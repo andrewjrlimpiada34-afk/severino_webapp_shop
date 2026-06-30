@@ -2980,6 +2980,12 @@ img {
   padding: 14px 16px;
 }
 
+.create-step-next {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 4px;
+}
+
 .create-submit {
   margin-top: 4px;
   min-height: 54px;

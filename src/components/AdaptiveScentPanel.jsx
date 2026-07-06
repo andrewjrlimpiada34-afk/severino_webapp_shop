@@ -11,7 +11,7 @@ function AdaptivePanelSkeleton({ locationLabel, onUseDefaultLocation }) {
           <div className="tag">Adaptive Scent Forecast</div>
           <h2>Checking your weather...</h2>
           <p className="section-subtitle">
-            Please allow location access. If unavailable, Adaptive Scent will use {locationLabel}.
+            Allow location access, or use {locationLabel}'s default forecast.
           </p>
         </div>
         <SkeletonLine width="110px" height={34} className="skeleton-pill" />
@@ -55,9 +55,9 @@ function AdaptiveScentPanel({
         <div className="adaptive-panel__body adaptive-panel__body--idle">
           <div>
             <div className="tag">Adaptive Scent Forecast</div>
-            <h2>Find scents for the weather</h2>
+            <h2>Find scents for your weather</h2>
             <p className="section-subtitle">
-              Turn this on to ask for location access, or instantly use {locationLabel}'s forecast.
+              Turn this on to allow location access, or use {locationLabel}'s default forecast now.
             </p>
           </div>
           <button className="button adaptive-default-button" type="button" onClick={onUseDefaultLocation}>
@@ -96,7 +96,7 @@ function AdaptiveScentPanel({
             <h2>Recommended for this week's weather</h2>
             <p className="section-subtitle">
               {usingDefault
-                ? `You're using your default location: ${locationLabel}. This is according to ${locationLabel}'s Weather Forecast.`
+                ? `Using default location: ${locationLabel}. Based on the local weather forecast.`
                 : "Matched using forecast conditions and each perfume's notes."}
             </p>
           </div>

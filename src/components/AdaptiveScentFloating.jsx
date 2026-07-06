@@ -56,6 +56,15 @@ function AdaptiveScentFloating({
       : adaptive.adaptiveData.recommendations
 
   useEffect(() => {
+    if (!open) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [open])
+
+  useEffect(() => {
     const handleResize = () => {
       setPosition((prev) => {
         const next = clampPosition(prev)

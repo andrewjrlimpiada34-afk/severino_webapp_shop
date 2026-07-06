@@ -57,6 +57,13 @@ body {
   overflow-x: hidden;
 }
 
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
 html,
 body,
 #root {
@@ -452,6 +459,11 @@ img {
   background: linear-gradient(135deg, var(--olive-600), var(--olive-800));
   color: white;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+  text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -535,7 +547,7 @@ img {
 
 .banner-overlay h3 {
   margin: 6px 0 0;
-  font-family: 'Playfair Display', serif;
+  font-family: inherit;
   font-size: 18px;
 }
 
@@ -778,6 +790,7 @@ img {
 .adaptive-panel {
   display: grid;
   gap: 18px;
+  width: 100%;
   overflow: hidden;
   transition:
     background 0.35s ease,
@@ -796,16 +809,30 @@ img {
 
 .adaptive-panel__body {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .adaptive-panel__body--idle {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: space-between;
+  align-items: start;
+  min-height: clamp(260px, 38vh, 360px);
+}
+
+.adaptive-panel__body--idle > div {
+  display: grid;
+  gap: 8px;
+  max-width: 460px;
+}
+
+.adaptive-panel__body--idle .section-subtitle {
+  max-width: 34rem;
+  line-height: 1.55;
 }
 
 .adaptive-default-button {
-  justify-self: start;
+  justify-self: center;
+  align-self: end;
   min-height: 42px;
   padding-inline: 18px;
   white-space: nowrap;
@@ -872,8 +899,8 @@ img {
 }
 
 .adaptive-modal-card {
-  width: min(94vw, 980px);
-  max-height: min(86vh, 820px);
+  width: min(92vw, 640px);
+  max-height: min(88vh, 820px);
   padding: 12px;
   background: transparent;
   border: none;
@@ -882,7 +909,8 @@ img {
 }
 
 .adaptive-modal-card .adaptive-panel {
-  max-height: min(82vh, 780px);
+  max-height: min(84vh, 780px);
+  padding: clamp(18px, 3vw, 26px);
   overflow: auto;
 }
 
@@ -909,6 +937,26 @@ img {
 .adaptive-panel h3,
 .weather-mood-card h3 {
   margin: 0;
+}
+
+.adaptive-panel h2 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.adaptive-panel h3 {
+  font-size: clamp(18px, 2.3vw, 24px);
+}
+
+.adaptive-panel__header .section-subtitle {
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.adaptive-modal-card .adaptive-forecast-grid {
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  overflow-x: hidden;
 }
 
 .mood-sunny {
@@ -1228,6 +1276,10 @@ img {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  gap: clamp(18px, 2.8vw, 34px);
+  align-items: start;
+  justify-items: center;
+  font-family: inherit;
   background: var(--home-page-bg);
   border-radius: 22px;
 }
@@ -1332,6 +1384,47 @@ img {
   background: rgba(24, 23, 18, 0.72);
   color: #f7ecd4;
   border: 1px solid rgba(229, 206, 162, 0.24);
+}
+
+.home-hero,
+.home-shop-section,
+.facebook-follow-section {
+  width: min(1120px, 100%);
+  justify-self: center;
+}
+
+.home-hero {
+  min-height: clamp(320px, 42vw, 500px);
+}
+
+.home-section-heading {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.home-shop-section {
+  gap: 18px;
+}
+
+.home-shop-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  border-radius: 20px;
+}
+
+.home-shop-card__copy {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 260px);
+}
+
+.home-shop-card__title {
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 @media (min-width: 1024px) {
@@ -1470,6 +1563,35 @@ img {
 
 .facebook-embed-mobile {
   display: none !important;
+}
+
+@media (min-width: 901px) {
+  .facebook-follow-section {
+    grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 500px);
+    gap: clamp(20px, 3vw, 34px);
+    align-items: center;
+    padding: clamp(22px, 3vw, 30px);
+  }
+
+  .facebook-follow-copy {
+    max-width: 520px;
+  }
+
+  .facebook-page-card {
+    width: min(100%, 536px);
+    justify-self: end;
+  }
+
+  .facebook-embed-frame {
+    display: grid;
+    place-items: center;
+    min-height: 460px;
+  }
+
+  .facebook-embed-frame iframe {
+    min-height: 460px;
+    height: 460px;
+  }
 }
 
 [data-theme='Shadow Dark Mode'] .facebook-page-card {
@@ -1762,6 +1884,48 @@ img {
   padding: 12px;
 }
 
+.modal-backdrop.adaptive-modal-backdrop {
+  z-index: 50000;
+  background: rgba(10, 10, 12, 0.62);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+}
+
+.modal-card.adaptive-modal-card {
+  width: min(95vw, 1120px);
+  max-height: min(82dvh, 760px);
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.modal-card.adaptive-modal-card .adaptive-panel {
+  width: 100%;
+  max-height: min(82dvh, 760px);
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: 26px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 769px) {
+  .adaptive-modal-backdrop {
+    align-items: flex-start;
+    padding: clamp(118px, 12vh, 146px) clamp(24px, 4vw, 48px) 32px;
+  }
+}
+
+.modal-card.login-popup-modal {
+  width: fit-content;
+  max-width: min(94vw, 1180px);
+  max-height: min(86dvh, 780px);
+  padding: clamp(16px, 2.2vw, 24px);
+  overflow: visible;
+}
+
 .notif-modal {
   width: min(96vw, 980px);
   min-height: min(64vh, 560px);
@@ -1772,14 +1936,20 @@ img {
 .login-popup {
   display: grid;
   place-items: center;
-  padding: 8px;
+  width: fit-content;
+  max-width: calc(100vw - 96px);
+  max-height: calc(86dvh - 72px);
+  padding: 0;
+  overflow: visible;
 }
 
 .login-popup img {
-  width: 100%;
-  max-height: 70vh;
+  width: auto;
+  height: auto;
+  max-width: min(78vw, 980px);
+  max-height: min(74dvh, 680px);
   object-fit: contain;
-  border-radius: 16px;
+  border-radius: 10px;
 }
 
 .login-header-row {
@@ -3635,8 +3805,31 @@ img {
     border-radius: 22px 22px 0 0;
   }
 
+  .modal-card.adaptive-modal-card {
+    width: 100%;
+    max-height: min(88dvh, 88vh);
+    overflow: hidden;
+  }
+
+  .modal-card.adaptive-modal-card .adaptive-panel {
+    max-height: min(88dvh, 88vh);
+    border-radius: 22px 22px 0 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .adaptive-panel__body--idle {
     grid-template-columns: 1fr;
+    min-height: 280px;
+  }
+
+  .adaptive-panel h2 {
+    font-size: clamp(24px, 8vw, 32px);
+    line-height: 1.12;
+  }
+
+  .adaptive-default-button {
+    width: min(100%, 240px);
   }
 
   .adaptive-panel__header {
@@ -4384,7 +4577,7 @@ img {
     max-height: min(88dvh, 88vh);
     margin-inline: auto;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     padding: 0;
   }
 
@@ -4395,6 +4588,28 @@ img {
     max-height: min(88dvh, 88vh);
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  .modal-card.adaptive-modal-card {
+    width: calc(100% - 24px);
+    max-width: 420px;
+    overflow: hidden;
+  }
+
+  .modal-card.login-popup-modal {
+    max-width: calc(100vw - 24px);
+    max-height: min(84dvh, 680px);
+    padding: 12px;
+  }
+
+  .login-popup {
+    max-width: calc(100vw - 48px);
+    max-height: calc(84dvh - 48px);
+  }
+
+  .login-popup img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(84dvh - 48px);
   }
 
   .adaptive-panel,

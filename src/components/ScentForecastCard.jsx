@@ -13,7 +13,7 @@ function ScentForecastCard({ day }) {
       </div>
       <div>{day.profile.label}</div>
       <p>
-        {day.minTemp}°–{day.maxTemp}°C · {day.precipitationProbability}% rain
+        {day.minTemp}&deg;-{day.maxTemp}&deg;C - {day.precipitationProbability}% rain
       </p>
     </div>
   )

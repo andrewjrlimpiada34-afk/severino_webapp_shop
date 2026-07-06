@@ -7,12 +7,12 @@ function WeatherMoodCard({ current, usingDefault = false, locationLabel = 'Marin
         {current.profile.icon}
       </div>
       <div>
-        <div className="tag">Today’s Weather Mood</div>
+        <div className="tag">Today's Weather Mood</div>
         <h3>{current.profile.label}</h3>
         <p>
-          {current.temperature}°C · {current.humidity}% humidity · Rain {current.rain} mm
+          {current.temperature}&deg;C - {current.humidity}% humidity - Rain {current.rain} mm
         </p>
-        {usingDefault && <span className="pill">You're using your default location: {locationLabel}</span>}
+        {usingDefault && <span className="pill">Using default location: {locationLabel}</span>}
       </div>
     </div>
   )

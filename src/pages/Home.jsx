@@ -17,15 +17,18 @@ const defaultBannerStories = [
   { id: 'banner-5', title: 'Why Severino?', message: '' },
 ]
 
+const SHOW_HOME_SCROLL_VIDEO = false
+const facebookDesktopHeight = 460
+const facebookMobileHeight = 620
 const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
 const facebookPluginUrlDesktop = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
   facebookPageUrl
-)}&tabs=timeline&width=500&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+)}&tabs=timeline&width=500&height=${facebookDesktopHeight}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
 
 function getFacebookPluginUrl(width) {
   return `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
     facebookPageUrl
-  )}&tabs=timeline&width=${width}&height=620&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
+  )}&tabs=timeline&width=${width}&height=${facebookMobileHeight}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
 }
 
 function Home() {
@@ -101,6 +104,18 @@ function Home() {
   }, [featuredBanners.length])
 
   useEffect(() => {
+    if (banners.length <= 1) return undefined
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => {
+        const next = (prev + 1) % banners.length
+        scrollToBanner(next)
+        return next
+      })
+    }, 4400)
+    return () => clearInterval(interval)
+  }, [banners.length])
+
+  useEffect(() => {
     if (!adaptive.enabled || adaptiveProducts.length) return
     api.products().then(setAdaptiveProducts).catch(() => setAdaptiveProducts([]))
   }, [adaptive.enabled, adaptiveProducts.length])
@@ -171,11 +186,11 @@ function Home() {
   }
 
   return (
-    <section className="grid home-page" style={{ gap: '32px' }}>
-      <HomeScrollVideo />
+    <section className="grid home-page">
+      {SHOW_HOME_SCROLL_VIDEO && <HomeScrollVideo />}
 
       <div
-        className="hero"
+        className="hero home-hero"
         style={heroImage ? { '--hero-image': `url(${heroImage})` } : undefined}
       >
         <div className="hero-content">
@@ -245,15 +260,15 @@ function Home() {
       )}
 
       <div className="grid home-shop-section">
-        <div>
+        <div className="home-section-heading">
           <h2 className="section-title">Explore the Shop</h2>
           <p className="section-subtitle">Browse new scents, find your signature, and build your collection.</p>
         </div>
 
-        <div className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'grid', gap: '6px' }}>
+        <div className="card home-shop-card">
+          <div className="home-shop-card__copy">
             <div className="tag">Curated for you</div>
-            <div style={{ fontWeight: 700 }}>Severino Collection — always ready to discover.</div>
+            <div className="home-shop-card__title">Severino Collection - always ready to discover.</div>
           </div>
           <div className="home-shop-icon-actions">
             <a className="button home-shop-icon-button" href="/shop" aria-label="Shop all scents" title="Shop all scents">
@@ -386,7 +401,7 @@ function Home() {
               title="Severino Facebook Page"
               src={facebookPluginUrlDesktop}
               width="500"
-              height="620"
+              height={facebookDesktopHeight}
               style={{ border: 'none', overflow: 'hidden' }}
               scrolling="no"
               frameBorder="0"
@@ -398,7 +413,7 @@ function Home() {
               title="Severino Facebook Page Mobile"
               src={getFacebookPluginUrl(facebookMobileWidth)}
               width={facebookMobileWidth}
-              height="620"
+              height={facebookMobileHeight}
               style={{ border: 'none', overflow: 'hidden' }}
               scrolling="no"
               frameBorder="0"

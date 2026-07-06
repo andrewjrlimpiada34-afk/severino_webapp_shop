@@ -44,6 +44,7 @@ function CreateAccount() {
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [otpDigits, setOtpDigits] = useState(Array(OTP_LENGTH).fill(''))
   const [createdOpen, setCreatedOpen] = useState(false)
+  const [verifiedOpen, setVerifiedOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(1)
   const [resendCooldown, setResendCooldown] = useState(0)
   const otpRefs = useRef([])
@@ -63,9 +64,9 @@ function CreateAccount() {
   const email = form.email.trim().toLowerCase()
   const mobile = normalizePhilippineMobile(form.mobile)
   const profileStepComplete = Boolean(firstName && lastName && email && mobile)
+  const isEmailVerified = otpState.verified && otpState.email === email
   const passwordStepComplete =
-    otpState.verified &&
-    otpState.email === email &&
+    isEmailVerified &&
     form.password.length >= 8 &&
     form.password === form.confirmPassword
 
@@ -75,6 +76,8 @@ function CreateAccount() {
 
   const resetOtp = () => {
     setOtpDigits(Array(OTP_LENGTH).fill(''))
+    setVerifiedOpen(false)
+    setForm((prev) => ({ ...prev, password: '', confirmPassword: '' }))
     setOtpState({
       sending: false,
       verifying: false,
@@ -176,7 +179,10 @@ function CreateAccount() {
   useEffect(() => {
     const email = form.email.trim().toLowerCase()
     if (!otpState.email || otpState.email === email) return
-    resetOtp()
+    const timer = window.setTimeout(() => {
+      resetOtp()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [form.email, otpState.email])
 
   useEffect(() => {
@@ -186,6 +192,12 @@ function CreateAccount() {
     }, 1000)
     return () => clearInterval(timer)
   }, [resendCooldown])
+
+  useEffect(() => {
+    if (!verifiedOpen) return undefined
+    const timer = setTimeout(() => setVerifiedOpen(false), 1150)
+    return () => clearTimeout(timer)
+  }, [verifiedOpen])
 
   const sendOtp = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -260,12 +272,14 @@ function CreateAccount() {
         challengeId: otpState.challengeId,
         code: otp,
       })
+      setForm((prev) => ({ ...prev, password: '', confirmPassword: '' }))
       setOtpState((prev) => ({
         ...prev,
         verifying: false,
         verified: true,
         message: result?.message || 'Email OTP verified',
       }))
+      setVerifiedOpen(true)
     } catch (error) {
       setOtpState((prev) => ({ ...prev, verifying: false }))
       setStatus({ loading: false, error: error.message, success: '' })
@@ -420,6 +434,7 @@ function CreateAccount() {
                       placeholder="Minimum 8 characters"
                       autoComplete="new-password"
                       required
+                      disabled={!isEmailVerified}
                       value={form.password}
                       onChange={(event) => updateField('password', event.target.value)}
                     />
@@ -427,6 +442,7 @@ function CreateAccount() {
                       type="button"
                       className="icon-button"
                       onClick={() => setShowPassword((prev) => !prev)}
+                      disabled={!isEmailVerified}
                       aria-label="Toggle password"
                     >
                       <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -450,6 +466,7 @@ function CreateAccount() {
                       placeholder="Re-enter password"
                       autoComplete="new-password"
                       required
+                      disabled={!isEmailVerified}
                       value={form.confirmPassword}
                       onChange={(event) => updateField('confirmPassword', event.target.value)}
                     />
@@ -457,6 +474,7 @@ function CreateAccount() {
                       type="button"
                       className="icon-button"
                       onClick={() => setShowConfirm((prev) => !prev)}
+                      disabled={!isEmailVerified}
                       aria-label="Toggle password"
                     >
                       <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -585,6 +603,24 @@ function CreateAccount() {
             <button className="button" type="button" onClick={() => navigate('/login')}>
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {verifiedOpen && (
+        <div className="modal-backdrop create-verified-backdrop" role="presentation">
+          <div
+            className="modal-card create-verified-modal"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="create-verified-check" aria-hidden="true">
+              <svg viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="23" />
+                <path d="M15 27.5L22.4 35L38 18.5" />
+              </svg>
+            </div>
+            <strong>Email Verified</strong>
           </div>
         </div>
       )}

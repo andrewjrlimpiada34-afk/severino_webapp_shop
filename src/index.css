@@ -1225,9 +1225,17 @@ img {
 
 .featured-banner-slide__image {
   height: clamp(220px, 28vw, 430px);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--glass) 94%, white);
+  overflow: hidden;
+}
+
+.featured-banner-slide__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .featured-banner-dots {
@@ -3187,12 +3195,79 @@ img {
   max-width: 420px;
 }
 
+.create-verified-backdrop {
+  background: rgba(10, 10, 12, 0.38);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: verifiedBackdropIn 0.2s ease both, verifiedBackdropOut 0.28s ease 0.88s forwards;
+}
+
+.create-verified-modal {
+  width: min(86vw, 280px);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px 22px 22px;
+  text-align: center;
+  overflow: visible;
+  animation: verifiedPopIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both,
+    verifiedPopOut 0.28s ease 0.88s forwards;
+}
+
+.create-verified-modal strong {
+  font-size: 18px;
+  color: var(--olive-900);
+}
+
+.create-verified-check {
+  width: 70px;
+  height: 70px;
+  color: var(--olive-700);
+}
+
+.create-verified-check svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.create-verified-check circle,
+.create-verified-check path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.create-verified-check circle {
+  opacity: 0.18;
+}
+
+.create-verified-check path {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: verifiedCheckDraw 0.42s ease 0.18s forwards;
+}
+
+.input:disabled,
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .account-profile-grid {
   align-items: start;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, min(100%, 560px));
+  justify-content: center;
+  justify-items: stretch;
+  width: min(100%, 640px);
+  margin-inline: auto;
 }
 
 .account-profile-grid > .card.form {
+  width: 100%;
   align-self: start;
 }
 
@@ -3203,7 +3278,6 @@ img {
 }
 
 .account-update-actions {
-  grid-column: 1 / -1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -3669,13 +3743,27 @@ img {
   }
 
   .create-otp-boxes {
-    width: 100%;
-    justify-content: space-between;
-    gap: 10px;
+    display: grid;
+    width: min(100%, 280px);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    justify-content: start;
+    gap: clamp(8px, 3vw, 14px);
   }
 
   .create-otp-input {
-    width: clamp(42px, 16vw, 54px);
+    width: 100%;
+    height: 38px;
+    aspect-ratio: auto;
+    border-width: 0 0 2px;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 20px;
+  }
+
+  .create-otp-input:focus {
+    outline: 0;
+    border-color: rgba(136, 118, 42, 0.82);
   }
 
   .create-verify-otp {
@@ -4359,6 +4447,45 @@ img {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes verifiedPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes verifiedPopOut {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+}
+
+@keyframes verifiedBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes verifiedBackdropOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes verifiedCheckDraw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
 .star-row.large {

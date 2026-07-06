@@ -343,12 +343,9 @@ function Home() {
                     }
                     aria-label={`Open ${banner.title}`}
                   >
-                    <div
-                      className="featured-banner-slide__image"
-                      style={{
-                        backgroundImage: `url(${banner.image})`,
-                      }}
-                    />
+                    <div className="featured-banner-slide__image">
+                      <img src={banner.image} alt="" aria-hidden="true" loading="lazy" />
+                    </div>
                     <div className="featured-banner-card__content">
                       <div className="tag">Featured Banner</div>
                       <div className="featured-banner-card__title">{banner.title}</div>

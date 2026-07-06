@@ -85,7 +85,15 @@ function Cart() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <div className="empty-state cart-empty-state">
+                      Currently, you have no items in your cart.
+                    </div>
+                  </td>
+                </tr>
+              ) : items.map((item) => (
                 <tr key={item.id}>
                   <td>
                     <input

@@ -3266,6 +3266,14 @@ img {
   margin-inline: auto;
 }
 
+@media (min-width: 641px) {
+  .grid.two.account-profile-grid {
+    grid-template-columns: minmax(0, min(100%, 560px));
+    justify-content: center;
+    justify-items: stretch;
+  }
+}
+
 .account-profile-grid > .card.form {
   width: 100%;
   align-self: start;

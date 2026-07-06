@@ -136,7 +136,15 @@ function OrderHistory() {
             </tr>
           </thead>
           <tbody>
-            {orders.flatMap((order) =>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={9}>
+                  <div className="empty-state orders-empty-state">
+                    You have no orders yet.
+                  </div>
+                </td>
+              </tr>
+            ) : orders.flatMap((order) =>
               (order.items || []).map((item, index) => (
                 <tr key={`${order.id}-${item.productId}-${index}`}>
                   <td>{order.id}</td>

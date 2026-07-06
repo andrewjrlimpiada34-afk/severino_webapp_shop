@@ -2907,6 +2907,44 @@ img {
   font-weight: 600;
 }
 
+.admin-order-row--cancelled td {
+  background: #fff0f0;
+}
+
+.admin-order-row--pending td {
+  background: #fff8dd;
+}
+
+.admin-order-row--active td {
+  background: #eef8e9;
+}
+
+.admin-order-row--cancelled .badge {
+  background: #f4d9d9;
+  color: #6f2424;
+}
+
+.admin-order-row--pending .badge {
+  background: #f3e7b9;
+  color: #6a5310;
+}
+
+.admin-order-row--active .badge {
+  background: #dcebd5;
+  color: #315124;
+}
+
+.admin-order-readonly {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(111, 36, 36, 0.08);
+  color: #6f2424;
+  font-weight: 700;
+}
+
 .admin-nav {
   width: 260px;
   min-height: 100vh;

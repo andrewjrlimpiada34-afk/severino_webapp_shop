@@ -14,6 +14,24 @@ function parseAddress(address) {
   }
 }
 
+function getItemStatus(order, item) {
+  return item.trackingStatus || order.status || ''
+}
+
+function getStatusTone(status) {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized.includes('cancelled')) return 'cancelled'
+  if (normalized.includes('pending')) return 'pending'
+  if (
+    normalized.includes('to ship') ||
+    normalized.includes('to review') ||
+    normalized.includes('to receive')
+  ) {
+    return 'active'
+  }
+  return ''
+}
+
 function AdminViewOrders() {
   const [orders, setOrders] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
@@ -133,7 +151,12 @@ function AdminViewOrders() {
           </thead>
           <tbody>
             {orderRows.map(({ order, orderIndex, item, itemIndex, itemTotal }, rowIndex) => (
-              <tr key={`${order.id}-${item.itemId}-${itemIndex}`}>
+              <tr
+                key={`${order.id}-${item.itemId}-${itemIndex}`}
+                className={`admin-order-row admin-order-row--${getStatusTone(
+                  getItemStatus(order, item)
+                )}`}
+              >
                 <td>{rowIndex + 1}</td>
                 <td>
                   <strong>{item.name || item.productName || item.productId || 'Item'}</strong>
@@ -144,22 +167,44 @@ function AdminViewOrders() {
                 <td>{order.phone || '-'}</td>
                 <td>₱{itemTotal.toLocaleString()}</td>
                 <td>
-                  <span className="badge">{item.trackingStatus || order.status}</span>
+                  <span className="badge">{getItemStatus(order, item)}</span>
                 </td>
                 <td>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['To Ship', 'To Receive', 'To Review'].map((label) => (
+                  {getStatusTone(getItemStatus(order, item)) === 'cancelled' ? (
+                    <span className="admin-order-readonly">Cancelled by user</span>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {['To Ship', 'To Receive', 'To Review'].map((label) => (
+                        <button
+                          key={label}
+                          className="button ghost"
+                          onClick={async () => {
+                            try {
+                              const updated = await api.updateOrderItemStatus(
+                                order.id,
+                                item.itemId || `${orderIndex}-${itemIndex}`,
+                                label
+                              )
+
+                              setOrders((prev) =>
+                                prev.map((o) => (o.id === order.id ? updated : o))
+                              )
+                            } catch (error) {
+                              setStatus((prev) => ({ ...prev, error: error.message }))
+                            }
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
                       <button
-                        key={label}
                         className="button ghost"
+                        type="button"
                         onClick={async () => {
                           try {
-                            const updated = await api.updateOrderItemStatus(
-                              order.id,
-                              item.itemId || `${orderIndex}-${itemIndex}`,
-                              label
-                            )
-
+                            const ok = window.confirm('Remove this order? This cannot be undone.')
+                            if (!ok) return
+                            const updated = await api.deleteOrder(order.id)
                             setOrders((prev) =>
                               prev.map((o) => (o.id === order.id ? updated : o))
                             )
@@ -168,28 +213,10 @@ function AdminViewOrders() {
                           }
                         }}
                       >
-                        {label}
+                        Remove
                       </button>
-                    ))}
-                    <button
-                      className="button ghost"
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const ok = window.confirm('Remove this order? This cannot be undone.')
-                          if (!ok) return
-                          const updated = await api.deleteOrder(order.id)
-                          setOrders((prev) =>
-                            prev.map((o) => (o.id === order.id ? updated : o))
-                          )
-                        } catch (error) {
-                          setStatus((prev) => ({ ...prev, error: error.message }))
-                        }
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

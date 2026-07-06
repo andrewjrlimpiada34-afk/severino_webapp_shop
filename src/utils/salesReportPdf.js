@@ -131,7 +131,13 @@ export function createSalesReportPdfHtml({
   chartData = [],
   weeklyTotal = 0,
   averageDaily = 0,
+  mostSoldProduct = {},
 } = {}) {
+  const topProduct = {
+    name: mostSoldProduct.name || 'No sales recorded',
+    sold: Number(mostSoldProduct.sold) || 0,
+    revenue: Number(mostSoldProduct.revenue) || 0,
+  }
   const metrics = [
     createMetric('TOTAL ORDERS', Number(summary.count || 0).toLocaleString(), 'orders'),
     createMetric('TOTAL REVENUE', formatCurrency(summary.revenue), 'revenue'),
@@ -232,7 +238,8 @@ export function createSalesReportPdfHtml({
           }
 
           .report-card,
-          .metrics-card {
+          .metrics-card,
+          .most-sold-card {
             border: 1px solid rgba(43, 52, 34, 0.09);
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.96);
@@ -357,6 +364,52 @@ export function createSalesReportPdfHtml({
             font-weight: 700;
           }
 
+          .most-sold-card {
+            width: min(100%, 460px);
+            margin-top: 28px;
+            padding: 18px 22px 20px;
+          }
+
+          .most-sold-title {
+            margin: 0;
+            color: #1b1f15;
+            font-size: 15px;
+            font-weight: 700;
+          }
+
+          .most-sold-product {
+            margin: 8px 0 12px;
+            font-size: 20px;
+            line-height: 1.1;
+            font-weight: 700;
+          }
+
+          .most-sold-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+          }
+
+          .most-sold-table th,
+          .most-sold-table td {
+            padding: 10px 12px;
+            border: 1px solid rgba(185, 166, 108, 0.34);
+          }
+
+          .most-sold-table th {
+            width: 52%;
+            color: #4d6531;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-align: left;
+            text-transform: uppercase;
+          }
+
+          .most-sold-table td {
+            font-weight: 700;
+            text-align: right;
+          }
+
           .nothing-follows {
             margin: auto 0 0;
             padding-top: 32px;
@@ -399,6 +452,22 @@ export function createSalesReportPdfHtml({
           </section>
           <section class="metrics-card" aria-label="Sales metrics">
             ${metrics}
+          </section>
+          <section class="most-sold-card" aria-label="Most sold product for the week">
+            <p class="most-sold-title">Most Sold Product:</p>
+            <div class="most-sold-product">${escapeHtml(topProduct.name)}:</div>
+            <table class="most-sold-table">
+              <tbody>
+                <tr>
+                  <th>Sold</th>
+                  <td>${escapeHtml(topProduct.sold.toLocaleString())}</td>
+                </tr>
+                <tr>
+                  <th>Total Revenue</th>
+                  <td>${escapeHtml(formatCurrency(topProduct.revenue))}</td>
+                </tr>
+              </tbody>
+            </table>
           </section>
           <div class="nothing-follows">- Nothing Follows -</div>
         </main>

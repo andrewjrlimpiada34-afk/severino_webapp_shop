@@ -75,6 +75,40 @@ function AdminSalesReport() {
 
   const weeklyTotal = chartData.reduce((sum, day) => sum + day.total, 0)
   const averageDaily = chartData.length ? Math.round(weeklyTotal / chartData.length) : 0
+  const mostSoldProduct = useMemo(() => {
+    const weekKeys = new Set(chartData.map((day) => day.key))
+    const productTotals = new Map()
+
+    orders
+      .filter((order) => order.status !== 'Cancelled' && order.status !== 'Removed')
+      .forEach((order) => {
+        const day = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''
+        if (!weekKeys.has(day)) return
+
+        const items = order.items || []
+        items.forEach((item) => {
+          const itemStatus = item.trackingStatus || order.status
+          if (itemStatus === 'Cancelled' || itemStatus === 'Removed') return
+
+          const name = item.name || item.productName || item.productId || 'Item'
+          const quantity = Number(item.quantity) || 0
+          const revenue = (Number(item.price) || 0) * quantity
+          const current = productTotals.get(name) || { name, sold: 0, revenue: 0 }
+
+          productTotals.set(name, {
+            ...current,
+            sold: current.sold + quantity,
+            revenue: current.revenue + revenue,
+          })
+        })
+      })
+
+    return (
+      Array.from(productTotals.values()).sort(
+        (a, b) => b.sold - a.sold || b.revenue - a.revenue || a.name.localeCompare(b.name)
+      )[0] || { name: 'No sales recorded', sold: 0, revenue: 0 }
+    )
+  }, [chartData, orders])
 
   return (
     <section className="grid" style={{ gap: '24px' }}>
@@ -104,6 +138,7 @@ function AdminSalesReport() {
                 chartData,
                 weeklyTotal,
                 averageDaily,
+                mostSoldProduct,
               })
             }
           >

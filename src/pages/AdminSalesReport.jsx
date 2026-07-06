@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
+import { printSalesReportPdf } from '../utils/salesReportPdf.js'
 
 function AdminSalesReport() {
   const [summary, setSummary] = useState({ count: 0, revenue: 0 })
@@ -94,7 +95,18 @@ function AdminSalesReport() {
           <h2 className="section-title" style={{ fontSize: '22px' }}>
             Sales Summary
           </h2>
-          <button className="button secondary" type="button" onClick={() => window.print()}>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() =>
+              printSalesReportPdf({
+                summary,
+                chartData,
+                weeklyTotal,
+                averageDaily,
+              })
+            }
+          >
             Print PDF
           </button>
         </div>

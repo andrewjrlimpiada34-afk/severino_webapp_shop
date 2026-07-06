@@ -147,7 +147,7 @@ export function createSalesReportPdfHtml({
         <style>
           @page {
             size: legal portrait;
-            margin: 0.58in;
+            margin: 0;
           }
 
           * {
@@ -169,7 +169,9 @@ export function createSalesReportPdfHtml({
             width: 8.5in;
             min-height: 14in;
             margin: 0 auto;
-            padding: 0.74in 0.62in;
+            padding: 0.98in 0.62in 0.52in;
+            display: flex;
+            flex-direction: column;
             background:
               radial-gradient(circle at 50% 18%, rgba(221, 216, 194, 0.18), transparent 34%),
               #fff;
@@ -355,6 +357,16 @@ export function createSalesReportPdfHtml({
             font-weight: 700;
           }
 
+          .nothing-follows {
+            margin: auto 0 0;
+            padding-top: 32px;
+            text-align: center;
+            color: #1b1f15;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+          }
+
           @media print {
             html,
             body {
@@ -362,10 +374,9 @@ export function createSalesReportPdfHtml({
             }
 
             .sheet {
-              width: auto;
-              min-height: auto;
+              width: 8.5in;
+              min-height: 14in;
               margin: 0;
-              padding: 0;
               background: #fff;
             }
           }
@@ -389,6 +400,7 @@ export function createSalesReportPdfHtml({
           <section class="metrics-card" aria-label="Sales metrics">
             ${metrics}
           </section>
+          <div class="nothing-follows">- Nothing Follows -</div>
         </main>
       </body>
     </html>`

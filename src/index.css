@@ -57,13 +57,6 @@ body {
   overflow-x: hidden;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
 html,
 body,
 #root {
@@ -813,21 +806,38 @@ img {
 }
 
 .adaptive-panel__body--idle {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   align-content: space-between;
   align-items: start;
   min-height: clamp(260px, 38vh, 360px);
 }
 
-.adaptive-panel__body--idle > div {
+.adaptive-idle-content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(240px, 0.68fr);
+  align-items: center;
+  gap: clamp(20px, 4vw, 56px);
+  width: 100%;
+}
+
+.adaptive-idle-copy {
   display: grid;
   gap: 8px;
-  max-width: 460px;
+  max-width: 520px;
 }
 
 .adaptive-panel__body--idle .section-subtitle {
   max-width: 34rem;
   line-height: 1.55;
+}
+
+.adaptive-idle-art {
+  justify-self: end;
+  width: min(100%, 360px);
+  max-height: 270px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
 .adaptive-default-button {
@@ -1284,6 +1294,13 @@ img {
   border-radius: 22px;
 }
 
+.home-page button,
+.home-page input,
+.home-page textarea,
+.home-page select {
+  font: inherit;
+}
+
 .home-page > *,
 .home-page .grid,
 .home-page .card,
@@ -1458,6 +1475,8 @@ img {
 
   .home-page > .hero .section-title {
     font-size: clamp(40px, 4vw, 58px);
+    max-width: min(100%, 1080px);
+    white-space: normal;
   }
 
   .home-page > .hero .section-subtitle {
@@ -3819,8 +3838,23 @@ img {
   }
 
   .adaptive-panel__body--idle {
-    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
     min-height: 280px;
+  }
+
+  .adaptive-idle-content {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .adaptive-idle-copy {
+    max-width: 100%;
+  }
+
+  .adaptive-idle-art {
+    justify-self: center;
+    width: min(74%, 220px);
+    max-height: 150px;
   }
 
   .adaptive-panel h2 {

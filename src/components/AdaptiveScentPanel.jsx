@@ -53,12 +53,20 @@ function AdaptiveScentPanel({
 
       {!enabled && (
         <div className="adaptive-panel__body adaptive-panel__body--idle">
-          <div>
-            <div className="tag">Adaptive Scent Forecast</div>
-            <h2>Find scents for your weather</h2>
-            <p className="section-subtitle">
-              Turn this on to allow location access, or use {locationLabel}'s default forecast now.
-            </p>
+          <div className="adaptive-idle-content">
+            <div className="adaptive-idle-copy">
+              <div className="tag">Adaptive Scent Forecast</div>
+              <h2>Find scents for your weather</h2>
+              <p className="section-subtitle">
+                Turn this on to allow location access, or use {locationLabel}'s default forecast now.
+              </p>
+            </div>
+            <img
+              className="adaptive-idle-art"
+              src="/adaptivescent.svg"
+              alt=""
+              aria-hidden="true"
+            />
           </div>
           <button className="button adaptive-default-button" type="button" onClick={onUseDefaultLocation}>
             Use Default Location

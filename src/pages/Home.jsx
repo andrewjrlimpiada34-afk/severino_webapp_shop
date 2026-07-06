@@ -18,7 +18,7 @@ const defaultBannerStories = [
 ]
 
 const SHOW_HOME_SCROLL_VIDEO = false
-const facebookDesktopHeight = 460
+const facebookDesktopHeight = 620
 const facebookMobileHeight = 620
 const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
 const facebookPluginUrlDesktop = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(

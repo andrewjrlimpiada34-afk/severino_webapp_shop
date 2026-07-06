@@ -1238,6 +1238,19 @@ img {
   object-position: center;
 }
 
+@media (min-width: 901px) {
+  .featured-banner-slide__image {
+    height: auto;
+    display: block;
+    background: transparent;
+  }
+
+  .featured-banner-slide__image img {
+    display: block;
+    height: auto;
+  }
+}
+
 .featured-banner-dots {
   display: flex;
   justify-content: center;
@@ -1612,12 +1625,12 @@ img {
   .facebook-embed-frame {
     display: grid;
     place-items: center;
-    min-height: 460px;
+    min-height: 620px;
   }
 
   .facebook-embed-frame iframe {
-    min-height: 460px;
-    height: 460px;
+    min-height: 620px;
+    height: 620px;
   }
 }
 
@@ -3271,6 +3284,19 @@ img {
     grid-template-columns: minmax(0, min(100%, 560px));
     justify-content: center;
     justify-items: stretch;
+  }
+}
+
+@media (min-width: 901px) {
+  .account-theme-card {
+    width: min(100%, 620px);
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  .grid.two.account-profile-grid {
+    grid-template-columns: minmax(0, min(100%, 760px));
+    width: min(100%, 840px);
   }
 }
 

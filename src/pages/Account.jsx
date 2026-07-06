@@ -159,7 +159,7 @@ function Account() {
         <p className="section-subtitle">Keep your details up to date for faster deliveries.</p>
       </div>
 
-      <div className="card form">
+      <div className="card form account-theme-card">
         <div className="label">Theme Preference</div>
         <select
           className="input"

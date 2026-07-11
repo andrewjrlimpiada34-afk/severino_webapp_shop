@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 function Search() {
   const [query, setQuery] = useState('')
@@ -17,6 +18,7 @@ function Search() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState([])
+  const { playActionAnimation } = useActionAnimation()
 
   const results = useMemo(() => {
     return items.filter((product) => {
@@ -94,6 +96,7 @@ function Search() {
 
       await api.updateCart(nextItems)
       closeAddToCartModal()
+      playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
     }
@@ -186,6 +189,9 @@ function Search() {
                       }
                       const next = toggleFavorite(product.id, user?.id)
                       setFavorites(next)
+                      if (!isFav && next.includes(product.id)) {
+                        playActionAnimation('favorite')
+                      }
                     }}
                     aria-label="Favorite"
                   >

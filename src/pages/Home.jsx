@@ -4,6 +4,7 @@ import { api } from '../lib/api.js'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import HomeScrollVideo from '../components/HomeScrollVideo.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -33,6 +34,7 @@ function getFacebookPluginUrl(width) {
 
 function Home() {
   const { user } = useAuth()
+  const { playActionAnimation } = useActionAnimation()
 
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
@@ -185,6 +187,12 @@ function Home() {
     scrollToFeaturedBanner(next)
   }
 
+  const goToSearch = async (event) => {
+    event.preventDefault()
+    await playActionAnimation('search', { duration: 760 })
+    navigate('/search')
+  }
+
   return (
     <section className="grid home-page">
       {SHOW_HOME_SCROLL_VIDEO && <HomeScrollVideo />}
@@ -285,7 +293,13 @@ function Home() {
                 <circle cx="17" cy="19" r="1.4" fill="currentColor" />
               </svg>
             </a>
-            <a className="button secondary home-shop-icon-button" href="/search" aria-label="Search products" title="Search products">
+            <a
+              className="button secondary home-shop-icon-button"
+              href="/search"
+              aria-label="Search products"
+              title="Search products"
+              onClick={goToSearch}
+            >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
                 <path

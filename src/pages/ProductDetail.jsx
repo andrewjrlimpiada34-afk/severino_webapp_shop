@@ -5,11 +5,13 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet, buildCloudinaryUrl } from '../lib/image.js'
 import { DetailSkeleton } from '../components/Skeleton.jsx'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { playActionAnimation } = useActionAnimation()
   const [product, setProduct] = useState(null)
   const [reviews, setReviews] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
@@ -80,6 +82,7 @@ function ProductDetail() {
       await api.updateCart(nextItems)
       setStatus((prev) => ({ ...prev, success: 'Added to cart.' }))
       closeAddToCartModal()
+      playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
     }
@@ -112,6 +115,7 @@ function ProductDetail() {
       await api.updateCart(nextItems)
       const selectionKey = `checkout_selection_${user.id}`
       localStorage.setItem(selectionKey, JSON.stringify([product.id]))
+      await playActionAnimation('cart', { duration: 650 })
       navigate('/checkout')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
@@ -226,6 +230,9 @@ function ProductDetail() {
                 }
                 const next = toggleFavorite(product.id, user?.id)
                 setIsFav(next.includes(product.id))
+                if (!isFav && next.includes(product.id)) {
+                  playActionAnimation('favorite')
+                }
               }}
               aria-label="Favorite"
             >

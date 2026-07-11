@@ -1,10 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 const steps = ['Shipping', 'Contact', 'Review']
 
 function Checkout() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { playActionAnimation } = useActionAnimation()
+  const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
+  const selectedItems = useMemo(() => {
+    const selection = JSON.parse(localStorage.getItem(selectionKey) || '[]')
+    return selection.map(String)
+  }, [selectionKey])
   const [stepIndex, setStepIndex] = useState(0)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [form, setForm] = useState({
@@ -19,9 +29,6 @@ function Checkout() {
     email: '',
     notes: '',
   })
-  const [selectedItems, setSelectedItems] = useState([])
-  const { user } = useAuth()
-  const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -48,9 +55,6 @@ function Checkout() {
       }
     }
     loadProfile()
-
-    const selection = JSON.parse(localStorage.getItem(selectionKey) || '[]')
-    setSelectedItems(selection.map(String))
   }, [selectionKey])
 
   const confirmOrder = async () => {
@@ -122,6 +126,8 @@ function Checkout() {
         localStorage.removeItem(selectionKey)
       }
       setStatus({ loading: false, error: '', success: 'Order placed successfully.' })
+      await playActionAnimation('checkout', { duration: 1050 })
+      navigate('/orders')
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
     }

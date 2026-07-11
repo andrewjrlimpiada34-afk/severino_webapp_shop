@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 function OrderHistory() {
   const [orders, setOrders] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [successMessage, setSuccessMessage] = useState('')
   const navigate = useNavigate()
+  const { playActionAnimation } = useActionAnimation()
 
   const [cancelConfirm, setCancelConfirm] = useState({
     open: false,
@@ -212,6 +214,7 @@ function OrderHistory() {
                                   )
                                 : [...cart.items, { productId: item.productId, quantity: 1 }]
                               await api.updateCart(nextItems)
+                              await playActionAnimation('cart', { duration: 650 })
                               if (order.userId) {
                                 localStorage.setItem(
                                   `checkout_selection_${order.userId}`,

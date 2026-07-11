@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 import { api } from '../lib/api.js'
 
 function NavBar() {
@@ -13,8 +14,17 @@ function NavBar() {
   const [profileImage, setProfileImage] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
+  const { playActionAnimation } = useActionAnimation()
 
   const isActivePath = (path) => location.pathname === path
+
+  const goToSearch = async (event) => {
+    if (event) triggerSpray(event)
+    setOpen(false)
+    setMobileQuickOpen(false)
+    await playActionAnimation('search', { duration: 760 })
+    navigate('/search')
+  }
 
   const triggerSpray = (event) => {
     const target = event.currentTarget
@@ -120,7 +130,7 @@ function NavBar() {
               className="icon-button nav-utility"
               type="button"
               aria-label="Search"
-              onClick={() => navigate('/search')}
+              onClick={() => goToSearch()}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -283,10 +293,7 @@ function NavBar() {
               className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
               type="button"
               aria-label="Search"
-              onClick={(event) => {
-                triggerSpray(event)
-                navigate('/search')
-              }}
+              onClick={goToSearch}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />

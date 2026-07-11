@@ -7,6 +7,7 @@ import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
+import { useActionAnimation } from '../context/useActionAnimation.js'
 
 function Shop() {
   const [query, setQuery] = useState('')
@@ -21,6 +22,7 @@ function Shop() {
   const navigate = useNavigate()
   const [favorites, setFavorites] = useState([])
   const adaptive = useAdaptiveScent(items)
+  const { playActionAnimation } = useActionAnimation()
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -112,6 +114,7 @@ function Shop() {
 
       await api.updateCart(nextItems)
       closeAddToCartModal()
+      playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
     }
@@ -259,6 +262,9 @@ function Shop() {
                       }
                       const next = toggleFavorite(product.id, user?.id)
                       setFavorites(next)
+                      if (!isFav && next.includes(product.id)) {
+                        playActionAnimation('favorite')
+                      }
                     }}
                     aria-label="Favorite"
                   >

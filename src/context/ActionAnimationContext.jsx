@@ -6,9 +6,60 @@ const actionLabels = {
   favorite: 'Saved to favorites',
   search: 'Searching scents',
   checkout: 'Order confirmed',
+  home: 'Opening home',
+  shop: 'Opening shop',
+  feedback: 'Opening feedback',
+  orders: 'Opening orders',
+  notifications: 'Opening notifications',
+  account: 'Opening account',
+  login: 'Opening login',
 }
 
 function ActionIcon({ type }) {
+  if (type === 'home') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M12 30.5 32 13l20 17.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M18 29v22h28V29"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path d="M27 51V38h10v13" fill="none" stroke="currentColor" strokeWidth="4" />
+      </svg>
+    )
+  }
+
+  if (type === 'shop') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M18 24h28l3 27H15l3-27Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M24 25v-5a8 8 0 0 1 16 0v5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
   if (type === 'favorite') {
     return (
       <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
@@ -43,6 +94,107 @@ function ActionIcon({ type }) {
           stroke="currentColor"
           strokeWidth="4"
           strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
+  if (type === 'feedback') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M14 17h36v27H27L16 52V44h-2V17Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M23 27h18M23 35h12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
+  if (type === 'orders') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M20 13h24v39H20V13Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M26 24h12M26 32h12M26 40h8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
+  if (type === 'notifications') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M18 43h28l-3-6.2a13 13 0 0 1-1.3-5.7V27a9.7 9.7 0 1 0-19.4 0v4.1a13 13 0 0 1-1.3 5.7L18 43Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M27 48a5 5 0 0 0 10 0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
+  if (type === 'account') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="24" r="10" fill="none" stroke="currentColor" strokeWidth="4" />
+        <path
+          d="M16 52c2.8-9.5 9-14 16-14s13.2 4.5 16 14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+
+  if (type === 'login') {
+    return (
+      <svg className="action-animation-icon" viewBox="0 0 64 64" aria-hidden="true">
+        <path
+          d="M30 17h19v30H30"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M14 32h24M29 23l9 9-9 9"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     )

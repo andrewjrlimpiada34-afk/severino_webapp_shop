@@ -4,6 +4,19 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { api } from '../lib/api.js'
 
+const navAnimations = {
+  '/': { type: 'home', message: 'Opening home' },
+  '/shop': { type: 'shop', message: 'Opening shop' },
+  '/feedback': { type: 'feedback', message: 'Opening feedback' },
+  '/orders': { type: 'orders', message: 'Opening orders' },
+  '/search': { type: 'search', message: 'Searching scents' },
+  '/favorites': { type: 'favorite', message: 'Opening favorites' },
+  '/cart': { type: 'cart', message: 'Opening cart' },
+  '/notifications': { type: 'notifications', message: 'Opening notifications' },
+  '/account': { type: 'account', message: 'Opening account' },
+  '/login': { type: 'login', message: 'Opening login' },
+}
+
 function NavBar() {
   const { user, logout } = useAuth()
   const [open, setOpen] = useState(false)
@@ -18,12 +31,17 @@ function NavBar() {
 
   const isActivePath = (path) => location.pathname === path
 
-  const goToSearch = async (event) => {
-    if (event) triggerSpray(event)
+  const goToPage = async (event, path) => {
+    event?.preventDefault?.()
+    if (event?.currentTarget?.classList.contains('icon-button')) triggerSpray(event)
     setOpen(false)
     setMobileQuickOpen(false)
-    await playActionAnimation('search', { duration: 760 })
-    navigate('/search')
+    const animation = navAnimations[path] || { type: 'home', message: 'Opening page' }
+    await playActionAnimation(animation.type, {
+      duration: 760,
+      message: animation.message,
+    })
+    navigate(path)
   }
 
   const triggerSpray = (event) => {
@@ -43,6 +61,7 @@ function NavBar() {
 
   const handleLogout = async () => {
     await logout()
+    await playActionAnimation('login', { duration: 760, message: 'Opening login' })
     navigate('/login')
   }
 
@@ -112,16 +131,21 @@ function NavBar() {
   return (
     <>
       <nav className={`nav ${mobileNavHidden ? 'nav-hidden' : ''}`}>
-        <NavLink className="nav-logo nav-logo-link" to="/" onClick={() => setOpen(false)} aria-label="Severino home">
+        <NavLink
+          className="nav-logo nav-logo-link"
+          to="/"
+          onClick={(event) => goToPage(event, '/')}
+          aria-label="Severino home"
+        >
           <img className="nav-logo-image" src="/logo.svg" alt="Severino" />
         </NavLink>
         <div className={`nav-links ${open ? 'open' : ''}`}>
-        <NavLink to="/" onClick={() => setOpen(false)}>Home</NavLink>
-        <NavLink to="/shop" onClick={() => setOpen(false)}>Shop</NavLink>
+        <NavLink to="/" onClick={(event) => goToPage(event, '/')}>Home</NavLink>
+        <NavLink to="/shop" onClick={(event) => goToPage(event, '/shop')}>Shop</NavLink>
         {user && (
           <>
-            <NavLink to="/feedback" onClick={() => setOpen(false)}>Feedback</NavLink>
-            <NavLink to="/orders" onClick={() => setOpen(false)}>Orders</NavLink>
+            <NavLink to="/feedback" onClick={(event) => goToPage(event, '/feedback')}>Feedback</NavLink>
+            <NavLink to="/orders" onClick={(event) => goToPage(event, '/orders')}>Orders</NavLink>
           </>
         )}
         {user && (
@@ -130,7 +154,7 @@ function NavBar() {
               className="icon-button nav-utility"
               type="button"
               aria-label="Search"
-              onClick={() => goToSearch()}
+              onClick={(event) => goToPage(event, '/search')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -147,7 +171,7 @@ function NavBar() {
               className="icon-button nav-utility"
               type="button"
               aria-label="Favorites"
-              onClick={() => navigate('/favorites')}
+              onClick={(event) => goToPage(event, '/favorites')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -163,7 +187,7 @@ function NavBar() {
               className="icon-button nav-utility"
               type="button"
               aria-label="Cart"
-              onClick={() => navigate('/cart')}
+              onClick={(event) => goToPage(event, '/cart')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -183,7 +207,7 @@ function NavBar() {
                 className="icon-button"
                 type="button"
                 aria-label="Notifications"
-                onClick={() => navigate('/notifications')}
+                onClick={(event) => goToPage(event, '/notifications')}
               >
                 <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -207,7 +231,7 @@ function NavBar() {
             </div>
           </>
         )}
-        {!user && <NavLink to="/login" onClick={() => setOpen(false)}>Login</NavLink>}
+        {!user && <NavLink to="/login" onClick={(event) => goToPage(event, '/login')}>Login</NavLink>}
         {user && (
           <button className="button ghost logout-button" type="button" onClick={handleLogout}>
             Logout
@@ -219,7 +243,7 @@ function NavBar() {
           <button
             className="avatar-button"
             type="button"
-            onClick={() => navigate('/account')}
+            onClick={(event) => goToPage(event, '/account')}
             aria-label="Account"
           >
             {profileImage ? (
@@ -274,10 +298,7 @@ function NavBar() {
               className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
               type="button"
               aria-label="Favorites"
-              onClick={(event) => {
-                triggerSpray(event)
-                navigate('/favorites')
-              }}
+              onClick={(event) => goToPage(event, '/favorites')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -293,7 +314,7 @@ function NavBar() {
               className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
               type="button"
               aria-label="Search"
-              onClick={goToSearch}
+              onClick={(event) => goToPage(event, '/search')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -310,10 +331,7 @@ function NavBar() {
               className={`icon-button ${isActivePath('/cart') ? 'active' : ''}`}
               type="button"
               aria-label="Cart"
-              onClick={(event) => {
-                triggerSpray(event)
-                navigate('/cart')
-              }}
+              onClick={(event) => goToPage(event, '/cart')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path

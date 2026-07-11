@@ -187,10 +187,10 @@ function Home() {
     scrollToFeaturedBanner(next)
   }
 
-  const goToSearch = async (event) => {
+  const goToPage = async (event, path, type, message) => {
     event.preventDefault()
-    await playActionAnimation('search', { duration: 760 })
-    navigate('/search')
+    await playActionAnimation(type, { duration: 760, message })
+    navigate(path)
   }
 
   return (
@@ -279,7 +279,13 @@ function Home() {
             <div className="home-shop-card__title">Severino Collection - always ready to discover.</div>
           </div>
           <div className="home-shop-icon-actions">
-            <a className="button home-shop-icon-button" href="/shop" aria-label="Shop all scents" title="Shop all scents">
+            <a
+              className="button home-shop-icon-button"
+              href="/shop"
+              aria-label="Shop all scents"
+              title="Shop all scents"
+              onClick={(event) => goToPage(event, '/shop', 'shop', 'Opening shop')}
+            >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
@@ -298,7 +304,7 @@ function Home() {
               href="/search"
               aria-label="Search products"
               title="Search products"
-              onClick={goToSearch}
+              onClick={(event) => goToPage(event, '/search', 'search', 'Searching scents')}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />

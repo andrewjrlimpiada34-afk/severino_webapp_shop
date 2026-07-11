@@ -47,6 +47,60 @@ function Search() {
     setFavorites(getFavorites(user?.id))
   }, [user])
 
+  const openAddToCartModal = (productId) => {
+    const product = items.find((item) => item.id === productId)
+    if (!product || product.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      return
+    }
+    setStatus((prev) => ({ ...prev, error: '' }))
+    setCartModal({
+      open: true,
+      product,
+      quantity: 1,
+    })
+  }
+
+  const closeAddToCartModal = () => {
+    setCartModal({ open: false, product: null, quantity: 1 })
+  }
+
+  const addToCartWithQuantity = async () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    const product = cartModal.product
+    if (!product || product.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      closeAddToCartModal()
+      return
+    }
+
+    const desiredQty = Number(cartModal.quantity) || 1
+    const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+
+    try {
+      const cart = await api.cart()
+      const existing = cart.items.find((item) => item.productId === product.id)
+      const nextItems = existing
+        ? cart.items.map((item) =>
+            item.productId === product.id
+              ? { ...item, quantity: Math.min(100, Math.min(product.stock, item.quantity + qtyToAdd)) }
+              : item
+          )
+        : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
+
+      await api.updateCart(nextItems)
+      closeAddToCartModal()
+    } catch (error) {
+      setStatus((prev) => ({ ...prev, error: error.message }))
+    }
+  }
+
+  const maxQty = cartModal.product ? Math.min(100, cartModal.product.stock ?? 100) : 1
+
   return (
     <section className="grid" style={{ gap: '24px' }}>
       <div>
@@ -149,10 +203,24 @@ function Search() {
                     View
                   </button>
                   <button
-                    className="button ghost"
+                    className="button shop-cart-button"
+                    type="button"
+                    aria-label={`Add ${product.name} to cart`}
+                    title="Add to cart"
                     onClick={() => openAddToCartModal(product.id)}
                   >
-                    Add
+                    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+                      <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+                    </svg>
                   </button>
                 </div>
               </div>

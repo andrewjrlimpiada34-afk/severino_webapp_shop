@@ -2870,6 +2870,10 @@ img {
   min-height: 160px;
 }
 
+[data-theme='Shadow Dark Mode'] .empty-state {
+  color: #f4ead5;
+}
+
 .review-card {
   display: grid;
   gap: 8px;
@@ -3641,6 +3645,12 @@ img {
     flex: 0 0 44px;
   }
 
+  [data-theme='Shadow Dark Mode'] .nav-links .notif-wrapper {
+    background: rgba(24, 20, 16, 0.92) !important;
+    border: 1px solid rgba(229, 206, 162, 0.4) !important;
+    box-shadow: 0 0 14px rgba(214, 182, 104, 0.22);
+  }
+
   .nav-links .notif-wrapper .icon-button {
     display: grid;
     place-items: center;
@@ -3652,6 +3662,11 @@ img {
     margin: 0;
     box-shadow: none;
     background: transparent;
+  }
+
+  [data-theme='Shadow Dark Mode'] .nav-links .notif-wrapper .icon-button,
+  [data-theme='Shadow Dark Mode'] .nav-links .notif-wrapper .icon {
+    color: #f4ead5;
   }
 
   .nav-links .notif-wrapper .badge-dot {

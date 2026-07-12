@@ -38,6 +38,8 @@ function Home() {
 
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
+  const [bannersLoading, setBannersLoading] = useState(true)
+  const [loadedBannerImages, setLoadedBannerImages] = useState({})
   const bannerRailRef = useRef(null)
   const featuredRailRef = useRef(null)
   const facebookEmbedFrameRef = useRef(null)
@@ -45,6 +47,7 @@ function Home() {
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(defaultBannerStories)
   const [featuredBanners, setFeaturedBanners] = useState([])
+  const [loadedFeaturedImages, setLoadedFeaturedImages] = useState({})
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
   const [adaptiveProducts, setAdaptiveProducts] = useState([])
   const [openBannerStory, setOpenBannerStory] = useState(null)
@@ -55,39 +58,43 @@ function Home() {
 
   useEffect(() => {
     const loadHeroAndBanners = async () => {
-      const [bannerImages, stories, hero, featured] = await Promise.all([
-        api.banners().catch(() => []),
-        api.bannerStories().catch(() => defaultBannerStories),
-        api.heroImage().catch(() => ({ image: '' })),
-        api.featuredBanners().catch(() => []),
-      ])
-      setHeroImage(hero?.image || '')
-      setBannerStories(
-        defaultBannerStories.map((item, index) => ({
-          ...item,
-          message: stories?.[index]?.message || '',
-        }))
-      )
-      setBanners(
-        bannerImages.length
-          ? bannerImages.map((image, index) => ({
-              title: defaultBannerStories[index]?.title || `Banner ${index + 1}`,
-              image,
-              message: stories?.[index]?.message || '',
-            }))
-          : []
-      )
-      setFeaturedBanners(
-        (featured || [])
-          .filter((b) => b?.image)
-          .slice(0, 3)
-          .map((b, idx) => ({
-            id: b.id || `featured-${idx + 1}`,
-            title: b.title || `Featured Banner ${idx + 1}`,
-            image: b.image,
-            message: b.message || '',
+      try {
+        const [bannerImages, stories, hero, featured] = await Promise.all([
+          api.banners().catch(() => []),
+          api.bannerStories().catch(() => defaultBannerStories),
+          api.heroImage().catch(() => ({ image: '' })),
+          api.featuredBanners().catch(() => []),
+        ])
+        setHeroImage(hero?.image || '')
+        setBannerStories(
+          defaultBannerStories.map((item, index) => ({
+            ...item,
+            message: stories?.[index]?.message || '',
           }))
-      )
+        )
+        setBanners(
+          bannerImages.length
+            ? bannerImages.map((image, index) => ({
+                title: defaultBannerStories[index]?.title || `Banner ${index + 1}`,
+                image,
+                message: stories?.[index]?.message || '',
+              }))
+            : []
+        )
+        setFeaturedBanners(
+          (featured || [])
+            .filter((b) => b?.image)
+            .slice(0, 3)
+            .map((b, idx) => ({
+              id: b.id || `featured-${idx + 1}`,
+              title: b.title || `Featured Banner ${idx + 1}`,
+              image: b.image,
+              message: b.message || '',
+            }))
+        )
+      } finally {
+        setBannersLoading(false)
+      }
 
     }
     loadHeroAndBanners()
@@ -227,7 +234,24 @@ function Home() {
         onViewProduct={(productId) => navigate(`/product/${productId}`)}
       />
 
-      {banners.length > 0 && (
+      {bannersLoading && (
+        <section className="home-banner-rail banner-skeleton-region" aria-label="Loading homepage banners" aria-busy="true">
+          <div className="home-banner-rail__track" aria-hidden="true">
+            {[0, 1].map((item) => (
+              <div key={`home-banner-skeleton-${item}`} className="home-banner-card banner-skeleton-card">
+                <span className="banner-skeleton-shimmer" />
+              </div>
+            ))}
+          </div>
+          <div className="home-banner-dots banner-skeleton-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+        </section>
+      )}
+
+      {!bannersLoading && banners.length > 0 && (
         <section className="home-banner-rail" aria-label="Homepage banner stories">
           <div
             className="home-banner-rail__track"
@@ -237,7 +261,7 @@ function Home() {
             {banners.map((banner, index) => (
               <button
                 key={banner.title}
-                className="home-banner-card"
+                className={`home-banner-card ${loadedBannerImages[index] ? 'is-loaded' : 'is-loading'}`}
                 type="button"
                 aria-label={`Open ${banner.title}`}
                 onClick={() =>
@@ -246,10 +270,23 @@ function Home() {
                     message: bannerStories[index]?.message || '',
                   })
                 }
-                style={{
-                  backgroundImage: `url(${banner.image})`,
-                }}
-              />
+              >
+                {!loadedBannerImages[index] && (
+                  <span className="banner-skeleton-shimmer" aria-hidden="true" />
+                )}
+                <img
+                  className="home-banner-card__image"
+                  src={banner.image}
+                  alt=""
+                  aria-hidden="true"
+                  onLoad={() =>
+                    setLoadedBannerImages((current) => ({ ...current, [index]: true }))
+                  }
+                  onError={() =>
+                    setLoadedBannerImages((current) => ({ ...current, [index]: true }))
+                  }
+                />
+              </button>
             ))}
           </div>
           <div className="home-banner-dots" aria-label="Banner slider pages">
@@ -320,7 +357,30 @@ function Home() {
           </div>
         </div>
 
-        {featuredBanners.length > 0 && (
+        {bannersLoading && (
+          <section className="featured-banner-slider banner-skeleton-region" aria-label="Loading featured banners" aria-busy="true">
+            <div className="featured-banner-slider__viewport" aria-hidden="true">
+              <div className="featured-banner-slider__track">
+                {[0, 1].map((item) => (
+                  <div
+                    key={`featured-banner-skeleton-${item}`}
+                    className="featured-banner-slide featured-banner-skeleton-card"
+                  >
+                    <div className="featured-banner-slide__image">
+                      <span className="banner-skeleton-shimmer" />
+                    </div>
+                    <div className="featured-banner-card__content banner-skeleton-copy">
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!bannersLoading && featuredBanners.length > 0 && (
           <section className="featured-banner-slider" aria-label="Featured banner slider">
             <div className="featured-banner-slider__viewport">
               {featuredBanners.length > 1 && (
@@ -363,8 +423,32 @@ function Home() {
                     }
                     aria-label={`Open ${banner.title}`}
                   >
-                    <div className="featured-banner-slide__image">
-                      <img src={banner.image} alt="" aria-hidden="true" loading="lazy" />
+                    <div
+                      className={`featured-banner-slide__image ${
+                        loadedFeaturedImages[index] ? 'is-loaded' : 'is-loading'
+                      }`}
+                    >
+                      {!loadedFeaturedImages[index] && (
+                        <span className="banner-skeleton-shimmer" aria-hidden="true" />
+                      )}
+                      <img
+                        src={banner.image}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        onLoad={() =>
+                          setLoadedFeaturedImages((current) => ({
+                            ...current,
+                            [index]: true,
+                          }))
+                        }
+                        onError={() =>
+                          setLoadedFeaturedImages((current) => ({
+                            ...current,
+                            [index]: true,
+                          }))
+                        }
+                      />
                     </div>
                     <div className="featured-banner-card__content">
                       <div className="tag">Featured Banner</div>

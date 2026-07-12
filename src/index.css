@@ -595,6 +595,7 @@ img {
 }
 
 .home-banner-card {
+  position: relative;
   flex: 0 0 calc(50% - 12px);
   min-width: 0;
   height: clamp(190px, 18vw, 250px);
@@ -604,6 +605,7 @@ img {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  overflow: hidden;
   box-shadow: 0 20px 38px rgba(16, 20, 14, 0.2);
   cursor: pointer;
   scroll-snap-align: start;
@@ -611,6 +613,71 @@ img {
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease;
+}
+
+.home-banner-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.home-banner-card.is-loaded .home-banner-card__image {
+  opacity: 1;
+}
+
+.banner-skeleton-region {
+  pointer-events: none;
+}
+
+.banner-skeleton-card {
+  cursor: default;
+  box-shadow: none;
+}
+
+.banner-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--glass) 72%, var(--olive-100));
+}
+
+.banner-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 48%;
+  transform: translateX(-160%) skewX(-12deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, white 58%, transparent),
+    transparent
+  );
+  animation: banner-skeleton-sweep 1.35s ease-in-out infinite;
+}
+
+.banner-skeleton-dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--olive-500) 28%, var(--glass));
+}
+
+.banner-skeleton-dots span:first-child {
+  width: 26px;
+}
+
+@keyframes banner-skeleton-sweep {
+  to {
+    transform: translateX(330%) skewX(-12deg);
+  }
 }
 
 .home-banner-card:hover {
@@ -661,6 +728,14 @@ img {
 [data-theme='Shadow Dark Mode'] .home-banner-card {
   border-color: rgba(244, 234, 213, 0.22);
   background-color: rgba(24, 23, 18, 0.92);
+}
+
+[data-theme='Shadow Dark Mode'] .banner-skeleton-shimmer {
+  background: color-mix(in srgb, var(--hero-bg-start) 78%, #2f2b22);
+}
+
+[data-theme='Shadow Dark Mode'] .banner-skeleton-shimmer::after {
+  background: linear-gradient(90deg, transparent, rgba(229, 206, 162, 0.13), transparent);
 }
 
 [data-theme='Shadow Dark Mode'] .home-banner-dot {
@@ -1224,6 +1299,7 @@ img {
 }
 
 .featured-banner-slide__image {
+  position: relative;
   height: clamp(220px, 28vw, 430px);
   display: grid;
   place-items: center;
@@ -1232,10 +1308,42 @@ img {
 }
 
 .featured-banner-slide__image img {
+  position: relative;
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.featured-banner-slide__image.is-loaded img {
+  opacity: 1;
+}
+
+.featured-banner-skeleton-card .featured-banner-slide__image {
+  height: clamp(220px, 28vw, 430px);
+  min-height: clamp(220px, 28vw, 430px);
+}
+
+.banner-skeleton-copy {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+}
+
+.banner-skeleton-copy span {
+  display: block;
+  width: 118px;
+  height: 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--olive-500) 20%, var(--glass));
+}
+
+.banner-skeleton-copy span:last-child {
+  width: min(210px, 70%);
+  height: 18px;
 }
 
 @media (min-width: 901px) {
@@ -1248,6 +1356,23 @@ img {
   .featured-banner-slide__image img {
     display: block;
     height: auto;
+  }
+
+  .featured-banner-slide__image.is-loading {
+    min-height: clamp(260px, 24vw, 400px);
+  }
+
+  .featured-banner-skeleton-card .featured-banner-slide__image {
+    height: clamp(260px, 24vw, 400px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-skeleton-shimmer::after {
+    width: 100%;
+    animation: none;
+    transform: none;
+    opacity: 0.28;
   }
 }
 

@@ -216,6 +216,9 @@ function OrderHistory() {
                               await api.updateCart(nextItems)
                               await playActionAnimation('cart', { duration: 650 })
                               if (order.userId) {
+                                localStorage.removeItem(
+                                  `severino_direct_checkout_${order.userId}`
+                                )
                                 localStorage.setItem(
                                   `checkout_selection_${order.userId}`,
                                   JSON.stringify([item.productId])

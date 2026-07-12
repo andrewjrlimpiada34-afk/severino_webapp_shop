@@ -11,6 +11,9 @@ function Cart() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
+  const directPurchaseKey = user
+    ? `severino_direct_checkout_${user.id}`
+    : 'severino_direct_checkout_guest'
 
   const total = useMemo(
     () =>
@@ -181,6 +184,7 @@ function Cart() {
                   setStatus((prev) => ({ ...prev, error: 'Please pick an item to order.' }))
                   return
                 }
+                localStorage.removeItem(directPurchaseKey)
                 localStorage.setItem(selectionKey, JSON.stringify(selectedIds))
                 navigate('/checkout')
               }}

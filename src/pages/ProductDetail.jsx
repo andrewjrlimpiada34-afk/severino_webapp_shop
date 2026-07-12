@@ -43,10 +43,14 @@ function ProductDetail() {
     setIsFav(getFavorites(user?.id).includes(id))
   }, [user, id])
 
-  const [cartModal, setCartModal] = useState({ open: false, quantity: 1 })
+  const [quantityModal, setQuantityModal] = useState({
+    open: false,
+    action: 'cart',
+    quantity: 1,
+  })
 
-  const closeAddToCartModal = () => {
-    setCartModal({ open: false, quantity: 1 })
+  const closeQuantityModal = () => {
+    setQuantityModal({ open: false, action: 'cart', quantity: 1 })
   }
 
   const openAddToCartModal = () => {
@@ -55,7 +59,16 @@ function ProductDetail() {
       return
     }
     setStatus((prev) => ({ ...prev, error: '', success: '' }))
-    setCartModal({ open: true, quantity: 1 })
+    setQuantityModal({ open: true, action: 'cart', quantity: 1 })
+  }
+
+  const openBuyNowModal = () => {
+    if (product?.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      return
+    }
+    setStatus((prev) => ({ ...prev, error: '', success: '' }))
+    setQuantityModal({ open: true, action: 'buy-now', quantity: 1 })
   }
 
   const addToCartWithQuantity = async () => {
@@ -65,11 +78,11 @@ function ProductDetail() {
     }
     if (!product || product.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
-      closeAddToCartModal()
+      closeQuantityModal()
       return
     }
 
-    const desiredQty = Number(cartModal.quantity) || 1
+    const desiredQty = Number(quantityModal.quantity) || 1
     const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
 
     try {
@@ -84,7 +97,7 @@ function ProductDetail() {
         : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
       await api.updateCart(nextItems)
       setStatus((prev) => ({ ...prev, success: 'Added to cart.' }))
-      closeAddToCartModal()
+      closeQuantityModal()
       playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
@@ -92,37 +105,33 @@ function ProductDetail() {
   }
 
 
-  const buyNow = async () => {
+  const buyNowWithQuantity = () => {
+    if (!product || product.stock <= 0) {
+      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
+      closeQuantityModal()
+      return
+    }
+
+    const desiredQty = Number(quantityModal.quantity) || 1
+    const quantity = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+    const directPurchase = {
+      productId: product.id,
+      quantity,
+      createdAt: Date.now(),
+    }
+
     if (!user) {
-      const pending = JSON.parse(localStorage.getItem('severino_pending_buy_now') || '[]')
-      const next = Array.from(new Set([...pending, id]))
-      localStorage.setItem('severino_pending_buy_now', JSON.stringify(next))
+      localStorage.setItem('severino_pending_buy_now', JSON.stringify(directPurchase))
       sessionStorage.setItem('severino_post_login_redirect', '/checkout')
+      closeQuantityModal()
       navigate('/login')
       return
     }
-    if (product.stock <= 0) {
-      setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
-      return
-    }
-    try {
-      const cart = await api.cart()
-      const existing = cart.items.find((item) => item.productId === product.id)
-      const nextItems = existing
-        ? cart.items.map((item) =>
-            item.productId === product.id
-              ? { ...item, quantity: Math.min(100, Math.min(product.stock, item.quantity + 1)) }
-              : item
-          )
-        : [...cart.items, { productId: product.id, quantity: 1 }]
-      await api.updateCart(nextItems)
-      const selectionKey = `checkout_selection_${user.id}`
-      localStorage.setItem(selectionKey, JSON.stringify([product.id]))
-      await playActionAnimation('cart', { duration: 650 })
-      navigate('/checkout')
-    } catch (error) {
-      setStatus((prev) => ({ ...prev, error: error.message }))
-    }
+
+    localStorage.setItem(`severino_direct_checkout_${user.id}`, JSON.stringify(directPurchase))
+    localStorage.removeItem(`checkout_selection_${user.id}`)
+    closeQuantityModal()
+    navigate('/checkout')
   }
 
   const submitReview = async (event) => {
@@ -228,7 +237,7 @@ function ProductDetail() {
             <button className="button" onClick={openAddToCartModal}>
               Add to Cart
             </button>
-            <button className="button secondary" onClick={buyNow}>
+            <button className="button secondary" onClick={openBuyNowModal}>
               Buy Now
             </button>
 
@@ -265,19 +274,21 @@ function ProductDetail() {
         </div>
       </div>
 
-      {cartModal.open && product && (
+      {quantityModal.open && product && (
         <div className="modal-backdrop" role="presentation">
           <div className="modal-card" role="dialog" aria-modal="true">
             <button
               className="modal-close"
               type="button"
               aria-label="Close"
-              onClick={closeAddToCartModal}
+              onClick={closeQuantityModal}
             >
               X
             </button>
 
-            <div className="tag">Add to Cart</div>
+            <div className="tag">
+              {quantityModal.action === 'buy-now' ? 'Buy Now' : 'Add to Cart'}
+            </div>
             <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
               {product.name}
             </h2>
@@ -288,9 +299,9 @@ function ProductDetail() {
                 <div className="label">Quantity</div>
                 <select
                   className="input"
-                  value={cartModal.quantity}
+                  value={quantityModal.quantity}
                   onChange={(e) =>
-                    setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
+                    setQuantityModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
                   }
                 >
                   {Array.from({ length: Math.min(100, product.stock ?? 100) }, (_, i) => i + 1).map(
@@ -303,12 +314,27 @@ function ProductDetail() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button className="button secondary" type="button" onClick={closeAddToCartModal}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  justifyContent: 'flex-end',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button className="button secondary" type="button" onClick={closeQuantityModal}>
                   Cancel
                 </button>
-                <button className="button" type="button" onClick={addToCartWithQuantity}>
-                  Add
+                <button
+                  className="button"
+                  type="button"
+                  onClick={
+                    quantityModal.action === 'buy-now'
+                      ? buyNowWithQuantity
+                      : addToCartWithQuantity
+                  }
+                >
+                  {quantityModal.action === 'buy-now' ? 'Continue to Checkout' : 'Add'}
                 </button>
               </div>
             </div>

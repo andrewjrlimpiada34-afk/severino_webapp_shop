@@ -11,11 +11,27 @@ function Checkout() {
   const navigate = useNavigate()
   const { playActionAnimation } = useActionAnimation()
   const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
+  const directPurchaseKey = user
+    ? `severino_direct_checkout_${user.id}`
+    : 'severino_direct_checkout_guest'
   const selectedItems = useMemo(() => {
     const selection = JSON.parse(localStorage.getItem(selectionKey) || '[]')
     return selection.map(String)
   }, [selectionKey])
+  const directPurchase = useMemo(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(directPurchaseKey) || 'null')
+      if (!parsed?.productId || Number(parsed.quantity) < 1) return null
+      return {
+        productId: String(parsed.productId),
+        quantity: Math.min(100, Math.max(1, Number(parsed.quantity) || 1)),
+      }
+    } catch {
+      return null
+    }
+  }, [directPurchaseKey])
   const [stepIndex, setStepIndex] = useState(0)
+  const [directProduct, setDirectProduct] = useState(null)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [form, setForm] = useState({
     name: '',
@@ -57,6 +73,22 @@ function Checkout() {
     loadProfile()
   }, [selectionKey])
 
+  useEffect(() => {
+    if (!directPurchase?.productId) return undefined
+    let active = true
+    api
+      .product(directPurchase.productId)
+      .then((item) => {
+        if (active) setDirectProduct(item)
+      })
+      .catch(() => {
+        if (active) setDirectProduct(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [directPurchase])
+
   const confirmOrder = async () => {
     if (
       !form.name ||
@@ -84,24 +116,49 @@ function Checkout() {
         zip: form.zip,
         country: form.country,
       })
-      const cart = await api.cart()
-      const filtered = cart.items.filter((item) =>
-        selectedItems.length ? selectedItems.includes(String(item.productId)) : true
-      )
-      if (filtered.length === 0) {
-        setStatus({ loading: false, error: 'Please pick an item to order.', success: '' })
-        return
-      }
       const products = await api.products()
-      const items = filtered.map((item) => {
-        const product = products.find((entry) => entry.id === item.productId)
-        return {
-          productId: item.productId,
-          quantity: item.quantity,
-          price: product?.price || 0,
-          name: product?.name || 'Item',
+      let cart = null
+      let items = []
+
+      if (directPurchase) {
+        const product = products.find(
+          (entry) => String(entry.id) === String(directPurchase.productId)
+        )
+        if (!product || product.stock < directPurchase.quantity) {
+          setStatus({
+            loading: false,
+            error: product ? 'Selected quantity exceeds available stock.' : 'Product not found.',
+            success: '',
+          })
+          return
         }
-      })
+        items = [
+          {
+            productId: product.id,
+            quantity: directPurchase.quantity,
+            price: product.price || 0,
+            name: product.name || 'Item',
+          },
+        ]
+      } else {
+        cart = await api.cart()
+        const filtered = cart.items.filter((item) =>
+          selectedItems.length ? selectedItems.includes(String(item.productId)) : true
+        )
+        if (filtered.length === 0) {
+          setStatus({ loading: false, error: 'Please pick an item to order.', success: '' })
+          return
+        }
+        items = filtered.map((item) => {
+          const product = products.find((entry) => entry.id === item.productId)
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            price: product?.price || 0,
+            name: product?.name || 'Item',
+          }
+        })
+      }
       if (items.some((item) => item.price <= 0)) {
         setStatus({
           loading: false,
@@ -118,7 +175,9 @@ function Checkout() {
         email: form.email,
         paymentMethod: 'COD',
       })
-      if (selectedItems.length) {
+      if (directPurchase) {
+        localStorage.removeItem(directPurchaseKey)
+      } else if (selectedItems.length) {
         const remaining = cart.items.filter(
           (item) => !selectedItems.includes(String(item.productId))
         )
@@ -272,6 +331,20 @@ function Checkout() {
           )}
           {stepIndex === 2 && (
             <div className="grid two">
+              {directPurchase && (
+                <div className="card">
+                  <div className="tag">Buy Now</div>
+                  <h3 className="section-title" style={{ fontSize: '24px' }}>
+                    {directProduct?.name || 'Selected product'}
+                  </h3>
+                  <p className="section-subtitle">Quantity: {directPurchase.quantity}</p>
+                  {directProduct && (
+                    <div className="pill">
+                      Subtotal: ₱{(directProduct.price * directPurchase.quantity).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="card">
                 <div className="tag">Payment</div>
                 <h3 className="section-title" style={{ fontSize: '24px' }}>
@@ -303,7 +376,12 @@ function Checkout() {
             className="button secondary"
             onClick={() => {
               if (stepIndex === 0) {
-                window.location.href = '/cart'
+                if (directPurchase) {
+                  localStorage.removeItem(directPurchaseKey)
+                  navigate(`/product/${directPurchase.productId}`)
+                } else {
+                  navigate('/cart')
+                }
               } else {
                 setStepIndex((prev) => Math.max(0, prev - 1))
               }

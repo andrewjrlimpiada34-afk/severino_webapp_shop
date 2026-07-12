@@ -4,6 +4,34 @@ import { clearLocalProfile, setLocalProfile } from '../lib/auth.js'
 
 const AuthContext = createContext(null)
 
+const transferPendingBuyNow = (user) => {
+  if (!user?.id || user.role === 'admin') return
+  const stored = localStorage.getItem('severino_pending_buy_now')
+  if (!stored) return
+  try {
+    const parsed = JSON.parse(stored)
+    const legacyProductId = Array.isArray(parsed) ? parsed[0] : null
+    const directPurchase = legacyProductId
+      ? { productId: legacyProductId, quantity: 1, createdAt: Date.now() }
+      : parsed
+    if (directPurchase?.productId && Number(directPurchase.quantity) > 0) {
+      localStorage.setItem(
+        `severino_direct_checkout_${user.id}`,
+        JSON.stringify({
+          productId: String(directPurchase.productId),
+          quantity: Math.min(100, Math.max(1, Number(directPurchase.quantity) || 1)),
+          createdAt: Number(directPurchase.createdAt) || Date.now(),
+        })
+      )
+      localStorage.removeItem(`checkout_selection_${user.id}`)
+    }
+  } catch {
+    // Ignore malformed legacy data and clear it below.
+  } finally {
+    localStorage.removeItem('severino_pending_buy_now')
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,6 +67,7 @@ export function AuthProvider({ children }) {
     try {
       const data = await api.me()
       const resolved = await resolveUserTheme(data)
+      transferPendingBuyNow(resolved)
       setUser(resolved)
       setLocalProfile(resolved)
       return resolved
@@ -61,30 +90,7 @@ export function AuthProvider({ children }) {
     const resolved = await resolveUserTheme(data)
     setUser(resolved)
     setLocalProfile(resolved)
-    if (resolved?.id) {
-      const pending = JSON.parse(localStorage.getItem('severino_pending_buy_now') || '[]')
-      if (pending.length) {
-        try {
-          const cart = await api.cart()
-          const nextItems = [...cart.items]
-          pending.forEach((productId) => {
-            const existing = nextItems.find((item) => item.productId === productId)
-            if (existing) {
-              existing.quantity = Math.min(100, existing.quantity + 1)
-            } else {
-              nextItems.push({ productId, quantity: 1 })
-            }
-          })
-          await api.updateCart(nextItems)
-          const selectionKey = `checkout_selection_${resolved.id}`
-          localStorage.setItem(selectionKey, JSON.stringify(pending))
-        } catch {
-          // ignore pending cart failures
-        } finally {
-          localStorage.removeItem('severino_pending_buy_now')
-        }
-      }
-    }
+    transferPendingBuyNow(resolved)
     return resolved
   }
 

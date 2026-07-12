@@ -3,6 +3,119 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
 
+const termsSections = [
+  {
+    number: '1',
+    icon: 'handshake',
+    title: 'General Acceptance and Legal Framework',
+    body:
+      'This agreement binds every user who signs in, creates an account, browses the catalog, places an order, or uses any Severino platform service.',
+    items: [
+      ['Account use', 'Users must provide accurate details and keep login credentials secure.'],
+      ['Platform access', 'Continued access depends on compliance with these terms and local laws.'],
+    ],
+  },
+  {
+    number: '2',
+    icon: 'shield',
+    title: 'Privacy Law and Regulatory Data Compliance',
+    body:
+      'Personal information, order records, location-based forecasts, and system activity are handled only for account, delivery, security, and service improvement purposes.',
+    items: [
+      ['Data minimization', 'Only information needed to operate the service is collected.'],
+      ['User rights', 'Users may request account updates, corrections, or deletion when allowed by law.'],
+      ['Security logs', 'Technical records may be used to detect abuse and protect customer accounts.'],
+    ],
+  },
+  {
+    number: '3',
+    icon: 'cart',
+    title: 'E-Commerce and Transactional Provisions',
+    body:
+      'Orders, reservations, delivery details, and COD confirmations are processed as valid electronic records for the selected Severino products.',
+    items: [
+      ['Order records', 'Cart, checkout, and order status updates are maintained for fulfillment.'],
+      ['Transparent totals', 'Product price, quantity, and customer-provided delivery details determine the final order record.'],
+    ],
+  },
+  {
+    number: '4',
+    icon: 'speed',
+    title: 'System Automation, Resource Abuse, and Metrics',
+    body:
+      'The platform may automate recommendations, notifications, reports, and operational checks to keep the shopping experience stable.',
+    items: [
+      ['Acceptable use', 'Users must not disrupt, overload, scrape, or reverse engineer platform systems.'],
+      ['Operational metrics', 'Performance and error signals may be reviewed to improve reliability.'],
+    ],
+  },
+  {
+    number: '5',
+    icon: 'scale',
+    title: 'Limitation of Liability and Indemnification',
+    body:
+      'Services are provided as available. Severino is not liable for interruptions, incorrect user-provided details, third-party failures, or delays outside reasonable control.',
+    items: [
+      ['Customer responsibility', 'Users are responsible for truthful information and lawful platform use.'],
+      ['Service limits', 'Remedies are limited to actions permitted by applicable consumer protection laws.'],
+    ],
+  },
+]
+
+function TermsIcon({ type }) {
+  const paths = {
+    document: (
+      <>
+        <path d="M7 3h7l5 5v13H7V3Z" />
+        <path d="M14 3v5h5" />
+        <path d="M10 12h6M10 15h6M10 18h4" />
+      </>
+    ),
+    handshake: (
+      <>
+        <path d="M8 12.5 5.8 10.3a2.4 2.4 0 0 1 0-3.4l1.1-1.1 5.4 5.4" />
+        <path d="m16 12.5 2.2-2.2a2.4 2.4 0 0 0 0-3.4l-1.1-1.1-5.4 5.4" />
+        <path d="m9.7 14.2 1.2 1.2a1.4 1.4 0 0 0 2 0l1.4-1.4" />
+        <path d="m7.5 10.8 2.2 2.2M16.5 10.8 14.3 13" />
+      </>
+    ),
+    shield: (
+      <>
+        <path d="M12 3.5 18.5 6v5.7c0 4-2.6 7.5-6.5 8.8-3.9-1.3-6.5-4.8-6.5-8.8V6L12 3.5Z" />
+        <path d="M9.8 12h4.4v4H9.8v-4Z" />
+        <path d="M10.6 12V9.9a1.4 1.4 0 0 1 2.8 0V12" />
+      </>
+    ),
+    cart: (
+      <>
+        <path d="M5 6h2l1.4 8.2h8.1l1.8-5.8H8" />
+        <path d="M10 19.2a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4ZM16 19.2a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4Z" />
+        <path d="M10.5 11.2h4.6" />
+      </>
+    ),
+    speed: (
+      <>
+        <path d="M5.5 16.5a7 7 0 1 1 13 0" />
+        <path d="m12 13 3.6-3.6" />
+        <path d="M8 16h8" />
+      </>
+    ),
+    scale: (
+      <>
+        <path d="M12 4v16M7 7h10" />
+        <path d="m7 7-3 5h6L7 7ZM17 7l-3 5h6l-3-5Z" />
+        <path d="M9 20h6" />
+      </>
+    ),
+  }
+
+  return (
+    <svg className="terms-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {paths[type] || paths.document}
+    </svg>
+  )
+}
+
 function Login() {
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -237,95 +350,61 @@ function Login() {
               X
             </button>
             <div className="terms-content">
-              <h2 id="terms-title">TERMS OF SERVICE AND PRIVACY AGREEMENT</h2>
-              <p><strong>Last Updated: June 2026</strong></p>
-              <p>
-                By checking the "I Agree" box, accessing, or utilizing the services provided through
-                this online web application (the "Platform"), you explicitly confirm that you have
-                read, understood, and agreed to be legally bound by the terms, conditions, and
-                regulatory statutes detailed in this Agreement. If you do not consent to these
-                statutory terms, you are prohibited from initializing, browsing, or operating the
-                Platform.
-              </p>
-              <h3>1. General Acceptance and Legal Framework</h3>
-              <p>
-                This document constitutes a binding legal agreement between the end-user ("User") and
-                the platform operators. Access to the platform's automation tools, interactive
-                dashboard modules, user profiles, and data management systems is strictly conditional
-                upon continuous compliance with these provisions.
-              </p>
-              <h3>2. Privacy Law and Regulatory Data Compliance</h3>
-              <p>
-                We process personal data, system logs, and operational telemetry in strict compliance
-                with global privacy regulations, including the General Data Protection Regulation
-                (GDPR) and regional data privacy acts. As established by comprehensive frameworks
-                regarding digital infrastructure and user privacy compliance, organizations must
-                execute explicit technical safeguards, clear system boundaries, and structural access
-                controls to maintain data confidentiality and mitigate system security vulnerabilities
-                (Data Protection Search, 2026).
-              </p>
-              <p>Pursuant to these baseline legal directives, our data management mechanisms strictly enforce the following protocols:</p>
-              <p>
-                <strong>Data Minimization:</strong> The collection of metadata, operational logs, and
-                user profiles is limited strictly to parameters necessary for functional automated
-                workflows and performance metrics.
-              </p>
-              <p>
-                <strong>Right to Erasure (Right to be Forgotten):</strong> Users maintain explicit
-                operational authority to request the complete deletion of their account records,
-                historical system interactions, and logged evaluation profiles at any time.
-              </p>
-              <p>
-                <strong>Access Logs &amp; Technical Security:</strong> System auditing strictly logs
-                execution trials, timestamps, and automated processes to preserve a secure tracking
-                record while maintaining rigorous user anonymization.
-              </p>
-              <h3>3. E-Commerce and Transactional Provisions</h3>
-              <p>
-                To the extent that this web application features integrated billing, service tiers,
-                digital subscriptions, or automated asset procurement, all operations conform strictly
-                to online commercial standards and Electronic Commerce Acts.
-              </p>
-              <p>
-                <strong>Digital Contracts:</strong> Users agree that electronic records, automated
-                confirmations, and digital signatures constitute valid, legally enforceable
-                transaction receipts.
-              </p>
-              <p>
-                <strong>Transparent Accounting:</strong> Billing parameters, subscription cycles, and
-                system resource allocations are calculated deterministically. System transactional
-                integrity ensures that all processing variables align with standard platform
-                performance indicators, fully satisfying consumer protection guidelines for
-                transparent digital accounting.
-              </p>
-              <h3>4. System Automation, Resource Abuse, and Metrics</h3>
-              <p>
-                The platform operates complex automated management tasks, scheduling frameworks, and
-                data evaluation modules. To maintain technical compliance and ensure platform
-                stability, user access controls are explicitly governed to ensure zero degradation of
-                the core hosting infrastructure.
-              </p>
-              <p>
-                <strong>Acceptable Use of Automation:</strong> System metrics, execution latency, and
-                automated task durations are continuously monitored. The platform calculates system
-                task performance and execution rates to dynamically optimize resource quotas.
-              </p>
-              <p>
-                <strong>Prohibited Activities:</strong> Unauthorized automated testing, deliberate
-                system stress-testing, reverse engineering, or malicious script injections intended to
-                alter standard operation speeds are strictly classified as violations of our
-                acceptable use policies and will result in immediate termination of account access
-                rights.
-              </p>
-              <h3>5. Limitation of Liability and Indemnification</h3>
-              <p>
-                The platform, its integrated sub-modules, and analytical evaluation instruments are
-                delivered on an "as-is" and "as-available" architecture. To the fullest extent
-                permitted by applicable law, the platform administrators, developers, and parent
-                entities shall not be held liable for operational delays, algorithmic processing
-                errors, data transmission drops, or automated hardware disconnects occurring during
-                system use or evaluation trials.
-              </p>
+              <div className="terms-document-header">
+                <div className="terms-document-seal">
+                  <TermsIcon type="document" />
+                </div>
+                <div className="terms-document-heading">
+                  <h2 id="terms-title">Terms of Service and Privacy Agreement</h2>
+                  <span className="terms-updated">Last Updated: June 2026</span>
+                  <p>
+                    By checking the "I Agree" box, accessing, or utilizing Severino's web
+                    application, you confirm that you have read, understood, and agreed to be legally
+                    bound by this agreement.
+                  </p>
+                </div>
+                <div className="terms-document-art" aria-hidden="true">
+                  <span className="terms-document-page">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  <span className="terms-document-lock" />
+                </div>
+              </div>
+
+              <div className="terms-section-stack">
+                {termsSections.map((section) => (
+                  <article className="terms-law-card" key={section.number}>
+                    <div className="terms-card-icon">
+                      <TermsIcon type={section.icon} />
+                    </div>
+                    <div className="terms-card-copy">
+                      <div className="terms-card-title-row">
+                        <span className="terms-card-number">{section.number}</span>
+                        <h3>{section.title}</h3>
+                      </div>
+                      <p>{section.body}</p>
+                      <div className="terms-clause-list">
+                        {section.items.map(([label, description]) => (
+                          <div className="terms-clause" key={label}>
+                            <span>{label}</span>
+                            <p>{description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="terms-document-footer">
+                <span className="terms-leaf terms-leaf--left" aria-hidden="true" />
+                <p>
+                  By using this platform, you acknowledge that you have read, understood, and agreed
+                  to be bound by these Terms of Service and Privacy Agreement.
+                </p>
+              </div>
             </div>
           </div>
         </div>

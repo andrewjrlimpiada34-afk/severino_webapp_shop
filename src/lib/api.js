@@ -20,10 +20,10 @@ async function request(path, options = {}) {
   return response.json()
 }
 
-async function upload(path, file) {
+async function upload(path, file, fieldName = 'image') {
   const formData = new FormData()
   const filename = file?.name || 'upload.jpg'
-  formData.append('image', file, filename)
+  formData.append(fieldName, file, filename)
   const response = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     credentials: 'include',
@@ -106,6 +106,7 @@ export const api = {
   updateHeroImage: (image) =>
     request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
   uploadImage: (file) => upload('/api/uploads/image', file),
+  uploadMedia: (file) => upload('/api/uploads/media', file, 'media'),
   loginPopup: () => request('/api/public/login-popup'),
   loginAnnouncement: () => request('/api/public/login-announcement'),
   bannerStories: () => request('/api/public/banner-stories'),

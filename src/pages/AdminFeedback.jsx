@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
+import { MediaAttachmentDisplay } from '../components/MediaAttachmentField.jsx'
 
 function AdminFeedback() {
   const [items, setItems] = useState([])
@@ -38,6 +39,7 @@ function AdminFeedback() {
             <div className="tag">Order {item.orderId}</div>
             <p className="section-subtitle">{item.userName || 'Customer'} · {item.userEmail || ''}</p>
             <p>{item.message}</p>
+            <MediaAttachmentDisplay attachment={item.attachment} />
             <div className="pill">Rating: {item.rating}</div>
           </div>
         ))}

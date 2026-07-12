@@ -10,6 +10,13 @@ const router = express.Router()
 const reviewSchema = z.object({
   rating: z.preprocess((val) => Number(val), z.number().min(1).max(5)),
   comment: z.string().trim().min(3),
+  attachment: z
+    .object({
+      url: z.string().url().max(2000),
+      mediaType: z.enum(['image', 'video']),
+    })
+    .nullable()
+    .optional(),
 })
 
 router.get('/:productId', async (req, res) => {
@@ -30,6 +37,7 @@ router.post('/:productId', requireAuth, async (req, res) => {
     userEmail: user?.email || '',
     rating: parsed.data.rating,
     comment: parsed.data.comment,
+    attachment: parsed.data.attachment || null,
   })
   return res.status(201).json(normalizeId(review))
 })

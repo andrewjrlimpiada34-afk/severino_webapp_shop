@@ -6,6 +6,7 @@ import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet, buildCloudinaryUrl } from '../lib/image.js'
 import { DetailSkeleton } from '../components/Skeleton.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
+import MediaAttachmentField, { MediaAttachmentDisplay } from '../components/MediaAttachmentField.jsx'
 
 function ProductDetail() {
   const { id } = useParams()
@@ -16,6 +17,8 @@ function ProductDetail() {
   const [reviews, setReviews] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [reviewAttachment, setReviewAttachment] = useState(null)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [activeImage, setActiveImage] = useState('')
   const [isFav, setIsFav] = useState(false)
 
@@ -133,15 +136,24 @@ function ProductDetail() {
       return
     }
     try {
+      setReviewSubmitting(true)
+      setStatus((prev) => ({ ...prev, error: '', success: '' }))
+      const uploadedMedia = reviewAttachment ? await api.uploadMedia(reviewAttachment) : null
       const data = await api.addReview(id, {
         rating: Number(reviewForm.rating),
         comment: reviewForm.comment,
+        attachment: uploadedMedia
+          ? { url: uploadedMedia.url, mediaType: uploadedMedia.mediaType }
+          : null,
       })
       setReviews((prev) => [data, ...prev])
       setReviewForm({ rating: 5, comment: '' })
+      setReviewAttachment(null)
       setStatus((prev) => ({ ...prev, success: 'Review submitted.' }))
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -345,8 +357,16 @@ function ProductDetail() {
               required
             />
           </div>
-          <button className="button" type="submit">
-            Submit Review
+          <MediaAttachmentField
+            file={reviewAttachment}
+            onChange={setReviewAttachment}
+            disabled={reviewSubmitting}
+            onError={(message) =>
+              setStatus((prev) => ({ ...prev, error: message, success: '' }))
+            }
+          />
+          <button className="button" type="submit" disabled={reviewSubmitting}>
+            {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
           </button>
         </form>
 
@@ -363,6 +383,7 @@ function ProductDetail() {
                 ))}
               </div>
               <p>{review.comment}</p>
+              <MediaAttachmentDisplay attachment={review.attachment} />
               {user?.id === review.userId && (
                 <button className="button ghost" type="button" onClick={() => removeReview(review.id)}>
                   Delete Review

@@ -12,6 +12,13 @@ const feedbackSchema = z.object({
   orderId: z.string().min(4),
   rating: z.number().min(1).max(5),
   message: z.string().min(4),
+  attachment: z
+    .object({
+      url: z.string().url().max(2000),
+      mediaType: z.enum(['image', 'video']),
+    })
+    .nullable()
+    .optional(),
 })
 
 router.get('/', requireAuth, requireAdmin, async (req, res) => {

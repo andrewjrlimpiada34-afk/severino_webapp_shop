@@ -33,7 +33,7 @@ export const uploadBuffer = (buffer, options = {}) =>
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: options.folder || 'severino',
-        resource_type: 'image',
+        resource_type: options.resourceType || 'image',
       },
       (error, result) => {
         if (error) return reject(error)
@@ -41,4 +41,19 @@ export const uploadBuffer = (buffer, options = {}) =>
       }
     )
     stream.end(buffer)
+  })
+
+export const deleteCloudinaryAsset = (publicId, resourceType = 'image') =>
+  new Promise((resolve, reject) => {
+    if (!configureCloudinary()) {
+      return reject(new Error('Cloudinary is not configured'))
+    }
+    cloudinary.uploader.destroy(
+      publicId,
+      { resource_type: resourceType },
+      (error, result) => {
+        if (error) return reject(error)
+        return resolve(result)
+      }
+    )
   })

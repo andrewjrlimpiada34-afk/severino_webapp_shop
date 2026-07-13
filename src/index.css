@@ -566,13 +566,17 @@ img {
   min-width: 0;
   justify-self: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid color-mix(in srgb, var(--olive-300) 44%, transparent);
   border-radius: 32px;
   padding: clamp(42px, 5vw, 72px) 0 24px;
   background:
-    radial-gradient(circle at 50% 12%, rgba(62, 72, 91, 0.34), transparent 44%),
-    linear-gradient(145deg, #151a23 0%, #0b0e13 72%);
-  box-shadow: 0 28px 64px rgba(8, 10, 14, 0.24);
+    radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.62), transparent 46%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--olive-100) 88%, white),
+      color-mix(in srgb, var(--olive-200) 76%, var(--olive-100))
+    );
+  box-shadow: 0 28px 64px color-mix(in srgb, var(--olive-900) 18%, transparent);
 }
 
 .home-banner-rail__track {
@@ -616,7 +620,7 @@ img {
   scroll-snap-stop: always;
   opacity: 0.34;
   filter: blur(1.5px) saturate(0.72);
-  transform: scale(0.84);
+  transform: none;
   transition:
     transform 0.35s ease,
     opacity 0.35s ease,
@@ -628,7 +632,7 @@ img {
   z-index: 2;
   opacity: 1;
   filter: none;
-  transform: scale(1);
+  transform: none;
   box-shadow: 0 28px 56px rgba(0, 0, 0, 0.42);
 }
 
@@ -687,6 +691,9 @@ img {
 .banner-skeleton-card {
   cursor: default;
   box-shadow: none;
+  opacity: 0.72;
+  filter: none;
+  transform: none;
 }
 
 .banner-skeleton-shimmer {
@@ -737,7 +744,7 @@ img {
 
 .home-banner-card.active:hover {
   opacity: 1;
-  transform: scale(1) translateY(-4px);
+  transform: translateY(-4px);
   box-shadow: 0 32px 62px rgba(0, 0, 0, 0.48);
 }
 
@@ -755,8 +762,8 @@ img {
   border: none;
   border-radius: 999px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(26, 31, 20, 0.16);
+  background: color-mix(in srgb, var(--olive-600) 26%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--olive-900) 18%, transparent);
   cursor: pointer;
   transition:
     width 0.18s ease,
@@ -766,8 +773,8 @@ img {
 
 .home-banner-dot.active {
   width: 26px;
-  background: #f09270;
-  box-shadow: 0 8px 18px rgba(26, 31, 20, 0.18);
+  background: var(--olive-600);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--olive-900) 20%, transparent);
 }
 
 .home-banner-arrow {
@@ -820,7 +827,10 @@ img {
 }
 
 [data-theme='Shadow Dark Mode'] .home-banner-rail {
-  background: radial-gradient(circle at 50% 12%, rgba(62, 72, 91, 0.34), transparent 44%), #0b0e13;
+  border-color: rgba(229, 206, 162, 0.18);
+  background:
+    radial-gradient(circle at 50% 8%, rgba(229, 206, 162, 0.12), transparent 46%),
+    linear-gradient(145deg, #29271f, #15140f);
 }
 
 [data-theme='Shadow Dark Mode'] .home-banner-card {
@@ -5017,13 +5027,13 @@ img {
     width: 100%;
     max-width: 100%;
     border-radius: 22px;
-    padding: 26px 0 16px;
+    padding: 24px 0 18px;
     justify-self: stretch;
   }
 
   .home-banner-rail__track {
     gap: 12px;
-    padding: 0;
+    padding: 8px 11% 20px;
   }
 
   .home-banner-rail__track::after {
@@ -5031,17 +5041,30 @@ img {
   }
 
   .home-banner-card {
-    flex-basis: 100%;
-    height: clamp(250px, 76vw, 340px);
+    flex-basis: 78%;
+    height: clamp(350px, 112vw, 430px);
     border-width: 1px;
-    border-radius: 20px;
+    border-radius: 22px;
     scroll-snap-align: center;
-    transform: scale(0.9);
+    opacity: 0.28;
+    filter: blur(2px) saturate(0.7);
+    transform: scale(0.92);
+  }
+
+  .home-banner-card.active {
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
+    box-shadow: 0 24px 46px rgba(10, 13, 8, 0.38);
+  }
+
+  .home-banner-card.active:hover {
+    transform: scale(1);
   }
 
   .home-banner-card__content {
-    min-height: 94px;
-    padding: 20px;
+    min-height: 112px;
+    padding: 22px 20px 24px;
   }
 
   .home-banner-card__title {
@@ -5049,7 +5072,7 @@ img {
   }
 
   .home-banner-arrow {
-    top: 48%;
+    top: 49%;
     width: 40px;
     height: 40px;
   }
@@ -5059,11 +5082,11 @@ img {
   }
 
   .home-banner-arrow--prev {
-    left: 12px;
+    left: 8%;
   }
 
   .home-banner-arrow--next {
-    right: 12px;
+    right: 8%;
   }
 
   .adaptive-toggle {

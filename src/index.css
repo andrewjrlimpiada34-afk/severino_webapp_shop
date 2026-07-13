@@ -869,7 +869,21 @@ img {
     box-shadow: none;
   }
 
+  .home-banner-rail__track {
+    align-items: center;
+    padding-inline: calc(50% - min(27vw, 320px));
+  }
+
+  .home-banner-card {
+    flex-basis: min(29vw, 360px);
+    height: 440px;
+  }
+
   .home-banner-card.active {
+    flex-basis: min(54vw, 640px);
+    width: min(54vw, 640px);
+    height: auto;
+    aspect-ratio: var(--banner-aspect-ratio, 2 / 1);
     background: color-mix(in srgb, var(--olive-100) 74%, white);
   }
 

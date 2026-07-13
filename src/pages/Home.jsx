@@ -40,6 +40,7 @@ function Home() {
   const [banners, setBanners] = useState([])
   const [bannersLoading, setBannersLoading] = useState(true)
   const [loadedBannerImages, setLoadedBannerImages] = useState({})
+  const [bannerAspectRatios, setBannerAspectRatios] = useState({})
   const bannerRailRef = useRef(null)
   const featuredRailRef = useRef(null)
   const facebookEmbedFrameRef = useRef(null)
@@ -170,11 +171,16 @@ function Home() {
 
   const scrollToBanner = (index) => {
     const track = bannerRailRef.current
-    const card = track?.children?.[index]
-    if (!track || !card) return
-    const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2
-    track.scrollTo({ left, behavior: 'smooth' })
+    if (!track || !track.children?.[index]) return
     setActiveBannerIndex(index)
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const card = track.children?.[index]
+        if (!card) return
+        const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2
+        track.scrollTo({ left, behavior: 'smooth' })
+      })
+    })
   }
 
   const goToBanner = (direction) => {
@@ -297,6 +303,11 @@ function Home() {
                 className={`home-banner-card ${
                   loadedBannerImages[index] ? 'is-loaded' : 'is-loading'
                 } ${activeBannerIndex === index ? 'active' : ''}`}
+                style={
+                  bannerAspectRatios[index]
+                    ? { '--banner-aspect-ratio': bannerAspectRatios[index] }
+                    : undefined
+                }
                 type="button"
                 aria-label={`Open ${banner.title}`}
                 onClick={() =>
@@ -314,9 +325,16 @@ function Home() {
                   src={banner.image}
                   alt=""
                   aria-hidden="true"
-                  onLoad={() =>
+                  onLoad={(event) => {
+                    const image = event.currentTarget
                     setLoadedBannerImages((current) => ({ ...current, [index]: true }))
-                  }
+                    if (image.naturalWidth && image.naturalHeight) {
+                      setBannerAspectRatios((current) => ({
+                        ...current,
+                        [index]: `${image.naturalWidth} / ${image.naturalHeight}`,
+                      }))
+                    }
+                  }}
                   onError={() =>
                     setLoadedBannerImages((current) => ({ ...current, [index]: true }))
                   }

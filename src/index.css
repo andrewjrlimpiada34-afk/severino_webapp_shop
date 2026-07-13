@@ -5083,14 +5083,18 @@ img {
   .home-banner-rail {
     width: 100%;
     max-width: 100%;
-    border-radius: 22px;
-    padding: 24px 0 18px;
+    border: 0;
+    border-radius: 0;
+    padding: 20px 0 12px;
+    background: transparent;
+    box-shadow: none;
     justify-self: stretch;
   }
 
   .home-banner-rail__track {
+    align-items: center;
     gap: 12px;
-    padding: 8px 11% 20px;
+    padding: 8px 6% 18px;
   }
 
   .home-banner-rail__track::after {
@@ -5098,25 +5102,50 @@ img {
   }
 
   .home-banner-card {
-    flex-basis: 78%;
-    height: clamp(350px, 112vw, 430px);
+    flex-basis: 64%;
+    width: 64%;
+    height: auto;
+    aspect-ratio: var(--banner-aspect-ratio, 2 / 1);
     border-width: 1px;
-    border-radius: 22px;
+    border-radius: 18px;
     scroll-snap-align: center;
-    opacity: 0.28;
+    opacity: 0.22;
     filter: blur(2px) saturate(0.7);
-    transform: scale(0.92);
+    transform: scale(0.76);
   }
 
   .home-banner-card.active {
+    flex-basis: 88%;
+    width: 88%;
+    height: auto;
+    aspect-ratio: var(--banner-aspect-ratio, 2 / 1);
     opacity: 1;
     filter: none;
     transform: scale(1);
     box-shadow: 0 24px 46px rgba(10, 13, 8, 0.38);
+    background: color-mix(in srgb, var(--olive-100) 74%, white);
   }
 
   .home-banner-card.active:hover {
     transform: scale(1);
+  }
+
+  .home-banner-card.active .home-banner-card__image {
+    object-fit: contain;
+  }
+
+  .home-banner-card.active .home-banner-card__shade,
+  .home-banner-card.active .home-banner-card__content {
+    display: none;
+  }
+
+  [data-theme='Shadow Dark Mode'] .home-banner-rail {
+    border: 0;
+    background: transparent;
+  }
+
+  [data-theme='Shadow Dark Mode'] .home-banner-card.active {
+    background: #1b1a15;
   }
 
   .home-banner-card__content {
@@ -5129,7 +5158,7 @@ img {
   }
 
   .home-banner-arrow {
-    top: 49%;
+    top: 48%;
     width: 40px;
     height: 40px;
   }
@@ -5139,11 +5168,11 @@ img {
   }
 
   .home-banner-arrow--prev {
-    left: 8%;
+    left: 3%;
   }
 
   .home-banner-arrow--next {
-    right: 8%;
+    right: 3%;
   }
 
   .adaptive-toggle {

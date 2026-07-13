@@ -861,6 +861,37 @@ img {
   color: #f7ecd4;
 }
 
+@media (min-width: 641px) {
+  .home-banner-rail {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .home-banner-card.active {
+    background: color-mix(in srgb, var(--olive-100) 74%, white);
+  }
+
+  .home-banner-card.active .home-banner-card__image {
+    object-fit: contain;
+  }
+
+  .home-banner-card.active .home-banner-card__shade,
+  .home-banner-card.active .home-banner-card__content {
+    display: none;
+  }
+
+  [data-theme='Shadow Dark Mode'] .home-banner-rail {
+    border: 0;
+    background: transparent;
+  }
+
+  [data-theme='Shadow Dark Mode'] .home-banner-card.active {
+    background: #1b1a15;
+  }
+}
+
 .featured-banner-card {
   background: var(--glass);
   color: var(--olive-900);

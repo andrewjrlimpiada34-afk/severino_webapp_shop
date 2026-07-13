@@ -879,6 +879,18 @@ img {
     height: 440px;
   }
 
+  .home-banner-card:not(.active) {
+    opacity: 0.24;
+    filter: blur(2px) saturate(0.66);
+    transform: scale(0.78);
+  }
+
+  .home-banner-card:not(.active):hover {
+    opacity: 0.5;
+    filter: blur(0.8px) saturate(0.82);
+    transform: scale(0.82);
+  }
+
   .home-banner-card.active {
     flex-basis: min(54vw, 640px);
     width: min(54vw, 640px);

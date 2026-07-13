@@ -154,20 +154,33 @@ function Home() {
 
   const handleBannerRailScroll = () => {
     const track = bannerRailRef.current
-    if (!track || !track.firstElementChild) return
-    const firstCard = track.firstElementChild
-    const cardWidth = firstCard.getBoundingClientRect().width
-    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap || '0') || 0
-    const nextIndex = Math.round(track.scrollLeft / Math.max(cardWidth + gap, 1))
-    setActiveBannerIndex(Math.max(0, Math.min(banners.length - 1, nextIndex)))
+    if (!track || !track.children.length) return
+    const trackCenter = track.scrollLeft + track.clientWidth / 2
+    const cards = Array.from(track.children)
+    const nextIndex = cards.reduce((closestIndex, card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2
+      const closestCard = cards[closestIndex]
+      const closestCenter = closestCard.offsetLeft + closestCard.offsetWidth / 2
+      return Math.abs(cardCenter - trackCenter) < Math.abs(closestCenter - trackCenter)
+        ? index
+        : closestIndex
+    }, 0)
+    setActiveBannerIndex(nextIndex)
   }
 
   const scrollToBanner = (index) => {
     const track = bannerRailRef.current
     const card = track?.children?.[index]
     if (!track || !card) return
-    track.scrollTo({ left: card.offsetLeft, behavior: 'smooth' })
+    const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2
+    track.scrollTo({ left, behavior: 'smooth' })
     setActiveBannerIndex(index)
+  }
+
+  const goToBanner = (direction) => {
+    if (!banners.length) return
+    const next = (activeBannerIndex + direction + banners.length) % banners.length
+    scrollToBanner(next)
   }
 
   const handleFeaturedRailScroll = () => {
@@ -253,6 +266,26 @@ function Home() {
 
       {!bannersLoading && banners.length > 0 && (
         <section className="home-banner-rail" aria-label="Homepage banner stories">
+          {banners.length > 1 && (
+            <>
+              <button
+                className="home-banner-arrow home-banner-arrow--prev"
+                type="button"
+                aria-label="Previous banner"
+                onClick={() => goToBanner(-1)}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                className="home-banner-arrow home-banner-arrow--next"
+                type="button"
+                aria-label="Next banner"
+                onClick={() => goToBanner(1)}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </>
+          )}
           <div
             className="home-banner-rail__track"
             ref={bannerRailRef}
@@ -261,7 +294,9 @@ function Home() {
             {banners.map((banner, index) => (
               <button
                 key={banner.title}
-                className={`home-banner-card ${loadedBannerImages[index] ? 'is-loaded' : 'is-loading'}`}
+                className={`home-banner-card ${
+                  loadedBannerImages[index] ? 'is-loaded' : 'is-loading'
+                } ${activeBannerIndex === index ? 'active' : ''}`}
                 type="button"
                 aria-label={`Open ${banner.title}`}
                 onClick={() =>
@@ -286,6 +321,13 @@ function Home() {
                     setLoadedBannerImages((current) => ({ ...current, [index]: true }))
                   }
                 />
+                <span className="home-banner-card__shade" aria-hidden="true" />
+                <span className="home-banner-card__content">
+                  <span className="home-banner-card__eyebrow">Featured story</span>
+                  <span className="home-banner-card__title">
+                    {bannerStories[index]?.title || banner.title}
+                  </span>
+                </span>
               </button>
             ))}
           </div>

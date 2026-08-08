@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "24.x",
+    "npm": "11.x"
+  },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "db:check": "node scripts/check-mysql.js",
+    "db:schema": "node scripts/apply-schema.js",
+    "db:migrate": "node scripts/migrate-mongo-to-mysql.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,6 +26,7 @@
     "mongodb": "^6.21.0",
     "morgan": "^1.10.0",
     "multer": "^2.1.1",
+    "mysql2": "^3.23.2",
     "nodemailer": "^6.9.15",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

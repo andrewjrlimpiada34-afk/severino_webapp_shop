@@ -1,0 +1,96 @@
+services:
+  - type: web
+    name: severino-perfume-backend
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    preDeployCommand: npm run db:schema
+    startCommand: npm start
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 24.18.0
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_POOL_SIZE
+        value: "10"
+      - key: DB_POOL_MAX_IDLE
+        value: "10"
+      - key: DB_IDLE_TIMEOUT_MS
+        value: "60000"
+      - key: DB_CONNECT_TIMEOUT_MS
+        value: "10000"
+      - key: DB_SSL
+        sync: false
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "true"
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: PROMAILER_API_URL
+        sync: false
+      - key: PROMAILER_API_KEY
+        sync: false
+      - key: PROMAILER_SMTP_CONNECTION_ID
+        sync: false
+      - key: PROMAILER_FROM
+        sync: false
+      - key: PROMAILER_AUTH_SCHEME
+        value: Bearer
+      - key: MAIL_FROM_NAME
+        value: Severino Shop
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: OTP_TTL_MS
+        value: "300000"
+      - key: OTP_RESEND_MS
+        value: "60000"
+      - key: OTP_MAX_ATTEMPTS
+        value: "5"
+      - key: MAX_UPLOAD_MB
+        value: "10"
+      - key: UPLOAD_MAX_WIDTH
+        value: "1000"
+      - key: UPLOAD_TARGET_MAX_KB
+        value: "400"
+      - key: UPLOAD_TARGET_MIN_KB
+        value: "200"
+      - key: UPLOAD_FORMAT
+        value: webp
+      - key: UPLOAD_START_QUALITY
+        value: "80"
+      - key: UPLOAD_MIN_QUALITY
+        value: "50"

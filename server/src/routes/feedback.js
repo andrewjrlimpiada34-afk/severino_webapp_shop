@@ -32,7 +32,7 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Invalid input' })
   }
   const orders = await getOrdersByUserId(req.user.id)
-  const order = orders.find((item) => item._id.toString() === parsed.data.orderId)
+  const order = orders.find((item) => item.id === parsed.data.orderId)
   if (!order || order.status !== 'To Review') {
     return res.status(400).json({ message: 'Order is not ready for feedback' })
   }

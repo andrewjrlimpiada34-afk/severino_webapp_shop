@@ -28,6 +28,7 @@ dist-ssr
 .env*
 **/.env
 **/.env*
+!server/.env.example
 
 # Private deployment/local metadata
 .vercel

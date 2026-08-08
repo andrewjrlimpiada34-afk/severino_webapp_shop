@@ -1,8 +1,23 @@
-﻿import { getDb } from './mongo.js'
+import { getDb } from './mysql.js'
 import { getProducts } from './products.js'
-import { getUsers, getUserByEmail, getUserById, createUser, updateUser, removeUser, sanitizeUser } from './users.js'
+import {
+  getUsers,
+  getUserByEmail,
+  getUserById,
+  createUser,
+  updateUser,
+  removeUser,
+  sanitizeUser,
+} from './users.js'
 import { getCartByUserId, createCart, updateCart, removeCartByUserId } from './carts.js'
-import { getOrders, getOrdersByUserId, createOrder, updateOrderStatus, removeOrderById, removeOrdersByUserId } from './orders.js'
+import {
+  getOrders,
+  getOrdersByUserId,
+  createOrder,
+  updateOrderStatus,
+  removeOrderById,
+  removeOrdersByUserId,
+} from './orders.js'
 import { getFeedback, createFeedback } from './feedback.js'
 import { getReviewsByProductId, createReview } from './reviews.js'
 import { getBanners, updateBanners, getLoginPopup, updateLoginPopup } from './banners.js'

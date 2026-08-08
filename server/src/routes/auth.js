@@ -206,7 +206,7 @@ router.post('/otp/send', async (req, res) => {
     if (!result.success) {
       throw result.error || new Error('Email send failed')
     }
-  } catch (error) {
+  } catch {
     await consumeOtp(challenge.id)
     return res.status(502).json({
       message: 'Unable to send OTP email. Please verify Gmail settings and try again.',
@@ -290,7 +290,7 @@ router.post('/register', async (req, res) => {
   await consumeOtp(verification.id)
 
   return res.status(201).json({
-    id: user._id.toString(),
+    id: user.id,
     phone: user.phone,
     requiresVerification: false,
   })
@@ -320,7 +320,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ message: 'Invalid credentials' })
   }
 
-  const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: '2h',
   })
   res.cookie('token', token, {
@@ -467,10 +467,10 @@ router.get('/google/callback', async (req, res, next) => {
         verified: true,
       })
     } else if (!user.verified) {
-      await updateUser(user._id.toString(), { verified: true })
+      user = await updateUser(user.id, { verified: true })
     }
 
-    const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: '2h',
     })
     res.cookie('token', token, {
@@ -503,7 +503,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' })
     }
     return res.json(sanitizeUser(user))
-  } catch (error) {
+  } catch {
     return res.status(401).json({ message: 'Invalid token' })
   }
 })

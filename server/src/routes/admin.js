@@ -21,7 +21,7 @@ import {
 import { removeCartByUserId } from '../db/carts.js'
 import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
-import { normalizeList, normalizeId } from '../db/util.js'
+import { normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
 
@@ -215,4 +215,3 @@ router.put('/featured-banners', async (req, res) => {
 })
 
 export default router
-

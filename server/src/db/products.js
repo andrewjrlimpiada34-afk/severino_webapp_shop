@@ -1,4 +1,4 @@
-import { getDb, withTransaction } from './mysql.js'
+import { getDb, withTransaction } from './postgres.js'
 import { createId, parseJson } from './util.js'
 
 const seedProducts = [
@@ -45,11 +45,11 @@ const insertProduct = async (db, data) => {
     active: data.active !== false,
     createdAt: data.createdAt || new Date(),
   }
-  await db.execute(
+  await db.query(
     `INSERT INTO products (
       id, legacy_id, name, price, stock, notes, description, image_url,
       image_urls, size, category, active, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
     [
       product.id, product.legacyId, product.name, product.price, product.stock,
       product.notes, product.description, product.imageUrl, JSON.stringify(product.imageUrls),
@@ -62,7 +62,7 @@ const insertProduct = async (db, data) => {
 const ensureSeeded = async () => {
   if (seeded) return
   const db = getDb()
-  const [rows] = await db.execute('SELECT COUNT(*) AS count FROM products')
+  const { rows } = await db.query('SELECT COUNT(*) AS count FROM products')
   if (Number(rows[0].count) === 0) {
     await withTransaction(async (connection) => {
       for (let index = 0; index < seedProducts.length; index += 1) {
@@ -86,7 +86,7 @@ const ensureSeeded = async () => {
 export const getProducts = async () => {
   await ensureSeeded()
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM products ORDER BY created_at ASC')
+  const { rows } = await db.query('SELECT * FROM products ORDER BY created_at ASC')
   return rows.map(mapProduct)
 }
 
@@ -94,8 +94,8 @@ export const getProductById = async (id) => {
   if (!id) return null
   await ensureSeeded()
   const db = getDb()
-  const [rows] = await db.execute(
-    'SELECT * FROM products WHERE id = ? OR legacy_id = ? LIMIT 1',
+  const { rows } = await db.query(
+    'SELECT * FROM products WHERE id = $1 OR legacy_id = $2 LIMIT 1',
     [id, id]
   )
   return mapProduct(rows[0])
@@ -127,47 +127,44 @@ export const updateProduct = async (id, data) => {
   const values = []
   for (const [key, column] of Object.entries(productColumns)) {
     if (!Object.prototype.hasOwnProperty.call(data, key)) continue
-    updates.push(`${column} = ?`)
+    updates.push(`${column} = $${values.length + 1}`)
     values.push(key === 'imageUrls' ? JSON.stringify(data[key] || []) : data[key])
   }
   if (!updates.length) return product
   const db = getDb()
-  await db.execute(`UPDATE products SET ${updates.join(', ')} WHERE id = ?`, [...values, product.id])
+  await db.query(
+    `UPDATE products SET ${updates.join(', ')} WHERE id = $${values.length + 1}`,
+    [...values, product.id]
+  )
   return getProductById(product.id)
 }
 
 export const decrementStock = async (id, quantity, connection = getDb()) => {
-  const [products] = await connection.execute(
-    'SELECT * FROM products WHERE id = ? OR legacy_id = ? LIMIT 1',
+  const { rows: products } = await connection.query(
+    'SELECT * FROM products WHERE id = $1 OR legacy_id = $2 LIMIT 1',
     [id, id]
   )
   const product = mapProduct(products[0])
   if (!product) return null
-  const [result] = await connection.execute(
-    'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
+  const result = await connection.query(
+    'UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3',
     [quantity, product.id, quantity]
   )
-  if (!result.affectedRows) return null
-  const [rows] = await connection.execute('SELECT * FROM products WHERE id = ? LIMIT 1', [product.id])
+  if (!result.rowCount) return null
+  const { rows } = await connection.query('SELECT * FROM products WHERE id = $1 LIMIT 1', [product.id])
   return mapProduct(rows[0])
 }
 
 export const getProductSoldCounts = async () => {
   const db = getDb()
-  const [rows] = await db.execute(
-    `SELECT item.product_id AS productId, SUM(item.quantity) AS soldCount
+  const { rows } = await db.query(
+    `SELECT item.value->>'productId' AS "productId",
+            SUM(COALESCE((item.value->>'quantity')::INTEGER, 0)) AS "soldCount"
      FROM orders AS order_row
-     JOIN JSON_TABLE(
-       order_row.items,
-       '$[*]' COLUMNS (
-         product_id VARCHAR(191) PATH '$.productId',
-         quantity INT PATH '$.quantity',
-         tracking_status VARCHAR(60) PATH '$.trackingStatus'
-       )
-     ) AS item
+     CROSS JOIN LATERAL jsonb_array_elements(order_row.items) AS item(value)
      WHERE order_row.status NOT IN ('Cancelled', 'Removed')
-       AND COALESCE(item.tracking_status, '') NOT IN ('Cancelled', 'Removed')
-     GROUP BY item.product_id`
+       AND COALESCE(item.value->>'trackingStatus', '') NOT IN ('Cancelled', 'Removed')
+     GROUP BY item.value->>'productId'`
   )
   return rows.reduce((counts, row) => {
     counts[row.productId] = Number(row.soldCount || 0)

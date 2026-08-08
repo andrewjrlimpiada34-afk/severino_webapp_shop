@@ -1,4 +1,4 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { createId, parseJson } from './util.js'
 
 const mapFeedback = (row) =>
@@ -16,16 +16,16 @@ const mapFeedback = (row) =>
 
 export const getFeedback = async () => {
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM feedback ORDER BY created_at DESC')
+  const { rows } = await db.query('SELECT * FROM feedback ORDER BY created_at DESC')
   return rows.map(mapFeedback)
 }
 
 export const createFeedback = async (data) => {
   const db = getDb()
   const id = createId()
-  await db.execute(
+  await db.query(
     `INSERT INTO feedback (id, user_id, order_id, rating, message, attachment, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW(3))`,
+     VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
     [
       id,
       data.userId,
@@ -35,6 +35,6 @@ export const createFeedback = async (data) => {
       data.attachment ? JSON.stringify(data.attachment) : null,
     ]
   )
-  const [rows] = await db.execute('SELECT * FROM feedback WHERE id = ? LIMIT 1', [id])
+  const { rows } = await db.query('SELECT * FROM feedback WHERE id = $1 LIMIT 1', [id])
   return mapFeedback(rows[0])
 }

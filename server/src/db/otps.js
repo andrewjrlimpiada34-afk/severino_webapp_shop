@@ -1,4 +1,4 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 
 const mapOtp = (row) =>
   row
@@ -18,21 +18,22 @@ const mapOtp = (row) =>
 
 export const getOtpById = async (id) => {
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM otps WHERE id = ? LIMIT 1', [id])
+  const { rows } = await db.query('SELECT * FROM otps WHERE id = $1 LIMIT 1', [id])
   return mapOtp(rows[0])
 }
 
 export const createOtp = async (data) => {
   const db = getDb()
   const createdAt = data.createdAt || new Date()
-  await db.execute(
+  await db.query(
     `INSERT INTO otps (
       id, user_id, email, phone, code, type, expires_at, attempts, verified_at, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      user_id = VALUES(user_id), email = VALUES(email), phone = VALUES(phone),
-      code = VALUES(code), type = VALUES(type), expires_at = VALUES(expires_at),
-      attempts = VALUES(attempts), verified_at = VALUES(verified_at), created_at = VALUES(created_at)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ON CONFLICT (id) DO UPDATE SET
+      user_id = EXCLUDED.user_id, email = EXCLUDED.email, phone = EXCLUDED.phone,
+      code = EXCLUDED.code, type = EXCLUDED.type, expires_at = EXCLUDED.expires_at,
+      attempts = EXCLUDED.attempts, verified_at = EXCLUDED.verified_at,
+      created_at = EXCLUDED.created_at`,
     [
       data.id, data.userId || null, data.email || null, data.phone || null, data.code,
       data.type || 'register', data.expiresAt, data.attempts || 0, data.verifiedAt || null, createdAt,
@@ -43,8 +44,8 @@ export const createOtp = async (data) => {
 
 export const getLatestOtpByEmail = async (email, type = 'register') => {
   const db = getDb()
-  const [rows] = await db.execute(
-    'SELECT * FROM otps WHERE email = ? AND type = ? ORDER BY created_at DESC LIMIT 1',
+  const { rows } = await db.query(
+    'SELECT * FROM otps WHERE email = $1 AND type = $2 ORDER BY created_at DESC LIMIT 1',
     [email, type]
   )
   return mapOtp(rows[0])
@@ -52,8 +53,8 @@ export const getLatestOtpByEmail = async (email, type = 'register') => {
 
 export const getLatestOtpByPhone = async (phone, type = 'register') => {
   const db = getDb()
-  const [rows] = await db.execute(
-    'SELECT * FROM otps WHERE phone = ? AND type = ? ORDER BY created_at DESC LIMIT 1',
+  const { rows } = await db.query(
+    'SELECT * FROM otps WHERE phone = $1 AND type = $2 ORDER BY created_at DESC LIMIT 1',
     [phone, type]
   )
   return mapOtp(rows[0])
@@ -61,18 +62,18 @@ export const getLatestOtpByPhone = async (phone, type = 'register') => {
 
 export const markOtpVerified = async (id) => {
   const db = getDb()
-  await db.execute('UPDATE otps SET verified_at = NOW(3) WHERE id = ?', [id])
+  await db.query('UPDATE otps SET verified_at = CURRENT_TIMESTAMP WHERE id = $1', [id])
   return true
 }
 
 export const incrementOtpAttempts = async (id) => {
   const db = getDb()
-  await db.execute('UPDATE otps SET attempts = attempts + 1 WHERE id = ?', [id])
+  await db.query('UPDATE otps SET attempts = attempts + 1 WHERE id = $1', [id])
   return true
 }
 
 export const consumeOtp = async (id) => {
   const db = getDb()
-  await db.execute('DELETE FROM otps WHERE id = ?', [id])
+  await db.query('DELETE FROM otps WHERE id = $1', [id])
   return true
 }

@@ -1,11 +1,11 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { createId } from './util.js'
 
 export const recordSale = async (orderId, total) => {
   const db = getDb()
   const entry = { id: createId(), orderId, total: Number(total), createdAt: new Date() }
-  await db.execute(
-    'INSERT INTO sales (id, order_id, total, created_at) VALUES (?, ?, ?, ?)',
+  await db.query(
+    'INSERT INTO sales (id, order_id, total, created_at) VALUES ($1, $2, $3, $4)',
     [entry.id, entry.orderId, entry.total, entry.createdAt]
   )
   return entry
@@ -13,7 +13,7 @@ export const recordSale = async (orderId, total) => {
 
 export const getSalesSummary = async () => {
   const db = getDb()
-  const [rows] = await db.execute(
+  const { rows } = await db.query(
     `SELECT COUNT(*) AS count, COALESCE(SUM(total), 0) AS revenue
      FROM orders
      WHERE status NOT IN ('Cancelled', 'Removed')`

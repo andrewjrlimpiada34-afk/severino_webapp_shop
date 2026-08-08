@@ -18,7 +18,7 @@ import userRoutes from './routes/users.js'
 import reviewRoutes from './routes/reviews.js'
 import publicRoutes from './routes/public.js'
 import uploadRoutes from './routes/uploads.js'
-import { closeDb, testDbConnection } from './db/mysql.js'
+import { closeDb, testDbConnection } from './db/postgres.js'
 import { errorHandler } from './middleware/error.js'
 
 const app = express()
@@ -106,7 +106,7 @@ const shutdown = (signal, fatalError = null) => {
     try {
       await closeDb()
     } catch (databaseError) {
-      console.error('Failed to close MySQL pool:', databaseError.message)
+      console.error('Failed to close PostgreSQL pool:', databaseError.message)
       closeError ||= databaseError
     }
     process.exit(fatalError || closeError ? 1 : 0)

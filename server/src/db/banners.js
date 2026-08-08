@@ -1,4 +1,4 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { parseJson } from './util.js'
 
 const defaultBanners = [
@@ -51,8 +51,8 @@ const normalizeFeaturedBanners = (items = []) =>
 
 const getSetting = async (key) => {
   const db = getDb()
-  const [rows] = await db.execute(
-    'SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1',
+  const { rows } = await db.query(
+    'SELECT setting_value FROM app_settings WHERE setting_key = $1 LIMIT 1',
     [key]
   )
   return rows[0] ? parseJson(rows[0].setting_value, null) : null
@@ -60,10 +60,12 @@ const getSetting = async (key) => {
 
 const setSetting = async (key, value) => {
   const db = getDb()
-  await db.execute(
+  await db.query(
     `INSERT INTO app_settings (setting_key, setting_value)
-     VALUES (?, ?)
-     ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+     VALUES ($1, $2)
+     ON CONFLICT (setting_key) DO UPDATE SET
+       setting_value = EXCLUDED.setting_value,
+       updated_at = CURRENT_TIMESTAMP`,
     [key, JSON.stringify(value)]
   )
   return value

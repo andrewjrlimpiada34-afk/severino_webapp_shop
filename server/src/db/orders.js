@@ -1,4 +1,4 @@
-import { getDb, withTransaction } from './mysql.js'
+import { getDb, withTransaction } from './postgres.js'
 import { createId, parseJson } from './util.js'
 
 const mapOrder = (row) =>
@@ -19,8 +19,8 @@ const mapOrder = (row) =>
     : null
 
 const selectOrderById = async (db, id, forUpdate = false) => {
-  const [rows] = await db.execute(
-    `SELECT * FROM orders WHERE id = ? LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
+  const { rows } = await db.query(
+    `SELECT * FROM orders WHERE id = $1 LIMIT 1${forUpdate ? ' FOR UPDATE' : ''}`,
     [id]
   )
   return mapOrder(rows[0])
@@ -33,15 +33,15 @@ export const getOrderById = async (id) => {
 
 export const getOrders = async () => {
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM orders ORDER BY created_at DESC')
+  const { rows } = await db.query('SELECT * FROM orders ORDER BY created_at DESC')
   return rows.map(mapOrder)
 }
 
 export const getOrdersByUserId = async (userId) => {
   const db = getDb()
-  const [rows] = await db.execute(
+  const { rows } = await db.query(
     `SELECT * FROM orders
-     WHERE user_id = ? AND status <> 'Removed'
+     WHERE user_id = $1 AND status <> 'Removed'
      ORDER BY created_at DESC`,
     [userId]
   )
@@ -58,11 +58,11 @@ export const createOrder = async (data) => {
     trackingStatus: 'Pending COD',
     trackingEvents: [{ status: 'Pending COD', at: now.toISOString() }],
   }))
-  await db.execute(
+  await db.query(
     `INSERT INTO orders (
       id, user_id, items, total, status, address, contact_name, phone,
       email, payment_method, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     [
       id, data.userId, JSON.stringify(items), Number(data.total || 0),
       data.status || 'Pending', data.address, data.contactName, data.phone,
@@ -74,8 +74,8 @@ export const createOrder = async (data) => {
 
 export const updateOrderStatus = async (id, status) => {
   const db = getDb()
-  const [result] = await db.execute('UPDATE orders SET status = ? WHERE id = ?', [status, id])
-  return result.affectedRows ? getOrderById(id) : null
+  const result = await db.query('UPDATE orders SET status = $1 WHERE id = $2', [status, id])
+  return result.rowCount ? getOrderById(id) : null
 }
 
 export const cancelOrder = async (id, userId) =>
@@ -88,8 +88,8 @@ export const cancelOrder = async (id, userId) =>
       trackingStatus: 'Cancelled',
       trackingEvents: [...(item.trackingEvents || []), { status: 'Cancelled', at }],
     }))
-    await connection.execute(
-      `UPDATE orders SET status = 'Cancelled', items = ? WHERE id = ?`,
+    await connection.query(
+      `UPDATE orders SET status = 'Cancelled', items = $1 WHERE id = $2`,
       [JSON.stringify(items), id]
     )
     return { ...order, status: 'Cancelled', items }
@@ -109,7 +109,7 @@ export const updateOrderItemStatus = async (orderId, itemId, status, userId = nu
       trackingStatus: status,
       trackingEvents: [...(items[itemIndex].trackingEvents || []), { status, at }],
     }
-    await connection.execute('UPDATE orders SET items = ? WHERE id = ?', [
+    await connection.query('UPDATE orders SET items = $1 WHERE id = $2', [
       JSON.stringify(items),
       orderId,
     ])
@@ -128,8 +128,8 @@ export const verifyOrder = async (id) =>
     const at = new Date().toISOString()
 
     for (const item of order.items) {
-      const [products] = await connection.execute(
-        'SELECT id FROM products WHERE id = ? OR legacy_id = ? LIMIT 1 FOR UPDATE',
+      const { rows: products } = await connection.query(
+        'SELECT id FROM products WHERE id = $1 OR legacy_id = $2 LIMIT 1 FOR UPDATE',
         [item.productId, item.productId]
       )
       if (!products[0]) {
@@ -137,11 +137,11 @@ export const verifyOrder = async (id) =>
         error.statusCode = 400
         throw error
       }
-      const [result] = await connection.execute(
-        'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
+      const result = await connection.query(
+        'UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3',
         [item.quantity, products[0].id, item.quantity]
       )
-      if (!result.affectedRows) {
+      if (!result.rowCount) {
         const error = new Error(`Insufficient stock for ${item.productId}`)
         error.statusCode = 400
         throw error
@@ -153,8 +153,8 @@ export const verifyOrder = async (id) =>
       trackingStatus: 'To Ship',
       trackingEvents: [...(item.trackingEvents || []), { status: 'To Ship', at }],
     }))
-    await connection.execute(
-      `UPDATE orders SET status = 'To Ship', items = ? WHERE id = ?`,
+    await connection.query(
+      `UPDATE orders SET status = 'To Ship', items = $1 WHERE id = $2`,
       [JSON.stringify(items), id]
     )
     return { ...order, status: 'To Ship', items }
@@ -164,14 +164,14 @@ export const removeOrderById = async (id) => {
   const order = await getOrderById(id)
   if (!order) return null
   const db = getDb()
-  await db.execute('DELETE FROM orders WHERE id = ?', [id])
+  await db.query('DELETE FROM orders WHERE id = $1', [id])
   return order
 }
 
 export const removeOrdersByUserId = async (userId) => {
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM orders WHERE user_id = ?', [userId])
+  const { rows } = await db.query('SELECT * FROM orders WHERE user_id = $1', [userId])
   const orders = rows.map(mapOrder)
-  await db.execute('DELETE FROM orders WHERE user_id = ?', [userId])
+  await db.query('DELETE FROM orders WHERE user_id = $1', [userId])
   return orders
 }

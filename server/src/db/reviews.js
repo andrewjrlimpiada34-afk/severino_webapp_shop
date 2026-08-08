@@ -1,4 +1,4 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { createId, parseJson } from './util.js'
 
 const mapReview = (row) =>
@@ -18,8 +18,8 @@ const mapReview = (row) =>
 
 export const getReviewsByProductId = async (productId) => {
   const db = getDb()
-  const [rows] = await db.execute(
-    'SELECT * FROM reviews WHERE product_id = ? ORDER BY created_at DESC',
+  const { rows } = await db.query(
+    'SELECT * FROM reviews WHERE product_id = $1 ORDER BY created_at DESC',
     [productId]
   )
   return rows.map(mapReview)
@@ -28,10 +28,10 @@ export const getReviewsByProductId = async (productId) => {
 export const createReview = async (data) => {
   const db = getDb()
   const id = createId()
-  await db.execute(
+  await db.query(
     `INSERT INTO reviews (
       id, product_id, user_id, user_name, user_email, rating, comment, attachment, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3))`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
     [
       id, data.productId, data.userId, data.userName || 'Customer', data.userEmail || '',
       data.rating, data.comment, data.attachment ? JSON.stringify(data.attachment) : null,
@@ -43,7 +43,7 @@ export const createReview = async (data) => {
 export const getReviewById = async (id) => {
   if (!id) return null
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM reviews WHERE id = ? LIMIT 1', [id])
+  const { rows } = await db.query('SELECT * FROM reviews WHERE id = $1 LIMIT 1', [id])
   return mapReview(rows[0])
 }
 
@@ -51,6 +51,6 @@ export const deleteReview = async (id) => {
   const review = await getReviewById(id)
   if (!review) return null
   const db = getDb()
-  await db.execute('DELETE FROM reviews WHERE id = ?', [id])
+  await db.query('DELETE FROM reviews WHERE id = $1', [id])
   return review
 }

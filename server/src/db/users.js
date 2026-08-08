@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { createId, nullable } from './util.js'
 
 const adminEmail = process.env.ADMIN_EMAIL || 'admin@severinoatelier.com'
@@ -31,7 +31,7 @@ const mapUser = (row) =>
 
 const findUser = async (column, value) => {
   const db = getDb()
-  const [rows] = await db.execute(`SELECT * FROM users WHERE ${column} = ? LIMIT 1`, [value])
+  const { rows } = await db.query(`SELECT * FROM users WHERE ${column} = $1 LIMIT 1`, [value])
   return mapUser(rows[0])
 }
 
@@ -40,13 +40,13 @@ const ensureAdmin = async () => {
   if (existing) return existing
 
   const db = getDb()
-  await db.execute(
+  await db.query(
     `INSERT INTO users (
       id, name, email, password_hash, role, verified, phone, address,
       address_line, barangay, city, province, zip, country, backup_address,
       profile_image, preferred_theme, created_at
-    ) VALUES (?, 'Admin', ?, ?, 'admin', TRUE, NULL, '', '', '', '', '', '', '', '', '', 'Default', NOW(3))
-    ON DUPLICATE KEY UPDATE email = VALUES(email)`,
+    ) VALUES ($1, 'Admin', $2, $3, 'admin', TRUE, NULL, '', '', '', '', '', '', '', '', '', 'Default', CURRENT_TIMESTAMP)
+    ON CONFLICT (email) DO NOTHING`,
     [createId(), adminEmail, bcrypt.hashSync(adminPassword, 12)]
   )
   return findUser('email', adminEmail)
@@ -55,7 +55,7 @@ const ensureAdmin = async () => {
 export const getUsers = async () => {
   await ensureAdmin()
   const db = getDb()
-  const [rows] = await db.execute('SELECT * FROM users ORDER BY created_at DESC')
+  const { rows } = await db.query('SELECT * FROM users ORDER BY created_at DESC')
   return rows.map(mapUser)
 }
 
@@ -98,12 +98,12 @@ export const createUser = async (data) => {
     createdAt: data.createdAt || new Date(),
   }
 
-  await db.execute(
+  await db.query(
     `INSERT INTO users (
       id, name, email, phone, password_hash, role, verified, address,
       address_line, barangay, city, province, zip, country, backup_address,
       profile_image, preferred_theme, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
     [
       user.id, user.name, user.email, user.phone, user.passwordHash, user.role,
       user.verified, user.address, user.addressLine, user.barangay, user.city,
@@ -138,24 +138,24 @@ export const updateUser = async (id, data) => {
   const values = []
   for (const [key, column] of Object.entries(userColumns)) {
     if (!Object.prototype.hasOwnProperty.call(data, key)) continue
-    updates.push(`${column} = ?`)
+    updates.push(`${column} = $${values.length + 1}`)
     values.push(key === 'email' || key === 'phone' ? nullable(data[key]) : data[key])
   }
   if (!updates.length) return getUserById(id)
 
   const db = getDb()
-  const [result] = await db.execute(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [
+  const result = await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${values.length + 1}`, [
     ...values,
     id,
   ])
-  return result.affectedRows ? getUserById(id) : null
+  return result.rowCount ? getUserById(id) : null
 }
 
 export const removeUser = async (id) => {
   const user = await getUserById(id)
   if (!user) return null
   const db = getDb()
-  await db.execute('DELETE FROM users WHERE id = ?', [id])
+  await db.query('DELETE FROM users WHERE id = $1', [id])
   return user
 }
 

@@ -1,4 +1,4 @@
-import { getDb } from './mysql.js'
+import { getDb } from './postgres.js'
 import { getProducts } from './products.js'
 import {
   getUsers,

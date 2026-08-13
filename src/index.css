@@ -4984,10 +4984,10 @@ img {
   }
 
   .create-send-otp {
-    grid-column: 2;
-    width: fit-content;
-    min-width: 96px;
-    justify-self: end;
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
     padding-inline: 14px;
   }
 

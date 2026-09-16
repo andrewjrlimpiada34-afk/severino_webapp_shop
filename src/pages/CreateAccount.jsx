@@ -333,7 +333,7 @@ function CreateAccount() {
           </div>
           <div>
             <div className="label">Email</div>
-            <div className="create-phone-row">
+            <div className="create-phone-row create-email-row">
               <input
                 className="input"
                 type="email"

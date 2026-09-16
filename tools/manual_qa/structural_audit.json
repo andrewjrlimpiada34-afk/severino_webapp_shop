@@ -1,0 +1,22 @@
+{
+  "preset": "compact_reference_guide",
+  "cover": "editorial_cover",
+  "sections": [
+    "Introduction and Access",
+    "Customer Page Directory",
+    "Administrator Page Directory",
+    "Create an Account and Sign In",
+    "Browse Products and Manage Favorites",
+    "Manage the Cart and Place an Order",
+    "Track Orders and Manage Notifications",
+    "Update an Account and Submit Feedback",
+    "Administrator Access and Store Content",
+    "Add and Modify Products",
+    "Manage Orders, Users, and Reports",
+    "Troubleshooting and Implementation Notes"
+  ],
+  "toc": "static internal links without unverified page numbers",
+  "paragraphs": 329,
+  "tables": 0,
+  "output_bytes": 75505
+}

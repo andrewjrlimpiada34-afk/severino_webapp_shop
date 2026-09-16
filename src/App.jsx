@@ -118,10 +118,20 @@ function AdminLayout({ children }) {
   )
 }
 
+function SessionLoader({ admin = false }) {
+  return (
+    <div className="session-loader">
+      <div className="card session-loader__card" role="status" aria-live="polite">
+        {admin ? 'Checking admin session...' : 'Checking session...'}
+      </div>
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) {
-    return <div className="page card">Checking session...</div>
+    return <SessionLoader />
   }
   if (!user) {
     return <Navigate to="/login" replace />
@@ -132,7 +142,7 @@ function ProtectedRoute({ children }) {
 function PublicOnlyRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) {
-    return <div className="page card">Checking session...</div>
+    return <SessionLoader />
   }
   if (user?.role === 'admin') {
     return <Navigate to="/admin" replace />
@@ -146,7 +156,7 @@ function PublicOnlyRoute({ children }) {
 function AdminRoute({ children }) {
   const { user, loading, logout } = useAuth()
   if (loading) {
-    return <div className="page card">Checking admin session...</div>
+    return <SessionLoader admin />
   }
   if (!user || user.role !== 'admin') {
     return <Navigate to="/admin/login" replace />

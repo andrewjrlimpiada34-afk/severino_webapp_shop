@@ -310,6 +310,24 @@ img {
   padding: 32px clamp(18px, 3vw, 52px) 72px;
 }
 
+.session-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 30001;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--app-bg);
+}
+
+.session-loader__card {
+  display: grid;
+  place-items: center;
+  width: min(100%, 420px);
+  min-height: 100px;
+  text-align: center;
+}
+
 .admin-page {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
@@ -3448,6 +3466,56 @@ img {
   flex-wrap: wrap;
 }
 
+.product-detail-previews {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.product-detail-previews .thumb {
+  flex: 0 0 auto;
+  width: min(64px, calc((100% - 30px) / 4));
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.product-detail-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 44px;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.product-detail-actions > button {
+  min-height: 44px;
+}
+
+.product-detail-actions .icon-button {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(43, 52, 34, 0.35);
+  border-radius: 50%;
+  color: var(--olive-800);
+}
+
+.product-detail-actions .icon-button.favorited {
+  color: #a11b3f;
+}
+
+.product-detail-actions .icon {
+  color: currentColor;
+}
+
+.product-detail-actions__add {
+  padding: 0;
+}
+
+.product-detail-actions__back {
+  grid-column: 1 / -1;
+}
+
 .product-card .button {
   padding: 8px 14px;
   font-size: 12px;
@@ -4968,6 +5036,10 @@ img {
     border: 0;
     gap: 8px;
     background: transparent;
+  }
+
+  .create-email-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .create-phone-prefix,

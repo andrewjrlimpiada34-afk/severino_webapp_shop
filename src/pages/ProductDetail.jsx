@@ -211,12 +211,14 @@ function ProductDetail() {
               <span>{product.name}</span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-            {(product.imageUrls || []).filter(Boolean).map((img) => (
+          <div className="product-detail-previews">
+            {(product.imageUrls || []).filter(Boolean).map((img, index) => (
               <button
                 key={img}
                 type="button"
                 className="thumb"
+                aria-label={`View ${product.name} image ${index + 1}`}
+                aria-pressed={activeImage === img}
                 style={{ backgroundImage: `url(${buildCloudinaryUrl(img, { width: 200 })})` }}
                 onClick={() => setActiveImage(img)}
               />
@@ -233,14 +235,21 @@ function ProductDetail() {
           ) : (
             <div className="pill out-stock">Out of Stock</div>
           )}
-          <div className="product-actions product-actions--wrap" style={{ marginTop: '16px' }}>
-            <button className="button" onClick={openAddToCartModal}>
-              Add to Cart
-            </button>
-            <button className="button secondary" onClick={openBuyNowModal}>
+          <div className="product-detail-actions">
+            <button className="button" onClick={openBuyNowModal}>
               Buy Now
             </button>
-
+            <button
+              className="button secondary product-detail-actions__add"
+              type="button"
+              onClick={openAddToCartModal}
+              aria-label="Add to Cart"
+              title="Add to Cart"
+            >
+              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
             <button
               className={`icon-button ${isFav ? 'favorited' : ''}`}
               type="button"
@@ -256,6 +265,8 @@ function ProductDetail() {
                 }
               }}
               aria-label="Favorite"
+              aria-pressed={isFav}
+              title="Favorite"
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -267,7 +278,7 @@ function ProductDetail() {
                 />
               </svg>
             </button>
-            <button className="button secondary" onClick={() => navigate('/shop')}>
+            <button className="button secondary product-detail-actions__back" onClick={() => navigate('/shop')}>
               Back to Shop
             </button>
           </div>

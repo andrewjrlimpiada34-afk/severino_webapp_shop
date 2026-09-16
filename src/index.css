@@ -52,6 +52,7 @@
 html {
   min-height: 100%;
   background: var(--app-bg);
+  /* Suppress bounce only on the document, preserving scroll chaining from body. */
   overscroll-behavior-y: none;
 }
 
@@ -61,7 +62,6 @@ body {
   background: var(--app-bg);
   color: var(--olive-900);
   overflow-x: hidden;
-  overscroll-behavior-y: none;
 }
 
 html,

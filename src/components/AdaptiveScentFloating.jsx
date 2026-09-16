@@ -137,18 +137,11 @@ function AdaptiveScentFloating({
             aria-labelledby="adaptive-scent-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <button
-              className="modal-close"
-              type="button"
-              aria-label="Close Adaptive Scent"
-              onClick={() => setOpen(false)}
-            >
-              X
-            </button>
             <h2 id="adaptive-scent-modal-title" className="sr-only">
               Adaptive Scent
             </h2>
             <AdaptiveScentPanel
+              onClose={() => setOpen(false)}
               enabled={adaptive.enabled}
               onToggleEnabled={adaptive.setAdaptiveEnabled}
               loading={adaptive.status.loading}

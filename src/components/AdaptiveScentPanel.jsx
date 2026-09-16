@@ -44,12 +44,25 @@ function AdaptiveScentPanel({
   locationLabel = 'Marinduque',
   onUseDefaultLocation,
   onViewProduct,
+  onClose,
 }) {
   const moodClass = current ? `mood-${current.mood}` : 'mood-loading'
 
   return (
     <section className={`adaptive-panel card ${moodClass}`}>
-      <AdaptiveScentToggle enabled={enabled} onChange={onToggleEnabled} compact />
+      <div className="adaptive-panel__toolbar">
+        <AdaptiveScentToggle enabled={enabled} onChange={onToggleEnabled} compact />
+        <button
+          className="modal-close"
+          type="button"
+          aria-label="Close Adaptive Scent"
+          onClick={onClose}
+        >
+          <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
 
       {!enabled && (
         <div className="adaptive-panel__body adaptive-panel__body--idle">

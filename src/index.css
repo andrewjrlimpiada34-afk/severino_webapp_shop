@@ -49,12 +49,19 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+  background: var(--app-bg);
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   background: var(--app-bg);
   color: var(--olive-900);
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 html,
@@ -1049,13 +1056,40 @@ img {
     color 0.35s ease;
 }
 
-.adaptive-panel > .adaptive-toggle {
-  padding: 0 0 14px;
-  border: 0;
+.adaptive-panel__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
   border-bottom: 1px solid rgba(43, 52, 34, 0.1);
+}
+
+.adaptive-panel__toolbar > .adaptive-toggle {
+  min-width: 0;
+  gap: 12px;
+  padding: 0;
+  border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.adaptive-panel__toolbar .adaptive-switch {
+  flex-shrink: 0;
+}
+
+.adaptive-panel__toolbar .modal-close {
+  position: static;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  line-height: 1;
+  color: var(--olive-800);
+  background: var(--glass);
+  border: 1px solid color-mix(in srgb, var(--olive-800) 24%, transparent);
 }
 
 .adaptive-panel__body {
@@ -3648,12 +3682,40 @@ img {
   letter-spacing: 0.2px;
 }
 
+.shop-page .product-card-footer {
+  flex-wrap: wrap;
+}
+
 .shop-page .product-actions {
-  gap: 7px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .shop-page .product-actions .button {
+  min-height: 44px;
   border-radius: 999px;
+}
+
+.shop-page .product-actions .icon-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--olive-800) 35%, transparent);
+  color: var(--olive-800);
+  background: transparent;
+}
+
+.shop-page .product-actions .icon-button.favorited {
+  color: #a11b3f;
+  background: color-mix(in srgb, #a11b3f 8%, var(--glass));
+}
+
+.shop-page .product-actions .icon-button .icon {
+  color: currentColor;
 }
 
 .shop-cart-button {

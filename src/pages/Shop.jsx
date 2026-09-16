@@ -252,6 +252,9 @@ function Shop() {
               <div className="product-card-footer">
                 <span>₱{product.price.toLocaleString()}</span>
                 <div className="product-actions">
+                  <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
+                    View
+                  </button>
                   <button
                     className={`icon-button ${isFav ? 'favorited' : ''}`}
                     type="button"
@@ -267,6 +270,8 @@ function Shop() {
                       }
                     }}
                     aria-label="Favorite"
+                    aria-pressed={isFav}
+                    title="Favorite"
                   >
                     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -277,9 +282,6 @@ function Shop() {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </button>
-                  <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
-                    View
                   </button>
                   <button
                     className="button shop-cart-button"

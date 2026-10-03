@@ -54,6 +54,10 @@ services:
         sync: false
       - key: CLOUDINARY_URL
         sync: false
+      - key: OTP_SERVICE_URL
+        sync: false
+      - key: OTP_SERVICE_KEY
+        sync: false
       - key: PROMAILER_API_URL
         sync: false
       - key: PROMAILER_API_KEY
@@ -94,3 +98,50 @@ services:
         value: "80"
       - key: UPLOAD_MIN_QUALITY
         value: "50"
+
+  - type: web
+    name: severino-perfume-otp
+    runtime: python
+    plan: starter
+    region: singapore
+    rootDir: server/otp_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: OTP_SERVICE_KEY
+        sync: false
+      - key: GMAIL_API_CLIENT_ID
+        sync: false
+      - key: GMAIL_API_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_API_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_API_SENDER
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "true"
+      - key: DB_SSL_CA_BASE64
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Severino Shop
+      - key: OTP_TTL_MS
+        value: "300000"
+      - key: OTP_RESEND_MS
+        value: "60000"
+      - key: OTP_MAX_ATTEMPTS
+        value: "5"

@@ -30,19 +30,21 @@ function AdminLogin() {
     }
   }
   return (
-    <section className="grid" style={{ gap: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      <div>
-        <h1 className="section-title">Admin Login</h1>
-        <p className="section-subtitle">
-          Authorized access only. Activity is logged and monitored.
-        </p>
-      </div>
+    <main className="admin-login-page">
+      <section className="admin-login-card" aria-labelledby="admin-login-title">
+        <header className="admin-login-heading">
+          <div className="tag">Severino Atelier · Admin Studio</div>
+          <h1 className="section-title" id="admin-login-title">Admin Login</h1>
+          <p className="section-subtitle">
+            Authorized access only. Activity is logged and monitored.
+          </p>
+        </header>
 
-      <div className="grid two">
-        <form className="card form" onSubmit={handleSubmit}>
+        <form className="form admin-login-form" onSubmit={handleSubmit}>
           <div>
-            <div className="label">Admin Email</div>
+            <label className="label" htmlFor="admin-email">Admin Email</label>
             <input
+              id="admin-email"
               className="input"
               type="email"
               placeholder="admin@severinoatelier.com"
@@ -51,8 +53,9 @@ function AdminLogin() {
             />
           </div>
           <div>
-            <div className="label">Password</div>
+            <label className="label" htmlFor="admin-password">Password</label>
             <input
+              id="admin-password"
               className="input"
               type="password"
               placeholder="••••••••"
@@ -66,15 +69,15 @@ function AdminLogin() {
             {status.loading ? 'Signing in...' : 'Enter Dashboard'}
           </button>
         </form>
-        <div className="card">
+        <footer className="admin-login-security">
           <div className="tag">Security</div>
           <p className="section-subtitle">
             Admin sessions use short-lived tokens and IP-based access policies.
           </p>
           <div className="pill">Audit logging enabled</div>
-        </div>
-      </div>
-    </section>
+        </footer>
+      </section>
+    </main>
   )
 }
 

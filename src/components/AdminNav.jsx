@@ -18,10 +18,10 @@ function AdminNav() {
         <div className="nav-logo">Admin Studio</div>
         <p className="section-subtitle admin-subtitle">Secure dashboard access</p>
       </div>
-      <button className="admin-toggle" type="button" onClick={() => setOpen((prev) => !prev)}>
+      <button className="admin-toggle" type="button" aria-expanded={open} aria-controls="admin-links" onClick={() => setOpen((prev) => !prev)}>
         Menu
       </button>
-      <div className={`admin-links ${open ? 'open' : ''}`}>
+      <div id="admin-links" className={`admin-links ${open ? 'open' : ''}`}>
         <NavLink to="/admin" onClick={() => setOpen(false)}>Dashboard</NavLink>
         <NavLink to="/admin/sales" onClick={() => setOpen(false)}>Sales Report</NavLink>
         <NavLink to="/admin/feedback" onClick={() => setOpen(false)}>Feedback</NavLink>

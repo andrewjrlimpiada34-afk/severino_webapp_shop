@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
 
@@ -16,7 +17,34 @@ const createAnnouncement = (index) => ({
   message: '',
 })
 
+const dashboardTabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'banners', label: 'Edit Banner' },
+  { id: 'banner-content', label: 'Banner Pop-up Content' },
+  { id: 'featured-images', label: 'Featured Banner Images' },
+  { id: 'featured-content', label: 'Featured Banner Pop-up Content' },
+  { id: 'hero', label: 'Hero Header Image' },
+  { id: 'announcements', label: 'Login Announcements' },
+  { id: 'login-popup', label: 'Login Pop-up Image' },
+]
+
+function DashboardPanel({ id, activeTab, children }) {
+  return (
+    <div
+      className="admin-tab-panel"
+      id={`admin-panel-${id}`}
+      role="tabpanel"
+      aria-labelledby={`admin-tab-${id}`}
+      hidden={activeTab !== id}
+      tabIndex={0}
+    >
+      {children}
+    </div>
+  )
+}
+
 function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('overview')
   const [stats, setStats] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [banners, setBanners] = useState(['', '', '', '', ''])
@@ -261,11 +289,44 @@ function AdminDashboard() {
   }
 
   return (
-    <section className="grid" style={{ gap: '24px' }}>
-      <div>
+    <section className="admin-dashboard">
+      <header className="admin-dashboard-heading">
         <h1 className="section-title">Dashboard</h1>
         <p className="section-subtitle">Real-time operations overview with secure admin controls.</p>
+      </header>
+
+      <div className="admin-dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+        {dashboardTabs.map((tab, index) => (
+          <button
+            key={tab.id}
+            className="admin-dashboard-tab"
+            id={`admin-tab-${tab.id}`}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`admin-panel-${tab.id}`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(event) => {
+              let nextIndex
+              if (event.key === 'ArrowRight') nextIndex = (index + 1) % dashboardTabs.length
+              else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + dashboardTabs.length) % dashboardTabs.length
+              else if (event.key === 'Home') nextIndex = 0
+              else if (event.key === 'End') nextIndex = dashboardTabs.length - 1
+              else return
+              event.preventDefault()
+              setActiveTab(dashboardTabs[nextIndex].id)
+              const nextTab = event.currentTarget.parentElement.children[nextIndex]
+              nextTab.focus()
+              nextTab.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      <DashboardPanel id="overview" activeTab={activeTab}>
 
       {status.loading && (
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -274,30 +335,32 @@ function AdminDashboard() {
         </div>
       )}
       {status.error && <div className="card">Error: {status.error}</div>}
-      <div className="stats">
+      <div className="stats admin-dashboard-stats">
         {stats.map((stat) => (
           <div key={stat.label} className="card">
             <div className="tag">{stat.label}</div>
-            <div style={{ fontSize: '28px', fontWeight: 700 }}>{stat.value}</div>
+            <div className="admin-stat-value">{stat.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid two">
+      <div className="grid two admin-dashboard-shortcuts">
         <div className="card">
           <h2 className="section-title" style={{ fontSize: '24px' }}>
             Orders Needing Attention
           </h2>
-          <p className="section-subtitle"> </p>
+          <Link className="admin-dashboard-link" to="/admin/orders">View orders <span aria-hidden="true">→</span></Link>
         </div>
         <div className="card">
           <h2 className="section-title" style={{ fontSize: '24px' }}>
             Inventory Alerts
           </h2>
-          <p className="section-subtitle"> </p>
+          <Link className="admin-dashboard-link" to="/admin/products">View inventory <span aria-hidden="true">→</span></Link>
         </div>
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="banners" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Edit Banner
@@ -348,7 +411,9 @@ function AdminDashboard() {
           Save Banners
         </button>
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="banner-content" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Banner Pop-up Content
@@ -393,7 +458,9 @@ function AdminDashboard() {
           Save Banner Content
         </button>
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="featured-images" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Featured Banner Images (max: 3)
@@ -456,13 +523,18 @@ function AdminDashboard() {
           Save Featured Images
         </button>
       </div>
+      </DashboardPanel>
 
 
+      <DashboardPanel id="featured-content" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Featured Banner Pop-up Content
         </h2>
         <p className="section-subtitle">For each featured banner, set the title and the popup message.</p>
+
+        {featuredBannerStatus.error && <div className="card">Error: {featuredBannerStatus.error}</div>}
+        {featuredBannerStatus.success && <div className="card">{featuredBannerStatus.success}</div>}
 
         {featuredBanners.map((value, index) => (
           <div key={value.id || index} className="announcement-editor">
@@ -521,7 +593,9 @@ function AdminDashboard() {
         </button>
 
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="hero" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Hero Header Image
@@ -559,7 +633,9 @@ function AdminDashboard() {
           Save Hero Image
         </button>
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="announcements" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Login Announcements
@@ -647,7 +723,9 @@ function AdminDashboard() {
           Save Announcements
         </button>
       </div>
+      </DashboardPanel>
 
+      <DashboardPanel id="login-popup" activeTab={activeTab}>
       <div className="card form">
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Login Pop-up Image
@@ -691,6 +769,7 @@ function AdminDashboard() {
           Save Pop-up
         </button>
       </div>
+      </DashboardPanel>
     </section>
   )
 }

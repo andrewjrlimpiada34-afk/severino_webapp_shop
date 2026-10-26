@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import Modal from './Modal.jsx'
 
-// Paths follow the two sweeping strokes of the S in public/iconintro.png.
+// Paths follow the two sweeping strokes of the S in public/logooff.png.
 const fineTrace = 'M 746 580 L 742 810 C 731 650 653 570 505 570 C 375 570 298 645 298 738 C 296 850 393 899 550 972 C 720 1052 805 1143 805 1287'
 const mainTrace = 'M 270 635 C 177 802 280 912 496 1006 C 688 1089 763 1187 713 1319 C 663 1452 516 1502 368 1446 C 272 1410 230 1338 226 1190 L 225 1470'
 
@@ -39,7 +39,7 @@ export default function BrandIntro() {
       <div className="modal-card brand-intro__card" role="dialog" aria-modal="true" aria-label="Welcome to Severino">
         <img
           className="brand-intro__preload"
-          src="/iconintro.png"
+          src="/logooff.png"
           alt=""
           aria-hidden="true"
           onLoad={() => setPhase((current) => current === 'loading' ? 'drawing' : current)}
@@ -48,14 +48,11 @@ export default function BrandIntro() {
         {phase !== 'loading' && (
           <svg className="brand-intro__logo" viewBox="145 500 1710 1050" role="img" aria-label="Severino">
             <defs>
-              <filter id={`${id}-ink`} colorInterpolationFilters="sRGB">
-                <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 -1.2 0 1.2" />
-              </filter>
               <filter id={`${id}-glow`} x="-150%" y="-150%" width="400%" height="400%">
                 <feGaussianBlur stdDeviation="9" />
               </filter>
               <mask id={`${id}-logo`} maskUnits="userSpaceOnUse" x="0" y="0" width="2000" height="2000" style={{ maskType: 'alpha' }}>
-                <image href="/iconintro.png" width="2000" height="2000" filter={`url(#${id}-ink)`} />
+                <image href="/logooff.png" width="2000" height="2000" />
               </mask>
               <mask id={`${id}-reveal`} maskUnits="userSpaceOnUse" x="145" y="500" width="700" height="1050">
                 <path className="brand-intro__trace brand-intro__trace--fine" d={fineTrace} pathLength="1" strokeWidth="85" />

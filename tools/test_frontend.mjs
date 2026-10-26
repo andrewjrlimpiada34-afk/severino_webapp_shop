@@ -200,7 +200,7 @@ if (location.search.includes('preview=registration')) {
     await render(opening('automatic'))
     await waitFor(() => document.querySelector('.brand-intro__logo'))
     assert(document.documentElement.style.overflow === 'hidden', 'Intro locks background')
-    assert(document.querySelector('.brand-intro image').getAttribute('href') === '/iconintro.png', 'Provided PNG is used as the logo mask')
+    assert(document.querySelector('.brand-intro image').getAttribute('href') === '/logooff.png', 'Clear transparent PNG is used as the logo mask')
     assert(getComputedStyle(document.querySelector('.brand-intro__trace--main')).animationName === 'brandIntroTrace', 'S follows an animated reveal path')
     assert(getComputedStyle(document.querySelector('.brand-intro__word')).animationDelay === '1.95s', 'Word fades in after the S trace')
     await waitFor(() => !document.querySelector('.brand-intro'))
@@ -360,11 +360,11 @@ const bundle = await build({
 })
 const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const logo = await readFile('public/logo.svg')
-const introImage = await readFile('public/iconintro.png')
+const introImage = await readFile('public/logooff.png')
 const server = createServer((req, res) => {
   // Prevent real third-party players from loading in this isolated test fixture.
   res.setHeader('Content-Security-Policy', "frame-src 'none'")
-  if (req.url === '/iconintro.png') {
+  if (req.url === '/logooff.png') {
     res.setHeader('Content-Type', 'image/png')
     res.end(introImage)
     return
@@ -454,6 +454,7 @@ try {
     if (report.results.some(result => !result.passed)) process.exitCode = 1
   }
   for (const [name, width, preview] of [
+    ['intro-desktop', 1440, 'intro'], ['intro-mobile', 390, 'intro'],
     ['notes-desktop', 1440, 'notes'], ['notes-mobile', 390, 'notes'],
     ['video-desktop', 1440, 'video'], ['video-mobile', 390, 'video'],
   ]) {

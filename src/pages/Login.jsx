@@ -305,7 +305,7 @@ function Login() {
                   <article className="terms-law-card" key={section.number}>
                     <div className="terms-card-copy">
                       <div className="terms-card-title-row">
-                        <span className="terms-card-number">{section.number}</span>
+                        <span className="terms-card-number">{section.number}.</span>
                         <h3>{section.title}</h3>
                       </div>
                       <p>{section.body}</p>

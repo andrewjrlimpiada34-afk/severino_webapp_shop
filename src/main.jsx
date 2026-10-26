@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
+import BrandIntro from './components/BrandIntro.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ActionAnimationProvider } from './context/ActionAnimationContext.jsx'
 import './index.css'
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <ActionAnimationProvider>
+          <BrandIntro />
           <App />
         </ActionAnimationProvider>
       </AuthProvider>

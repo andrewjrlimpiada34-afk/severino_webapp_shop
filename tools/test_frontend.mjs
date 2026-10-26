@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { MemoryRouter } from 'react-router-dom'
 import Modal from './src/components/Modal.jsx'
+import BrandIntro from './src/components/BrandIntro.jsx'
 import CreateAccount from './src/pages/CreateAccount.jsx'
 import Login from './src/pages/Login.jsx'
 
@@ -33,6 +34,13 @@ window.qaAuth = {
 }
 const root = createRoot(document.getElementById('fixture'))
 const settle = () => new Promise(resolve => setTimeout(resolve, 0))
+const waitFor = async predicate => {
+  const deadline = Date.now() + 5000
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error('Timed out waiting for frontend state')
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+}
 const assert = (condition, message) => { if (!condition) throw new Error(message) }
 const render = async element => { flushSync(() => root.render(<React.StrictMode>{element}</React.StrictMode>)); await settle() }
 const input = (element, value) => {
@@ -91,7 +99,40 @@ if (location.search.includes('preview=registration')) {
 } else if (location.search.includes('preview=terms')) {
   await render(<MemoryRouter><Login /></MemoryRouter>)
   await click(button('Read More'))
+} else if (location.search.includes('preview=intro')) {
+  await render(<BrandIntro />)
+  await waitFor(() => document.querySelector('.brand-intro__logo'))
+  const frame = Number(new URLSearchParams(location.search).get('frame')) || 2600
+  const intro = document.querySelector('.brand-intro')
+  for (const animation of intro.getAnimations({ subtree: true })) {
+    animation.pause()
+    animation.currentTime = frame
+  }
+  const svg = intro.querySelector('svg')
+  svg.pauseAnimations()
+  svg.setCurrentTime(frame / 1000)
 } else {
+  await run('Logo intro reveals, dismisses automatically, skips, and cleans up on an image error', async () => {
+    const opening = label => <><BrandIntro key={label} /><div style={{ height: 2400 }}>App content</div></>
+    await render(opening('automatic'))
+    await waitFor(() => document.querySelector('.brand-intro__logo'))
+    assert(document.documentElement.style.overflow === 'hidden', 'Intro locks background')
+    assert(document.querySelector('.brand-intro image').getAttribute('href') === '/iconintro.png', 'Provided PNG is used as the logo mask')
+    assert(getComputedStyle(document.querySelector('.brand-intro__trace--main')).animationName === 'brandIntroTrace', 'S follows an animated reveal path')
+    assert(getComputedStyle(document.querySelector('.brand-intro__word')).animationDelay === '1.95s', 'Word fades in after the S trace')
+    await waitFor(() => !document.querySelector('.brand-intro'))
+    assert(!document.documentElement.style.overflow, 'Automatic dismissal restores scrolling')
+    await render(opening('automatic'))
+    assert(!document.querySelector('.brand-intro'), 'Intro does not replay on an app rerender')
+    await render(opening('skip'))
+    await click(button('Skip intro'))
+    await waitFor(() => !document.querySelector('.brand-intro'))
+    assert(!document.documentElement.style.overflow, 'Skip restores scrolling')
+    await render(opening('error'))
+    flushSync(() => document.querySelector('.brand-intro__preload').dispatchEvent(new Event('error')))
+    assert(!document.querySelector('.brand-intro') && !document.documentElement.style.overflow, 'Missing image never traps the app behind an intro')
+  })
+
   await run('Background lock, nested scrolling, keyboard, touch, stacking, and exact restoration', async () => {
     document.body.style.paddingRight = '7px'
     document.body.style.overflowX = 'clip'
@@ -157,6 +198,8 @@ if (location.search.includes('preview=registration')) {
     assert(terms.clientHeight <= window.innerHeight * 0.9 + 1, 'Agreement fits in viewport')
     assert(!terms.querySelector('svg, .terms-document-art, .terms-leaf'), 'All agreement illustrations are removed')
     assert(terms.querySelectorAll('.terms-law-card').length === 5, 'All agreement sections remain')
+    const number = terms.querySelector('.terms-card-number')
+    assert(number.textContent === '1.' && getComputedStyle(number).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(number).borderRadius === '0px', 'Agreement uses formal plain numbers without circles')
     terms.scrollTop = terms.scrollHeight
     assert(terms.scrollTop > 0 && terms.textContent.includes('By using this platform'), 'End of agreement remains accessible')
     await click(terms.querySelector('.modal-close'))
@@ -234,7 +277,13 @@ const bundle = await build({
 })
 const css = (await readFile('src/index.css', 'utf8')).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const logo = await readFile('public/logo.svg')
+const introImage = await readFile('public/iconintro.png')
 const server = createServer((req, res) => {
+  if (req.url === '/iconintro.png') {
+    res.setHeader('Content-Type', 'image/png')
+    res.end(introImage)
+    return
+  }
   if (req.url === '/logo.svg') {
     res.setHeader('Content-Type', 'image/svg+xml')
     res.end(logo)
@@ -286,7 +335,9 @@ async function browser(args, profile) {
     await call('Emulation.setTouchEmulationEnabled', { enabled: width < 640 })
     await call('Emulation.setFocusEmulationEnabled', { enabled: true })
     await call('Page.navigate', { url: pageUrl })
-    const selector = screenshotPath ? pageUrl.includes('preview=terms') ? '.terms-modal' : '.create-account-page' : '#qa-results'
+    const selector = screenshotPath
+      ? pageUrl.includes('preview=terms') ? '.terms-modal' : pageUrl.includes('preview=intro') ? '.brand-intro__logo' : '.create-account-page'
+      : '#qa-results'
     const ready = await call('Runtime.evaluate', {
       expression: `new Promise((resolve, reject) => { const deadline = Date.now() + 20000; const check = () => document.querySelector(${JSON.stringify(selector)}) ? resolve(true) : Date.now() > deadline ? reject(new Error('Fixture did not finish')) : setTimeout(check, 50); check(); })`,
       awaitPromise: true, returnByValue: true,
@@ -317,7 +368,11 @@ try {
     console.log(JSON.stringify(report))
     if (report.results.some(result => !result.passed)) process.exitCode = 1
   }
-  for (const [name, width, preview] of [['registration-desktop', 1440, 'registration'], ['registration-mobile', 390, 'registration'], ['terms-desktop', 1440, 'terms']]) {
+  for (const [name, width, preview] of [
+    ['intro-start', 1440, 'intro&frame=600'], ['intro-trace', 1440, 'intro&frame=1500'],
+    ['intro-complete', 1440, 'intro&frame=2600'], ['intro-mobile', 390, 'intro&frame=2600'],
+    ['terms-desktop', 1440, 'terms'],
+  ]) {
     await browser([`--window-size=${width},1000`, '--virtual-time-budget=1500', `--screenshot=${path.join(outputDir, name + '.png')}`, `${url}/?preview=${preview}`], name)
   }
   console.log(`Screenshots: ${outputDir}`)

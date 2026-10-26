@@ -1,3 +1,4 @@
+import Modal from '../components/Modal.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
@@ -585,8 +586,7 @@ function Home() {
       </section>
 
       {openBannerStory && (
-        <div
-          className="modal-backdrop"
+        <Modal
           role="presentation"
           onClick={() => setOpenBannerStory(null)}
         >
@@ -613,7 +613,7 @@ function Home() {
               {openBannerStory.message.trim() || 'No message yet for this banner.'}
             </p>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

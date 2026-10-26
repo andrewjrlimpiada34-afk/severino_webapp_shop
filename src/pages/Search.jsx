@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import Modal from '../components/Modal.jsx'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -236,7 +237,7 @@ function Search() {
       </div>}
 
       {cartModal.open && cartModal.product && (
-        <div className="modal-backdrop" role="presentation">
+        <Modal>
           <div className="modal-card" role="dialog" aria-modal="true">
             <button
               className="modal-close"
@@ -281,7 +282,7 @@ function Search() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

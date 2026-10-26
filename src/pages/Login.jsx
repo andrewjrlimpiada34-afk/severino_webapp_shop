@@ -1,3 +1,4 @@
+import Modal from '../components/Modal.jsx'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -6,7 +7,6 @@ import { api } from '../lib/api.js'
 const termsSections = [
   {
     number: '1',
-    icon: 'handshake',
     title: 'General Acceptance and Legal Framework',
     body:
       'This agreement binds every user who signs in, creates an account, browses the catalog, places an order, or uses any Severino platform service.',
@@ -17,7 +17,6 @@ const termsSections = [
   },
   {
     number: '2',
-    icon: 'shield',
     title: 'Privacy Law and Regulatory Data Compliance',
     body:
       'Personal information, order records, location-based forecasts, and system activity are handled only for account, delivery, security, and service improvement purposes.',
@@ -29,7 +28,6 @@ const termsSections = [
   },
   {
     number: '3',
-    icon: 'cart',
     title: 'E-Commerce and Transactional Provisions',
     body:
       'Orders, reservations, delivery details, and COD confirmations are processed as valid electronic records for the selected Severino products.',
@@ -40,7 +38,6 @@ const termsSections = [
   },
   {
     number: '4',
-    icon: 'speed',
     title: 'System Automation, Resource Abuse, and Metrics',
     body:
       'The platform may automate recommendations, notifications, reports, and operational checks to keep the shopping experience stable.',
@@ -51,7 +48,6 @@ const termsSections = [
   },
   {
     number: '5',
-    icon: 'scale',
     title: 'Limitation of Liability and Indemnification',
     body:
       'Services are provided as available. Severino is not liable for interruptions, incorrect user-provided details, third-party failures, or delays outside reasonable control.',
@@ -62,64 +58,16 @@ const termsSections = [
   },
 ]
 
-function TermsIcon({ type }) {
-  const paths = {
-    document: (
-      <>
-        <path d="M7 3h7l5 5v13H7V3Z" />
-        <path d="M14 3v5h5" />
-        <path d="M10 12h6M10 15h6M10 18h4" />
-      </>
-    ),
-    handshake: (
-      <>
-        <path d="M8 12.5 5.8 10.3a2.4 2.4 0 0 1 0-3.4l1.1-1.1 5.4 5.4" />
-        <path d="m16 12.5 2.2-2.2a2.4 2.4 0 0 0 0-3.4l-1.1-1.1-5.4 5.4" />
-        <path d="m9.7 14.2 1.2 1.2a1.4 1.4 0 0 0 2 0l1.4-1.4" />
-        <path d="m7.5 10.8 2.2 2.2M16.5 10.8 14.3 13" />
-      </>
-    ),
-    shield: (
-      <>
-        <path d="M12 3.5 18.5 6v5.7c0 4-2.6 7.5-6.5 8.8-3.9-1.3-6.5-4.8-6.5-8.8V6L12 3.5Z" />
-        <path d="M9.8 12h4.4v4H9.8v-4Z" />
-        <path d="M10.6 12V9.9a1.4 1.4 0 0 1 2.8 0V12" />
-      </>
-    ),
-    cart: (
-      <>
-        <path d="M5 6h2l1.4 8.2h8.1l1.8-5.8H8" />
-        <path d="M10 19.2a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4ZM16 19.2a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4Z" />
-        <path d="M10.5 11.2h4.6" />
-      </>
-    ),
-    speed: (
-      <>
-        <path d="M5.5 16.5a7 7 0 1 1 13 0" />
-        <path d="m12 13 3.6-3.6" />
-        <path d="M8 16h8" />
-      </>
-    ),
-    scale: (
-      <>
-        <path d="M12 4v16M7 7h10" />
-        <path d="m7 7-3 5h6L7 7ZM17 7l-3 5h6l-3-5Z" />
-        <path d="M9 20h6" />
-      </>
-    ),
-  }
-
-  return (
-    <svg className="terms-icon" viewBox="0 0 24 24" aria-hidden="true">
-      {paths[type] || paths.document}
-    </svg>
-  )
-}
-
 function Login() {
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
-  const [status, setStatus] = useState({ loading: false, error: '', success: '' })
+  const [status, setStatus] = useState(() => {
+    const oauthStatus = new URLSearchParams(window.location.search).get('oauth')
+    const error = oauthStatus === 'cancelled'
+      ? 'Google sign-in was cancelled or not completed.'
+      : oauthStatus === 'failed' ? 'Google sign-in failed. Please try again.' : ''
+    return { loading: false, error, success: '' }
+  })
   const [announcements, setAnnouncements] = useState([])
   const [announcementOpen, setAnnouncementOpen] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -132,15 +80,6 @@ function Login() {
       : 'https://severino-backend.onrender.com'
   const apiBase = import.meta.env.VITE_API_URL || defaultApi
   const googleUrl = `${apiBase}/api/auth/google`
-
-  useEffect(() => {
-    const oauthStatus = new URLSearchParams(window.location.search).get('oauth')
-    if (oauthStatus === 'cancelled') {
-      setStatus({ loading: false, error: 'Google sign-in was cancelled or not completed.', success: '' })
-    } else if (oauthStatus === 'failed') {
-      setStatus({ loading: false, error: 'Google sign-in failed. Please try again.', success: '' })
-    }
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -329,8 +268,7 @@ function Login() {
         </div>
       </div>
       {termsOpen && (
-        <div
-          className="modal-backdrop"
+        <Modal
           role="presentation"
           onClick={() => setTermsOpen(false)}
         >
@@ -351,9 +289,6 @@ function Login() {
             </button>
             <div className="terms-content">
               <div className="terms-document-header">
-                <div className="terms-document-seal">
-                  <TermsIcon type="document" />
-                </div>
                 <div className="terms-document-heading">
                   <h2 id="terms-title">Terms of Service and Privacy Agreement</h2>
                   <span className="terms-updated">Last Updated: June 2026</span>
@@ -363,22 +298,11 @@ function Login() {
                     bound by this agreement.
                   </p>
                 </div>
-                <div className="terms-document-art" aria-hidden="true">
-                  <span className="terms-document-page">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                  <span className="terms-document-lock" />
-                </div>
               </div>
 
               <div className="terms-section-stack">
                 {termsSections.map((section) => (
                   <article className="terms-law-card" key={section.number}>
-                    <div className="terms-card-icon">
-                      <TermsIcon type={section.icon} />
-                    </div>
                     <div className="terms-card-copy">
                       <div className="terms-card-title-row">
                         <span className="terms-card-number">{section.number}</span>
@@ -399,7 +323,6 @@ function Login() {
               </div>
 
               <div className="terms-document-footer">
-                <span className="terms-leaf terms-leaf--left" aria-hidden="true" />
                 <p>
                   By using this platform, you acknowledge that you have read, understood, and agreed
                   to be bound by these Terms of Service and Privacy Agreement.
@@ -407,11 +330,10 @@ function Login() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
       {announcementOpen && hasAnnouncement && (
-        <div
-          className="modal-backdrop"
+        <Modal
           role="presentation"
           onClick={() => setAnnouncementOpen(false)}
         >
@@ -443,7 +365,7 @@ function Login() {
               ))}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

@@ -1,3 +1,4 @@
+import Modal from './components/Modal.jsx'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import NavBar from './components/NavBar.jsx'
@@ -76,7 +77,7 @@ function AppLayout({ children }) {
       <main className="page">{children}</main>
       {showFooter && <Footer />}
       {popup.open && (
-        <div className="modal-backdrop" role="presentation">
+        <Modal>
           <div className="modal-card modal-card--wide login-popup-modal" role="dialog" aria-modal="true">
             <button
               className="modal-close"
@@ -92,7 +93,7 @@ function AppLayout({ children }) {
               {popup.image && <img src={popup.image} alt="Welcome offer" />}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react'
+import Modal from '../components/Modal.jsx'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -286,7 +287,7 @@ function ProductDetail() {
       </div>
 
       {quantityModal.open && product && (
-        <div className="modal-backdrop" role="presentation">
+        <Modal>
           <div className="modal-card" role="dialog" aria-modal="true">
             <button
               className="modal-close"
@@ -350,7 +351,7 @@ function ProductDetail() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       <div className="grid two">

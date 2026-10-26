@@ -1,3 +1,4 @@
+import Modal from '../components/Modal.jsx'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
@@ -414,8 +415,7 @@ function Account() {
       )}
 
       {profileUpdatedOpen && (
-        <div
-          className="modal-backdrop"
+        <Modal
           role="presentation"
           onClick={() => setProfileUpdatedOpen(false)}
         >
@@ -446,7 +446,7 @@ function Account() {
               Done
             </button>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

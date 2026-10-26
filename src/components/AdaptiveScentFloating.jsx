@@ -1,3 +1,4 @@
+import Modal from './Modal.jsx'
 import { useEffect, useRef, useState } from 'react'
 import AdaptiveScentPanel from './AdaptiveScentPanel.jsx'
 
@@ -54,15 +55,6 @@ function AdaptiveScentFloating({
     typeof recommendationsLimit === 'number'
       ? adaptive.adaptiveData.recommendations.slice(0, recommendationsLimit)
       : adaptive.adaptiveData.recommendations
-
-  useEffect(() => {
-    if (!open) return undefined
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [open])
 
   useEffect(() => {
     const handleResize = () => {
@@ -129,7 +121,7 @@ function AdaptiveScentFloating({
       </button>
 
       {open && (
-        <div className="modal-backdrop adaptive-modal-backdrop" role="presentation" onClick={() => setOpen(false)}>
+        <Modal className="adaptive-modal-backdrop" role="presentation" onClick={() => setOpen(false)}>
           <div
             className="modal-card adaptive-modal-card"
             role="dialog"
@@ -158,7 +150,7 @@ function AdaptiveScentFloating({
               }}
             />
           </div>
-        </div>
+        </Modal>
       )}
     </>
   )

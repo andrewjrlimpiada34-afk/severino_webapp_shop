@@ -1,1 +1,6 @@
-server
+# The frontend imports this dependency-free banner helper.
+# Keep backend code, settings, dependencies, and tests excluded.
+server/*
+!server/shared/
+server/shared/*
+!server/shared/bannerContent.js

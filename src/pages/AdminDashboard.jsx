@@ -118,7 +118,7 @@ function AdminDashboard() {
           { label: 'Active SKUs', value: inventory.length },
         ])
         if (bannerImages.length) {
-          setBanners(bannerImages)
+          setBanners(defaultBannerStories.map((_, index) => bannerImages[index] || ''))
         }
         if (stories?.length) {
           setBannerStories(
@@ -156,49 +156,40 @@ function AdminDashboard() {
     load()
   }, [])
 
-  const handleBannerFiles = (event) => {
-    const files = Array.from(event.target.files || [])
-    if (!files.length) return
-    if (files.length > 5) {
-      setBannerStatus({
-        loading: false,
-        error: 'You can upload up to 5 banners at a time.',
-        success: '',
-      })
-      return
-    }
+  const handleBannerFile = async (event, index) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file) return
     const maxSize = 20 * 1024 * 1024
-    if (files.some((file) => file.size > maxSize)) {
+    if (file.size > maxSize) {
       setBannerStatus({
         loading: false,
         error: 'Image too large. Please upload a banner under 20MB.',
         success: '',
       })
+      input.value = ''
       return
     }
-    Promise.all(
-      files.map(async (file) => {
-        const compressed = await compressImageFile(file, { maxSize: 1600, quality: 0.8 })
-        const upload = await api.uploadImage(compressed)
-        return upload.url
+
+    try {
+      setBannerStatus({ loading: true, error: '', success: '' })
+      const compressed = await compressImageFile(file, { maxSize: 1600, quality: 0.8 })
+      const upload = await api.uploadImage(compressed)
+      setBanners((prev) => prev.map((value, itemIndex) => (itemIndex === index ? upload.url : value)))
+      setBannerStatus({
+        loading: false,
+        error: '',
+        success: `Banner Image ${index + 1} loaded. Click Save Banners to apply.`,
       })
-    )
-      .then((urls) => {
-        const cleaned = urls.filter(Boolean).slice(0, 5)
-        setBanners((prev) => {
-          const next = [...cleaned]
-          while (next.length < 5) next.push(prev[next.length] || '')
-          return next
-        })
-        setBannerStatus({ loading: false, error: '', success: 'Loaded banner files.' })
+    } catch (error) {
+      setBannerStatus({
+        loading: false,
+        error: error?.message || 'Failed to process banner image.',
+        success: '',
       })
-      .catch((error) => {
-        setBannerStatus({
-          loading: false,
-          error: error?.message || 'Failed to process images.',
-          success: '',
-        })
-      })
+    } finally {
+      input.value = ''
+    }
   }
 
   const handlePopupFile = (event) => {
@@ -365,30 +356,31 @@ function AdminDashboard() {
         <h2 className="section-title" style={{ fontSize: '24px' }}>
           Edit Banner
         </h2>
-        <div>
-          <div className="label">Upload up to 5 banners at once</div>
-          <input
-            className="input"
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleBannerFiles}
-          />
-        </div>
+        <p className="section-subtitle">Upload one image for each banner slot.</p>
         {bannerStatus.error && <div className="card">Error: {bannerStatus.error}</div>}
         {bannerStatus.success && <div className="card">{bannerStatus.success}</div>}
         {banners.map((value, index) => (
           <div key={`banner-${index}`}>
-            <div className="label">Banner Image {index + 1}</div>
+            <label className="label" htmlFor={`banner-image-${index}`}>Banner Image {index + 1}</label>
             <input
+              id={`banner-image-${index}`}
               className="input"
               placeholder="https://..."
               value={value}
+              disabled={bannerStatus.loading}
               onChange={(event) =>
                 setBanners((prev) =>
                   prev.map((item, i) => (i === index ? event.target.value : item))
                 )
               }
+            />
+            <input
+              className="input"
+              type="file"
+              accept="image/*"
+              aria-label={`Upload Banner Image ${index + 1}`}
+              disabled={bannerStatus.loading}
+              onChange={(event) => handleBannerFile(event, index)}
             />
             {value && (
               <div className="banner-preview" style={{ backgroundImage: `url(${value})` }} />
@@ -398,6 +390,7 @@ function AdminDashboard() {
         <button
           className="button"
           type="button"
+          disabled={bannerStatus.loading}
           onClick={async () => {
             try {
               setBannerStatus({ loading: true, error: '', success: '' })

@@ -335,3 +335,29 @@
     justify-self: stretch;
   }
 }
+.admin-banner-info,
+.admin-banner-video-editor {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(108, 96, 45, 0.18);
+  border-radius: 14px;
+  background: rgba(248, 243, 226, 0.4);
+}
+
+.admin-banner-info p,
+.admin-banner-video-editor p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-banner-info a {
+  justify-self: start;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.admin-banner-video-error {
+  color: #9c3426;
+}

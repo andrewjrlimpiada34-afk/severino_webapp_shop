@@ -1,5 +1,6 @@
 import { getDb } from './postgres.js'
 import { parseJson } from './util.js'
+import { normalizeBannerStories } from '../../shared/bannerContent.js'
 
 const defaultBanners = [
   'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Lacoste_logo.svg/1024px-Lacoste_logo.svg.png',
@@ -9,25 +10,11 @@ const defaultBanners = [
   'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Dior_Logo.svg/1024px-Dior_Logo.svg.png',
 ]
 
-const defaultBannerStories = [
-  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
-  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
-  { id: 'banner-3', title: 'Severino Stories', message: '' },
-  { id: 'banner-4', title: 'Severino Scents', message: '' },
-  { id: 'banner-5', title: 'Why Severino?', message: '' },
-]
-
 const defaultFeaturedBanners = [
   { id: 'featured-1', title: 'Featured Banner 1', image: '', message: '' },
   { id: 'featured-2', title: 'Featured Banner 2', image: '', message: '' },
   { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
 ]
-
-const normalizeBannerStories = (stories = []) =>
-  defaultBannerStories.map((item, index) => {
-    const current = stories[index] || {}
-    return { id: item.id, title: item.title, message: current.message || '' }
-  })
 
 const normalizeAnnouncements = (announcements = []) =>
   announcements
@@ -122,7 +109,9 @@ export const getBannerStories = async () => {
 }
 
 export const updateBannerStories = async (stories) => {
-  const nextStories = normalizeBannerStories(stories)
+  const existing = await getBannerStories()
+  // Older clients that only edit messages must not erase a saved video link.
+  const nextStories = normalizeBannerStories(stories.map((story, index) => ({ ...existing[index], ...story })))
   await setSetting('banner_stories', { stories: nextStories })
   return nextStories
 }

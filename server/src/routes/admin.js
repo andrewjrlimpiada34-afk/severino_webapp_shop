@@ -24,6 +24,7 @@ import { z } from 'zod'
 import { normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
+import { bannerStoriesSchema } from '../lib/bannerStorySchema.js'
 
 const router = express.Router()
 const inventoryCache = createCache(20000)
@@ -73,12 +74,6 @@ const bannerSchema = z.object({
   message: 'Inline images are not allowed',
 })
 
-const bannerStorySchema = z.object({
-  id: z.string().optional(),
-  title: z.string().max(120).optional(),
-  message: z.string().max(1500).optional(),
-})
-
 router.get('/banners', async (req, res) => {
   const cached = bannersCache.get()
   if (cached) return res.json(cached)
@@ -103,12 +98,13 @@ router.get('/banner-stories', async (req, res) => {
 })
 
 router.put('/banner-stories', async (req, res) => {
-  const parsed = z.object({ stories: z.array(bannerStorySchema).length(5) }).safeParse(req.body)
+  const parsed = bannerStoriesSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
   const updated = await updateBannerStories(
     parsed.data.stories.map((story) => ({
+      ...story,
       id: story.id || '',
       title: story.title?.trim() || '',
       message: story.message?.trim() || '',

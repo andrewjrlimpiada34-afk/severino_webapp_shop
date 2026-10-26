@@ -14,6 +14,18 @@ import Modal from './src/components/Modal.jsx'
 import BrandIntro from './src/components/BrandIntro.jsx'
 import CreateAccount from './src/pages/CreateAccount.jsx'
 import Login from './src/pages/Login.jsx'
+import AdminDashboard from './src/pages/AdminDashboard.jsx'
+import Home from './src/pages/Home.jsx'
+import BannerStoryModal from './src/components/BannerStoryModal.jsx'
+import { ActionAnimationProvider } from './src/context/ActionAnimationContext.jsx'
+import { normalizeBannerStories } from './server/shared/bannerContent.js'
+
+const noteProducts = [
+  { id: 'scent-one', name: 'Citrus Morning', price: 350, stock: 10, notes: 'Citrus, Musk, citrus', category: 'Unisex', size: '50ml' },
+  { id: 'scent-two', name: 'Golden Vanilla', price: 420, stock: 5, notes: 'citrus; Vanilla', category: 'Women', size: '50ml' },
+  { id: 'inactive', name: 'Hidden scent', notes: 'Hidden', active: false },
+]
+const driveLink = 'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/view?resourcekey=0-demo'
 
 window.fetch = async () => ({ ok: true, json: async () => [] })
 let sent = 0
@@ -111,7 +123,78 @@ if (location.search.includes('preview=registration')) {
   const svg = intro.querySelector('svg')
   svg.pauseAnimations()
   svg.setCurrentTime(frame / 1000)
+} else if (location.search.includes('preview=notes')) {
+  window.fetch = async () => ({ ok: true, json: async () => noteProducts })
+  await render(<MemoryRouter><BannerStoryModal story={{ id: 'banner-4', title: 'Severino Scents', message: 'Discover your next signature scent.' }} onClose={() => {}} /></MemoryRouter>)
+} else if (location.search.includes('preview=video')) {
+  await render(<MemoryRouter><BannerStoryModal story={{ id: 'banner-5', title: 'Why Severino?', videoUrl: driveLink, message: '' }} onClose={() => {}} /></MemoryRouter>)
 } else {
+  await run('Admin Drive video save reaches homepage; notes automatically group and open real products', async () => {
+    const originalFetch = window.fetch
+    let savedStories = normalizeBannerStories()
+    savedStories[0].message = 'Existing perfume tips'
+    let saveCount = 0
+    let productFailure = false
+    const response = (data, ok = true) => ({ ok, json: async () => data })
+    window.fetch = async (url, options = {}) => {
+      const path = new URL(url, location.href).pathname
+      if (path === '/api/admin/banner-stories') {
+        if (options.method === 'PUT') {
+          saveCount += 1
+          savedStories = normalizeBannerStories(JSON.parse(options.body).stories)
+        }
+        return response(savedStories)
+      }
+      if (path === '/api/admin/sales') return response({ count: 0, revenue: 0 })
+      if (path === '/api/admin/inventory') return response(noteProducts)
+      if (path === '/api/public/banner-stories') return response(savedStories)
+      if (path === '/api/public/banners' || path === '/api/admin/banners') return response(Array(5).fill('/logo.svg'))
+      if (path === '/api/products') return productFailure ? response({ message: 'Unavailable' }, false) : response(noteProducts)
+      if (/hero-image|login-popup/.test(path)) return response({ image: '' })
+      return response([])
+    }
+    try {
+      await render(<MemoryRouter><div className="admin-shell"><AdminDashboard /></div></MemoryRouter>)
+      await waitFor(() => document.querySelector('#banner-story-message-0')?.value === 'Existing perfume tips')
+      await click(document.getElementById('admin-tab-banner-content'))
+      const videoInput = document.getElementById('why-severino-video')
+      input(videoInput, 'https://example.com/not-a-drive-file')
+      await click(button('Save Banner Content'))
+      assert(saveCount === 0 && videoInput.getAttribute('aria-invalid') === 'true', 'Invalid video links are blocked before saving')
+      input(videoInput, driveLink)
+      assert(document.querySelector('iframe[title="Why Severino? video preview"]'), 'Admin sees a Drive video preview')
+      await click(button('Save Banner Content'))
+      assert(saveCount === 1 && savedStories[4].videoUrl === driveLink, 'Video field is included in saved banner settings')
+      await render(<MemoryRouter><ActionAnimationProvider><Home /></ActionAnimationProvider></MemoryRouter>)
+      await waitFor(() => document.querySelector('[aria-label="Open Severino Scents"]'))
+      productFailure = true
+      await click(document.querySelector('[aria-label="Open Severino Scents"]'))
+      await waitFor(() => button('Try again'))
+      productFailure = false
+      await click(button('Try again'))
+      await waitFor(() => document.querySelectorAll('.banner-note-tab').length === 3)
+      const notesModal = document.querySelector('.banner-story-modal')
+      assert(notesModal.scrollWidth <= notesModal.clientWidth + 1, 'Featured notes fit the modal viewport')
+      assert(document.querySelectorAll('.banner-note-product').length === 2, 'Shared citrus note contains both matching products without duplicates')
+      const vanilla = Array.from(document.querySelectorAll('.banner-note-tab')).find(element => element.textContent.includes('Vanilla'))
+      await click(vanilla)
+      assert(document.querySelectorAll('.banner-note-product').length === 1 && document.querySelector('.banner-note-product').textContent.includes('Golden Vanilla'), 'Switching a note filters its products')
+      const productLink = document.querySelector('.banner-note-product')
+      assert(productLink.getAttribute('href') === '/product/scent-two', 'Product card links to its actual detail page')
+      await click(productLink)
+      assert(!document.querySelector('.banner-story-modal') && !document.documentElement.style.overflow, 'Opening a product closes the notes modal and releases its lock')
+      await click(document.querySelector('[aria-label="Open Why Severino?"]'))
+      const player = document.querySelector('iframe[title="Why Severino? video"]')
+      assert(player && player.src.includes('/preview?resourcekey=0-demo'), 'Homepage embeds the saved Drive video with its resource key')
+      assert(document.querySelector('.banner-video__frame').getBoundingClientRect().width <= innerWidth, 'Video fits desktop and phone viewports')
+      await click(document.querySelector('.banner-story-modal .modal-close'))
+      assert(!document.querySelector('iframe[title="Why Severino? video"]'), 'Closing modal removes the video player')
+      await click(document.querySelector('[aria-label="Open Severino Perfume Tips"]'))
+      assert(document.querySelector('.banner-story-modal').textContent.includes('Existing perfume tips') && !document.querySelector('.banner-note-tabs, .banner-video'), 'Other banner messages stay unchanged')
+      await click(document.querySelector('.banner-story-modal .modal-close'))
+    } finally { window.fetch = originalFetch }
+  })
+
   await run('Logo intro reveals, dismisses automatically, skips, and cleans up on an image error', async () => {
     const opening = label => <><BrandIntro key={label} /><div style={{ height: 2400 }}>App content</div></>
     await render(opening('automatic'))
@@ -275,10 +358,12 @@ const bundle = await build({
     build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' }))
   } }],
 })
-const css = (await readFile('src/index.css', 'utf8')).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
+const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const logo = await readFile('public/logo.svg')
 const introImage = await readFile('public/iconintro.png')
 const server = createServer((req, res) => {
+  // Prevent real third-party players from loading in this isolated test fixture.
+  res.setHeader('Content-Security-Policy', "frame-src 'none'")
   if (req.url === '/iconintro.png') {
     res.setHeader('Content-Type', 'image/png')
     res.end(introImage)
@@ -336,7 +421,7 @@ async function browser(args, profile) {
     await call('Emulation.setFocusEmulationEnabled', { enabled: true })
     await call('Page.navigate', { url: pageUrl })
     const selector = screenshotPath
-      ? pageUrl.includes('preview=terms') ? '.terms-modal' : pageUrl.includes('preview=intro') ? '.brand-intro__logo' : '.create-account-page'
+      ? pageUrl.includes('preview=terms') ? '.terms-modal' : pageUrl.includes('preview=intro') ? '.brand-intro__logo' : pageUrl.includes('preview=notes') ? '.banner-note-products' : pageUrl.includes('preview=video') ? '.banner-video' : '.create-account-page'
       : '#qa-results'
     const ready = await call('Runtime.evaluate', {
       expression: `new Promise((resolve, reject) => { const deadline = Date.now() + 20000; const check = () => document.querySelector(${JSON.stringify(selector)}) ? resolve(true) : Date.now() > deadline ? reject(new Error('Fixture did not finish')) : setTimeout(check, 50); check(); })`,
@@ -369,9 +454,8 @@ try {
     if (report.results.some(result => !result.passed)) process.exitCode = 1
   }
   for (const [name, width, preview] of [
-    ['intro-start', 1440, 'intro&frame=600'], ['intro-trace', 1440, 'intro&frame=1500'],
-    ['intro-complete', 1440, 'intro&frame=2600'], ['intro-mobile', 390, 'intro&frame=2600'],
-    ['terms-desktop', 1440, 'terms'],
+    ['notes-desktop', 1440, 'notes'], ['notes-mobile', 390, 'notes'],
+    ['video-desktop', 1440, 'video'], ['video-mobile', 390, 'video'],
   ]) {
     await browser([`--window-size=${width},1000`, '--virtual-time-budget=1500', `--screenshot=${path.join(outputDir, name + '.png')}`, `${url}/?preview=${preview}`], name)
   }

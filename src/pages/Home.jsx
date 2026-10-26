@@ -1,4 +1,4 @@
-import Modal from '../components/Modal.jsx'
+import BannerStoryModal from '../components/BannerStoryModal.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
@@ -8,16 +8,9 @@ import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
+import { defaultBannerStories, normalizeBannerStories } from '../../server/shared/bannerContent.js'
 
 
-
-const defaultBannerStories = [
-  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
-  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
-  { id: 'banner-3', title: 'Severino Stories', message: '' },
-  { id: 'banner-4', title: 'Severino Scents', message: '' },
-  { id: 'banner-5', title: 'Why Severino?', message: '' },
-]
 
 const SHOW_HOME_SCROLL_VIDEO = false
 const facebookDesktopHeight = 620
@@ -47,7 +40,7 @@ function Home() {
   const facebookEmbedFrameRef = useRef(null)
   const [activeBannerIndex, setActiveBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
-  const [bannerStories, setBannerStories] = useState(defaultBannerStories)
+  const [bannerStories, setBannerStories] = useState(() => normalizeBannerStories())
   const [featuredBanners, setFeaturedBanners] = useState([])
   const [loadedFeaturedImages, setLoadedFeaturedImages] = useState({})
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
@@ -68,12 +61,7 @@ function Home() {
           api.featuredBanners().catch(() => []),
         ])
         setHeroImage(hero?.image || '')
-        setBannerStories(
-          defaultBannerStories.map((item, index) => ({
-            ...item,
-            message: stories?.[index]?.message || '',
-          }))
-        )
+        setBannerStories(normalizeBannerStories(stories))
         setBanners(
           bannerImages.length
             ? bannerImages.map((image, index) => ({
@@ -313,6 +301,7 @@ function Home() {
                 aria-label={`Open ${banner.title}`}
                 onClick={() =>
                   setOpenBannerStory({
+                    ...bannerStories[index],
                     title: bannerStories[index]?.title || banner.title,
                     message: bannerStories[index]?.message || '',
                   })
@@ -586,34 +575,7 @@ function Home() {
       </section>
 
       {openBannerStory && (
-        <Modal
-          role="presentation"
-          onClick={() => setOpenBannerStory(null)}
-        >
-          <div
-            className="modal-card announcement-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="home-banner-story-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="modal-close"
-              type="button"
-              aria-label="Close"
-              onClick={() => setOpenBannerStory(null)}
-            >
-              X
-            </button>
-            <div className="announcement-modal__badge">Severino Banner</div>
-            <h2 id="home-banner-story-title" className="section-title" style={{ fontSize: '28px' }}>
-              {openBannerStory.title}
-            </h2>
-            <p className="announcement-modal__message">
-              {openBannerStory.message.trim() || 'No message yet for this banner.'}
-            </p>
-          </div>
-        </Modal>
+        <BannerStoryModal story={openBannerStory} onClose={() => setOpenBannerStory(null)} />
       )}
     </section>
   )

@@ -2,14 +2,24 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
+import DriveVideoPlayer from '../components/DriveVideoPlayer.jsx'
+import { defaultBannerStories, googleDriveVideo, normalizeBannerStories } from '../../server/shared/bannerContent.js'
 
-const defaultBannerStories = [
-  { id: 'banner-1', title: 'Severino Perfume Tips', message: '' },
-  { id: 'banner-2', title: 'Severino Inspiration', message: '' },
-  { id: 'banner-3', title: 'Severino Stories', message: '' },
-  { id: 'banner-4', title: 'Severino Scents', message: '' },
-  { id: 'banner-5', title: 'Why Severino?', message: '' },
+const defaultFeaturedBanners = [
+  { id: 'featured-1', title: 'Featured Banner 1', image: '', message: '' },
+  { id: 'featured-2', title: 'Featured Banner 2', image: '', message: '' },
+  { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
 ]
+const normalizeFeaturedBanners = (items = []) =>
+  defaultFeaturedBanners.map((base, index) => {
+    const current = items[index] || {}
+    return {
+      id: base.id,
+      title: current.title || base.title,
+      image: current.image || '',
+      message: current.message || '',
+    }
+  })
 
 const createAnnouncement = (index) => ({
   id: `announcement-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
@@ -49,7 +59,7 @@ function AdminDashboard() {
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [banners, setBanners] = useState(['', '', '', '', ''])
   const [bannerStatus, setBannerStatus] = useState({ loading: false, error: '', success: '' })
-  const [bannerStories, setBannerStories] = useState(defaultBannerStories)
+  const [bannerStories, setBannerStories] = useState(() => normalizeBannerStories())
   const [bannerStoryStatus, setBannerStoryStatus] = useState({ loading: false, error: '', success: '' })
   const [loginPopup, setLoginPopup] = useState('')
   const [popupStatus, setPopupStatus] = useState({ loading: false, error: '', success: '' })
@@ -62,21 +72,6 @@ function AdminDashboard() {
   const [heroImage, setHeroImage] = useState('')
   const [heroStatus, setHeroStatus] = useState({ loading: false, error: '', success: '' })
 
-  const defaultFeaturedBanners = [
-    { id: 'featured-1', title: 'Featured Banner 1', image: '', message: '' },
-    { id: 'featured-2', title: 'Featured Banner 2', image: '', message: '' },
-    { id: 'featured-3', title: 'Featured Banner 3', image: '', message: '' },
-  ]
-  const normalizeFeaturedBanners = (items = []) =>
-    defaultFeaturedBanners.map((base, index) => {
-      const current = items[index] || {}
-      return {
-        id: base.id,
-        title: current.title || base.title,
-        image: current.image || '',
-        message: current.message || '',
-      }
-    })
   const [featuredBanners, setFeaturedBanners] = useState(defaultFeaturedBanners)
   const [featuredBannerStatus, setFeaturedBannerStatus] = useState({
     loading: false,
@@ -121,12 +116,7 @@ function AdminDashboard() {
           setBanners(defaultBannerStories.map((_, index) => bannerImages[index] || ''))
         }
         if (stories?.length) {
-          setBannerStories(
-            defaultBannerStories.map((item, index) => ({
-              ...item,
-              message: stories[index]?.message || '',
-            }))
-          )
+          setBannerStories(normalizeBannerStories(stories))
         }
         if (popup?.image) {
           setLoginPopup(popup.image)
@@ -412,7 +402,7 @@ function AdminDashboard() {
           Banner Pop-up Content
         </h2>
         <p className="section-subtitle">
-          Each homepage banner opens a modal. Titles are fixed; only the messages are editable here.
+          Edit banner messages, explore product notes, and add the video for Why Severino?.
         </p>
         {bannerStoryStatus.error && <div className="card">Error: {bannerStoryStatus.error}</div>}
         {bannerStoryStatus.success && <div className="card">{bannerStoryStatus.success}</div>}
@@ -420,10 +410,41 @@ function AdminDashboard() {
           <div key={story.id} className="announcement-editor">
             <div className="label">Banner {index + 1}</div>
             <input className="input" value={story.title} readOnly />
+            {story.id === 'banner-4' && (
+              <div className="admin-banner-info">
+                <strong>Featured Notes</strong>
+                <p>Products are grouped automatically using their Notes field. Separate notes with commas, for example: Citrus, Vanilla, Musk.</p>
+                <Link to="/admin/products">Manage product notes</Link>
+              </div>
+            )}
+            {story.id === 'banner-5' && (
+              <div className="admin-banner-video-editor">
+                <label className="label" htmlFor="why-severino-video">Google Drive video link</label>
+                <input
+                  id="why-severino-video"
+                  className="input"
+                  type="url"
+                  placeholder="https://drive.google.com/file/d/.../view"
+                  maxLength={2000}
+                  value={story.videoUrl || ''}
+                  disabled={bannerStoryStatus.loading}
+                  aria-invalid={Boolean(story.videoUrl && !googleDriveVideo(story.videoUrl))}
+                  aria-describedby="why-severino-video-help"
+                  onChange={(event) => setBannerStories((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, videoUrl: event.target.value } : item))}
+                />
+                <p id="why-severino-video-help">Paste the video's sharing link. In Google Drive, set General access to Anyone with the link → Viewer. Clear the link to return to a text-only popup.</p>
+                {story.videoUrl && !googleDriveVideo(story.videoUrl) && <p className="admin-banner-video-error" role="alert">Paste a Google Drive video file link, not a folder link.</p>}
+                <DriveVideoPlayer url={story.videoUrl} title="Why Severino? video preview" />
+              </div>
+            )}
+            <label className="label" htmlFor={`banner-story-message-${index}`}>{story.id === 'banner-5' ? 'Caption (optional)' : 'Message'}</label>
             <textarea
+              id={`banner-story-message-${index}`}
               className="input input-textarea"
               placeholder={`Write the popup content for ${story.title}.`}
               value={story.message}
+              maxLength={1500}
+              disabled={bannerStoryStatus.loading}
               onChange={(event) =>
                 setBannerStories((prev) =>
                   prev.map((item, itemIndex) =>
@@ -438,10 +459,14 @@ function AdminDashboard() {
         <button
           className="button"
           type="button"
+          disabled={bannerStoryStatus.loading}
           onClick={async () => {
             try {
+              const videoUrl = bannerStories[4]?.videoUrl?.trim()
+              if (videoUrl && !googleDriveVideo(videoUrl)) throw new Error('Enter a valid Google Drive video sharing link for Why Severino?.')
               setBannerStoryStatus({ loading: true, error: '', success: '' })
-              await api.updateBannerStories(bannerStories)
+              const saved = await api.updateBannerStories(bannerStories)
+              setBannerStories(normalizeBannerStories(saved))
               setBannerStoryStatus({ loading: false, error: '', success: 'Banner popup content updated.' })
             } catch (error) {
               setBannerStoryStatus({ loading: false, error: error.message, success: '' })

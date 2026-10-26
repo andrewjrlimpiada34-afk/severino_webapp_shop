@@ -2784,6 +2784,174 @@ img {
   color: rgba(26, 31, 20, 0.82);
 }
 
+.modal-card.banner-story-modal--rich {
+  width: min(94vw, 960px);
+  max-height: min(90dvh, calc(100dvh - 48px));
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.banner-video {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  min-width: 0;
+}
+
+.banner-video__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #161811;
+}
+
+.banner-video__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.banner-video__link {
+  justify-self: start;
+  color: var(--olive-700);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.banner-notes {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.banner-notes__heading {
+  margin: 0;
+  font-size: 22px;
+}
+
+.banner-notes__intro {
+  margin: -8px 0 0;
+  color: var(--olive-700);
+  font-size: 14px;
+}
+
+.banner-note-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 160px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.banner-note-tab {
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--olive-700) 24%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--olive-800);
+  font: inherit;
+  font-size: 14px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.banner-note-tab[aria-selected='true'] {
+  background: var(--olive-800);
+  border-color: var(--olive-800);
+  color: var(--cream);
+}
+
+.banner-note-tab span {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.banner-note-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  gap: 16px;
+}
+
+.banner-note-product {
+  display: grid;
+  align-content: start;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--olive-700) 18%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--glass) 96%, var(--olive-100));
+}
+
+.banner-note-product__image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--olive-100) 35%, white);
+  color: #87772d;
+  font-size: 24px;
+}
+
+.banner-note-product__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.banner-note-product__copy {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+
+.banner-note-product__copy h4,
+.banner-note-product__copy p {
+  margin: 0;
+}
+
+.banner-note-product__copy h4 {
+  font-size: 18px;
+}
+
+.banner-note-product__copy p,
+.banner-note-product__stock {
+  font-size: 12px;
+}
+
+.banner-note-product__copy strong,
+.banner-note-product__details {
+  font-size: 14px;
+}
+
+.banner-note-product__details {
+  margin-top: 6px;
+  color: var(--olive-700);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.banner-notes-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.banner-note-tab:focus-visible,
+.banner-note-product:focus-visible,
+.banner-video__link:focus-visible {
+  outline: 2px solid var(--olive-600);
+  outline-offset: 3px;
+}
+
 .announcement-list {
   display: grid;
   gap: 14px;

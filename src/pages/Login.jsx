@@ -4,6 +4,15 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { api } from '../lib/api.js'
 
+const loginGreetings = [
+  'Hello there!',
+  'Welcome to Severino!',
+  'Nice to see you!',
+  'Find your signature scent.',
+  'A fresh start awaits!',
+  'Your scent story starts here.',
+]
+
 const termsSections = [
   {
     number: '1',
@@ -59,6 +68,7 @@ const termsSections = [
 ]
 
 function Login() {
+  const [greeting] = useState(() => loginGreetings[Math.floor(Math.random() * loginGreetings.length)])
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [status, setStatus] = useState(() => {
@@ -195,7 +205,7 @@ function Login() {
               </button>
             </div>
           </div>
-          <div className="pill">2FA ready | Security first</div>
+          <div className="pill">{greeting}</div>
           <label className="terms-check">
             <input
               type="checkbox"

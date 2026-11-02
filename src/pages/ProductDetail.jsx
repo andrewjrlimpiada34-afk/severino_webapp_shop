@@ -1,6 +1,6 @@
 import Modal from '../components/Modal.jsx'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
@@ -196,19 +196,25 @@ function ProductDetail() {
       : reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
 
   return (
-    <section className="grid" style={{ gap: '24px' }}>
+    <section className="grid product-detail-page" style={{ gap: '24px' }}>
       {status.error && <div className="card">Error: {status.error}</div>}
       {status.success && <div className="card">{status.success}</div>}
 
-      <div className="grid two">
-        <div className="card">
+      <nav className="product-desktop-only product-detail-breadcrumb" aria-label="Breadcrumb">
+        <Link to="/shop">Shop</Link>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{product.name}</span>
+      </nav>
+
+      <div className="grid two product-detail-hero">
+        <div className="card product-detail-gallery">
           <div className="product-image product-image--detail">
             {activeImage ? (
               <img
                 className="product-image-img"
                 src={activeImage}
                 srcSet={buildCloudinarySrcSet(activeImage, [480, 640, 800, 1000, 1200])}
-                sizes="(max-width: 768px) 90vw, 560px"
+                sizes="(min-width: 1024px) 600px, (max-width: 768px) 90vw, 560px"
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
@@ -220,7 +226,7 @@ function ProductDetail() {
           <div className="product-detail-previews">
             {(product.imageUrls || []).filter(Boolean).map((img, index) => (
               <button
-                key={img}
+                key={`${img}-${index}`}
                 type="button"
                 className="thumb"
                 aria-label={`View ${product.name} image ${index + 1}`}
@@ -231,11 +237,21 @@ function ProductDetail() {
             ))}
           </div>
         </div>
-        <div className="card">
+        <div className="card product-detail-summary">
           <div className="tag">{product.size}</div>
           <h1 className="section-title">{product.name}</h1>
+          <a className="product-desktop-only product-detail-rating-link" href="#product-reviews">
+            <span className="product-detail-rating-star" aria-hidden="true">★</span>
+            {reviews.length ? `${average.toFixed(1)} / 5 · ${reviews.length} ${reviews.length === 1 ? 'review' : 'reviews'}` : 'Be the first to review'}
+          </a>
           <p className="section-subtitle">{product.description || product.notes}</p>
-          <p>₱{product.price.toLocaleString()}</p>
+          {product.notes && (
+            <div className="product-desktop-only product-detail-notes">
+              <div className="tag">Scent notes</div>
+              <p>{product.notes}</p>
+            </div>
+          )}
+          <p className="product-detail-price">₱{product.price.toLocaleString()}</p>
           {product.stock > 0 ? (
             <div className="pill">Stock: {product.stock}</div>
           ) : (
@@ -256,6 +272,7 @@ function ProductDetail() {
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
+              <span className="product-desktop-only">Add to Cart</span>
             </button>
             <button
               className={`icon-button ${isFav ? 'favorited' : ''}`}
@@ -289,6 +306,7 @@ function ProductDetail() {
               Back to Shop
             </button>
           </div>
+          <p className="product-desktop-only product-detail-payment-note">Cash on delivery available</p>
         </div>
       </div>
 
@@ -362,11 +380,11 @@ function ProductDetail() {
         </Modal>
       )}
 
-      <div className="grid two">
-        <form className="card form" onSubmit={submitReview}>
+      <div className="grid two product-detail-reviews" id="product-reviews">
+        <form className="card form product-detail-review-form" id="product-review-form" onSubmit={submitReview}>
 
           <div className="tag">Rate this scent</div>
-          <div className="card">
+          <div className="card product-detail-review-summary">
             <div className="label">Summary</div>
             <div className="section-subtitle">
               Average: {average.toFixed(1)} ★ · {reviews.length} review(s)
@@ -402,9 +420,10 @@ function ProductDetail() {
           </button>
         </form>
 
-        <div className="card">
+        <div className="card product-detail-review-list">
           <div className="tag">Reviews</div>
           {reviews.length === 0 && <p className="section-subtitle">No reviews yet.</p>}
+          {reviews.length === 0 && <a className="product-desktop-only product-detail-write-review" href="#product-review-form">Share your first impression <span aria-hidden="true">↗</span></a>}
           {reviews.map((review) => (
             <div key={review.id} className="review-card">
               <RatingStars value={review.rating} readOnly />

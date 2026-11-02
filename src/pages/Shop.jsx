@@ -225,7 +225,7 @@ function Shop() {
 
       {status.loading && <ProductGridSkeleton count={8} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      {!status.loading && <div className="grid four shop-product-grid">
+      {!status.loading && <div className="grid four shop-product-grid catalog-product-grid">
         {filtered.map((product) => {
           const isFav = favorites.includes(product.id)
           const isAdaptivePick =

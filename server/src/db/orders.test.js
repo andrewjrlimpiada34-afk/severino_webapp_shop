@@ -90,7 +90,7 @@ test('approval and delivery APIs enforce ordering, atomic stock deductions, and 
     method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: method === 'DELETE' ? undefined : JSON.stringify({ status }),
   })
-  const change = (status, id = 'i1') => request(`/api/orders/o1/items/${id}/status`, status)
+  const change = (status, id = 'i1') => request(`/api/orders/o1/items/${id}/progress`, status)
   context.after(async () => {
     inventoryEvents.off('change', onChange)
     server.closeAllConnections()
@@ -105,6 +105,8 @@ test('approval and delivery APIs enforce ordering, atomic stock deductions, and 
     assert.equal(state.products[0].stock, 14)
     assert.equal(JSON.parse(state.orders[0].items)[0].trackingStatus, 'Pending COD')
     assert.equal(events.length, 0)
+    assert.equal((await request('/api/orders/o1/items/i1/progress', 'Approved', customer)).status, 403)
+    assert.equal((await request('/api/orders/o1/items/i1/status', 'To Ship')).status, 409)
   })
 
   await context.test('approval deducts 14 to zero once, notifies open stock streams, and invalidates inventory cache', async () => {

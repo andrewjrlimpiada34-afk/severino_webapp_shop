@@ -31,7 +31,7 @@ function ProductCardSkeleton() {
 
 function ProductGridSkeleton({ count = 8 }) {
   return (
-    <div className="grid four shop-product-grid skeleton-grid" aria-label="Loading products">
+    <div className="grid four shop-product-grid catalog-product-grid skeleton-grid" aria-label="Loading products">
       {Array.from({ length: count }, (_, index) => (
         <ProductCardSkeleton key={`product-skeleton-${index}`} />
       ))}

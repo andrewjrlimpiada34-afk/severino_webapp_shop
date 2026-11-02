@@ -95,12 +95,14 @@ router.patch('/:orderId/items/:itemId/cancel', requireAuth, asyncRoute(async (re
   return res.json(normalizeId(updated))
 }))
 
-router.patch('/:orderId/items/:itemId/status', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
+// /progress is the guarded workflow endpoint used by the current frontend.
+// Keep /status for existing clients; both run the same transactional checks.
+router.patch(['/:orderId/items/:itemId/progress', '/:orderId/items/:itemId/status'], requireAuth, requireAdmin, asyncRoute(async (req, res) => {
   const parsed = statusSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ message: 'Invalid order status.' })
   const { orderId, itemId } = req.params
   const updated = await updateOrderItemStatus(orderId, itemId, parsed.data.status)
-  if (!updated) return res.status(404).json({ message: 'Not found' })
+  if (!updated) return res.status(404).json({ message: 'Order item no longer exists. Refresh orders.' })
   return res.json(normalizeId(updated))
 }))
 

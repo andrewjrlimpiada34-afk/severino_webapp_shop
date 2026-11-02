@@ -163,7 +163,7 @@ function AdminViewOrders() {
                           key={step}
                           type="button"
                           className={`button ghost admin-order-step ${completed ? 'is-complete' : ''} ${isNext ? 'is-next' : ''}`}
-                          disabled={order.workflowVersion !== 1 || Boolean(pending[order.id]) || !isNext}
+                          disabled={Boolean(pending[order.id]) || !isNext}
                           title={completed ? `${step} completed` : isNext ? `Move item to ${step}` : 'Complete the previous step first'}
                           onClick={() => runAction(order.id, step, () => api.updateOrderItemStatus(order.id, item.itemId || `${itemIndex}-${item.productId}`, step))}
                         >
@@ -183,7 +183,7 @@ function AdminViewOrders() {
                       >
                         Remove
                       </button>
-                      <span className="admin-order-action-hint">{order.workflowVersion !== 1 ? 'Approval controls are temporarily unavailable. Refresh and try again.' : getItemStatus(order, item) === 'Pending COD' ? 'Approval required before shipping' : getNextOrderStatus(getItemStatus(order, item)) ? 'Complete each step in order' : 'Order fulfilled'}</span>
+                      <span className="admin-order-action-hint">{getItemStatus(order, item) === 'Pending COD' ? 'Approval required before shipping' : getNextOrderStatus(getItemStatus(order, item)) ? 'Complete each step in order' : 'Order fulfilled'}</span>
                       {orderSteps.includes(getItemStatus(order, item)) && !item.stockDeductedAt && <span className="admin-order-action-hint">Older record: confirm its stock deduction in inventory.</span>}
                     </div>
                   )}

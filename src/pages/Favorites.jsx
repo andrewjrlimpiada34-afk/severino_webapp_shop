@@ -45,7 +45,7 @@ function Favorites() {
         </div>
       )}
       {items.length > 0 && (
-        <div className="grid four">
+        <div className="grid four catalog-product-grid">
           {items.map((product) => (
             <article key={product.id} className="product-card">
               <div className="product-image">

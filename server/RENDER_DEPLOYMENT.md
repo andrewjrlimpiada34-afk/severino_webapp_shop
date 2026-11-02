@@ -66,9 +66,14 @@ changes or environment updates are required for this login/request cleanup.
 
 ## Approval workflow and live inventory
 
-Deploy the Node backend before the matching frontend. The frontend enables
-approval controls only for order responses declaring `workflowVersion: 1`, so an
-older backend cannot accept an approval without the new inventory checks.
+Deploy the Node backend before the matching frontend. Item actions use
+`PATCH /api/orders/:orderId/items/:itemId/progress`, which validates the next
+stage and deducts approval stock transactionally. The UI no longer disables an
+otherwise valid action when an order response omits `workflowVersion`.
+If Render still runs the older code, this dedicated endpoint returns 404 and the
+frontend displays a backend deployment instruction. It never falls back to the
+older unrestricted status endpoint. The existing `/status` route remains as a
+compatibility alias with the same checks on the updated backend.
 
 The item workflow is `Pending COD -> Approved -> To Ship -> To Receive -> To Review`.
 Approval deducts stock once in the same transaction as the item update. Deduction

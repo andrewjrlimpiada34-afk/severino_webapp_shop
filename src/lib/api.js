@@ -1,4 +1,5 @@
 import { createApiClient } from './apiClient.js'
+import { advanceOrderItem } from './orderProgress.js'
 
 export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/+$/, '')
 const { request, upload, clearCache } = createApiClient({ baseUrl: API_URL })
@@ -40,10 +41,7 @@ export const api = {
   updateOrderStatus: (id, status) =>
     request(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   updateOrderItemStatus: (orderId, itemId, status) =>
-    request(`/api/orders/${orderId}/items/${itemId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
+    advanceOrderItem(request, orderId, itemId, status),
 
   deleteOrder: (id) => request(`/api/orders/${id}`, { method: 'DELETE' }),
   feedback: () => request('/api/feedback'),

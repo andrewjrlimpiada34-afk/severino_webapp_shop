@@ -157,7 +157,7 @@ function Search() {
 
       {status.loading && <ProductGridSkeleton count={8} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      {!status.loading && <div className="grid four">
+      {!status.loading && <div className="grid four catalog-product-grid">
         {results.map((product) => {
 
           const isFav = favorites.includes(product.id)

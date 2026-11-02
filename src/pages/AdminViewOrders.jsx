@@ -1,18 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
-
-function parseAddress(address) {
-  const parts = String(address || '')
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-  return {
-    country: parts.at(-1) || '',
-    province: parts.at(-3) || '',
-    city: parts.at(-4) || '',
-    barangay: parts.at(-5) || '',
-  }
-}
+import { groupActiveOrdersByAddress } from '../utils/ordersByAddress.js'
 
 function getItemStatus(order, item) {
   return item.trackingStatus || order.status || ''
@@ -50,30 +38,7 @@ function AdminViewOrders() {
     load()
   }, [])
 
-  const byAddress = useMemo(() => {
-    const counts = {}
-    orders
-      .filter(
-        (order) =>
-          order.status !== 'Cancelled' &&
-          order.status !== 'Removed' &&
-          order.status !== 'To Review'
-      )
-      .forEach((order) => {
-      const address = parseAddress(order.address)
-      const key = `${address.country}|${address.province}|${address.city}|${address.barangay}`
-      counts[key] = counts[key] || { ...address, count: 0 }
-      counts[key].count += 1
-      })
-    return Object.values(counts).sort((a, b) => {
-      return (
-        a.country.localeCompare(b.country) ||
-        a.province.localeCompare(b.province) ||
-        a.city.localeCompare(b.city) ||
-        a.barangay.localeCompare(b.barangay)
-      )
-    })
-  }, [orders])
+  const byAddress = useMemo(() => groupActiveOrdersByAddress(orders), [orders])
 
   const orderRows = useMemo(
     () =>
@@ -107,7 +72,7 @@ function AdminViewOrders() {
         <h2 className="section-title" style={{ fontSize: '22px' }}>
           Orders by Address
         </h2>
-        {byAddress.length === 0 && <p className="section-subtitle">No orders yet.</p>}
+        {byAddress.length === 0 && <p className="section-subtitle">No active orders.</p>}
         {byAddress.length > 0 && (
           <table className="table">
             <thead>
@@ -116,7 +81,7 @@ function AdminViewOrders() {
                 <th>Province</th>
                 <th>Municipality</th>
                 <th>Barangay</th>
-                <th>Orders</th>
+                <th>Active Orders</th>
               </tr>
             </thead>
             <tbody>

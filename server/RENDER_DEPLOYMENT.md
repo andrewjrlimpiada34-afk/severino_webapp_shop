@@ -55,6 +55,15 @@ Add the existing Google OAuth, email, Cloudinary, JWT, admin, and `CLIENT_ORIGIN
 https://YOUR-BACKEND.onrender.com/api/auth/google/callback
 ```
 
+Automatic admin provisioning requires both `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+There is no default admin password. Existing admin accounts keep their current
+passwords; changing the environment variables does not reset those passwords.
+
+The login API returns a sanitized `user` alongside `requires2fa: false`, allowing
+the frontend to reuse profile data without extra session/profile requests.
+Deploy the Node backend and frontend changes together. No Python OTP service
+changes or environment updates are required for this login/request cleanup.
+
 ## 4. Cut over safely
 
 Disable Render Auto-Deploy before pushing the PostgreSQL code. During a quiet period, run `npm run db:migrate` one final time locally, push the code, save the Supabase environment variables, and manually deploy the latest commit.

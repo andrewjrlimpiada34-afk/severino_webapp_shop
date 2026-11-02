@@ -116,7 +116,7 @@ function Checkout() {
         zip: form.zip,
         country: form.country,
       })
-      const products = await api.products()
+      const products = await api.products({ fresh: true })
       let cart = null
       let items = []
 

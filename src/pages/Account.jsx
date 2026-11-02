@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 
 function Account() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, updateUser } = useAuth()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -101,7 +101,8 @@ function Account() {
     }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      await api.updateProfile(form)
+      const updated = await api.updateProfile(form)
+      updateUser(updated)
       setStatus({ loading: false, error: '', success: '' })
       setProfileUpdatedOpen(true)
     } catch (error) {

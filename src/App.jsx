@@ -31,8 +31,6 @@ import AdminViewUsers from './pages/AdminViewUsers.jsx'
 import AdminViewOrders from './pages/AdminViewOrders.jsx'
 import AdminProducts from './pages/AdminProducts.jsx'
 
-console.log('API URL:', import.meta.env.VITE_API_URL)
-
 function AppLayout({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
@@ -156,15 +154,18 @@ function PublicOnlyRoute({ children }) {
 
 function AdminRoute({ children }) {
   const { user, loading, logout } = useAuth()
+  const adminSession = sessionStorage.getItem('admin_session')
+  const shouldLogout = !loading && user?.role === 'admin' && !adminSession
+  useEffect(() => {
+    if (shouldLogout) logout().catch(() => {})
+  }, [shouldLogout, logout])
   if (loading) {
     return <SessionLoader admin />
   }
   if (!user || user.role !== 'admin') {
     return <Navigate to="/admin/login" replace />
   }
-  const adminSession = sessionStorage.getItem('admin_session')
   if (!adminSession) {
-    logout()
     return <Navigate to="/admin/login" replace />
   }
   return children

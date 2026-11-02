@@ -1,8 +1,9 @@
 import Modal from '../components/Modal.jsx'
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { api } from '../lib/api.js'
+import { api, API_URL } from '../lib/api.js'
+import { loginErrors } from '../../server/shared/loginValidation.js'
 
 const loginGreetings = [
   'Hello there!',
@@ -71,6 +72,11 @@ function Login() {
   const [greeting] = useState(() => loginGreetings[Math.floor(Math.random() * loginGreetings.length)])
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
+  const [touched, setTouched] = useState({})
+  const identifierRef = useRef(null)
+  const passwordRef = useRef(null)
+  const pendingRef = useRef(false)
+  const errors = loginErrors(form.identifier, form.password)
   const [status, setStatus] = useState(() => {
     const oauthStatus = new URLSearchParams(window.location.search).get('oauth')
     const error = oauthStatus === 'cancelled'
@@ -84,12 +90,7 @@ function Login() {
   const [termsOpen, setTermsOpen] = useState(false)
   const { startLogin } = useAuth()
   const navigate = useNavigate()
-  const defaultApi =
-    window.location.hostname === 'localhost'
-      ? 'http://localhost:4000'
-      : 'https://severino-backend.onrender.com'
-  const apiBase = import.meta.env.VITE_API_URL || defaultApi
-  const googleUrl = `${apiBase}/api/auth/google`
+  const googleUrl = `${API_URL}/api/auth/google`
 
   useEffect(() => {
     let active = true
@@ -111,12 +112,21 @@ function Login() {
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+    setStatus((prev) => ({ ...prev, error: '', success: '' }))
   }
 
   const hasAnnouncement = announcements.length > 0
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (pendingRef.current) return
+    setTouched({ identifier: true, password: true })
+    if (errors.identifier || errors.password) {
+      setStatus({ loading: false, error: 'Check the highlighted fields.', success: '' })
+      const invalidField = errors.identifier ? identifierRef : passwordRef
+      invalidField.current?.focus()
+      return
+    }
     if (!termsAccepted) {
       setStatus({
         loading: false,
@@ -125,11 +135,13 @@ function Login() {
       })
       return
     }
+    pendingRef.current = true
     try {
       setStatus({ loading: true, error: '', success: '' })
       const data = await startLogin(form.identifier, form.password)
       setStatus({ loading: false, error: '', success: 'Logged in successfully.' })
       if (data?.role === 'admin') {
+        sessionStorage.setItem('admin_session', 'active')
         navigate('/admin')
         return
       }
@@ -142,6 +154,8 @@ function Login() {
       navigate('/')
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
+    } finally {
+      pendingRef.current = false
     }
   }
 
@@ -149,8 +163,8 @@ function Login() {
     <section className="grid" style={{ gap: '24px', maxWidth: '960px', margin: '0 auto' }}>
       <div className="login-header-row">
         <div>
-          <h1 className="section-title">Login Page</h1>
-          <p className="section-subtitle">Secure login with device verification.</p>
+          <h1 className="section-title">Welcome back</h1>
+          <p className="section-subtitle">Sign in with your email or Philippine mobile number.</p>
         </div>
         {hasAnnouncement && (
           <button
@@ -164,34 +178,55 @@ function Login() {
         )}
       </div>
       <div className="grid two">
-        <form className="card form" onSubmit={handleSubmit}>
-          <div>
-            <div className="label">Email or Contact Number</div>
+        <form className="card form auth-login-form" onSubmit={handleSubmit} noValidate aria-busy={status.loading}>
+          <div className="auth-field">
+            <label className="label" htmlFor="login-identifier">Email or Mobile Number</label>
             <input
+              id="login-identifier"
+              name="identifier"
+              ref={identifierRef}
               className="input"
               type="text"
               placeholder="email@example.com or 09XXXXXXXXX"
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              disabled={status.loading}
+              aria-invalid={Boolean(touched.identifier && errors.identifier)}
+              aria-describedby={touched.identifier && errors.identifier ? 'login-identifier-error' : undefined}
               value={form.identifier}
               onChange={(event) => updateField('identifier', event.target.value)}
+              onBlur={() => setTouched((prev) => ({ ...prev, identifier: true }))}
             />
+            {touched.identifier && errors.identifier && <p className="auth-field-error" id="login-identifier-error">{errors.identifier}</p>}
           </div>
-          <div>
-            <div className="label">Password</div>
+          <div className="auth-field">
+            <label className="label" htmlFor="login-password">Password</label>
             <div className="input-row">
               <input
+                id="login-password"
+                name="password"
+                ref={passwordRef}
                 className="input"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="********"
                 autoComplete="current-password"
+                required
+                minLength={8}
+                disabled={status.loading}
+                aria-invalid={Boolean(touched.password && errors.password)}
+                aria-describedby={touched.password && errors.password ? 'login-password-error' : undefined}
                 value={form.password}
                 onChange={(event) => updateField('password', event.target.value)}
+                onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
               />
               <button
                 type="button"
                 className="icon-button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label="Toggle password"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
               >
                 <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path
@@ -204,11 +239,13 @@ function Login() {
                 </svg>
               </button>
             </div>
+            {touched.password && errors.password && <p className="auth-field-error" id="login-password-error">{errors.password}</p>}
           </div>
           <div className="pill">{greeting}</div>
           <label className="terms-check">
             <input
               type="checkbox"
+              disabled={status.loading}
               checked={termsAccepted}
               onChange={(event) => {
                 setTermsAccepted(event.target.checked)
@@ -228,16 +265,20 @@ function Login() {
               </button>
             </span>
           </label>
-          {status.error && <div className="card">Error: {status.error}</div>}
-          {status.success && <div className="card">{status.success}</div>}
+          {status.error && <div className="auth-message" role="alert">{status.error}</div>}
+          {status.success && <div className="pill" role="status">{status.success}</div>}
           <button className="button" type="submit" disabled={status.loading}>
             {status.loading ? 'Signing in...' : 'Sign In'}
           </button>
           <a
             className="button secondary"
-            href={termsAccepted ? googleUrl : undefined}
-            aria-disabled={!termsAccepted}
+            href={termsAccepted && !status.loading ? googleUrl : undefined}
+            aria-disabled={!termsAccepted || status.loading}
             onClick={(event) => {
+              if (status.loading) {
+                event.preventDefault()
+                return
+              }
               if (!termsAccepted) {
                 event.preventDefault()
                 setStatus({
@@ -250,9 +291,9 @@ function Login() {
           >
             Continue with Google
           </a>
-          <a href="/create-account" className="button secondary">
+          <Link to="/create-account" className="button secondary">
             Create Account
-          </a>
+          </Link>
         </form>
         <div className="card terms-summary-card">
           <div className="tag">Agreement</div>

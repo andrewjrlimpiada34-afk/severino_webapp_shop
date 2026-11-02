@@ -2,8 +2,9 @@ import bcrypt from 'bcryptjs'
 import { getDb } from './postgres.js'
 import { createId, nullable } from './util.js'
 
-const adminEmail = process.env.ADMIN_EMAIL || 'admin@severinoatelier.com'
-const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!'
+const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+const adminPassword = process.env.ADMIN_PASSWORD
+let adminReady
 
 const mapUser = (row) =>
   row
@@ -35,7 +36,7 @@ const findUser = async (column, value) => {
   return mapUser(rows[0])
 }
 
-const ensureAdmin = async () => {
+const bootstrapAdmin = async () => {
   const existing = await findUser('email', adminEmail)
   if (existing) return existing
 
@@ -50,6 +51,18 @@ const ensureAdmin = async () => {
     [createId(), adminEmail, bcrypt.hashSync(adminPassword, 12)]
   )
   return findUser('email', adminEmail)
+}
+
+const ensureAdmin = () => {
+  // Existing accounts remain accessible without enabling automatic provisioning.
+  if (!adminEmail || !adminPassword) return Promise.resolve(null)
+  if (!adminReady) {
+    adminReady = bootstrapAdmin().catch((error) => {
+      adminReady = undefined
+      throw error
+    })
+  }
+  return adminReady
 }
 
 export const getUsers = async () => {

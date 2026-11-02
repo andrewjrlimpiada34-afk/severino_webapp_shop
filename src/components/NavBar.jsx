@@ -19,26 +19,27 @@ const navAnimations = {
 
 function NavBar() {
   const { user, logout } = useAuth()
+  const userId = user?.id
   const [open, setOpen] = useState(false)
   const [mobileQuickOpen, setMobileQuickOpen] = useState(false)
   const [mobileNavHidden, setMobileNavHidden] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [notifications, setNotifications] = useState([])
-  const [profileImage, setProfileImage] = useState('')
+  const profileImage = user?.profileImage || ''
   const navigate = useNavigate()
   const location = useLocation()
   const { playActionAnimation } = useActionAnimation()
 
   const isActivePath = (path) => location.pathname === path
 
-  const goToPage = async (event, path) => {
+  const goToPage = (event, path) => {
     event?.preventDefault?.()
     if (event?.currentTarget?.classList.contains('icon-button')) triggerSpray(event)
     setOpen(false)
     setMobileQuickOpen(false)
     const animation = navAnimations[path] || { type: 'home', message: 'Opening page' }
-    await playActionAnimation(animation.type, {
-      duration: 760,
+    playActionAnimation(animation.type, {
+      duration: 350,
       message: animation.message,
     })
     navigate(path)
@@ -61,31 +62,32 @@ function NavBar() {
 
   const handleLogout = async () => {
     await logout()
-    await playActionAnimation('login', { duration: 760, message: 'Opening login' })
+    playActionAnimation('login', { duration: 350, message: 'Opening login' })
     navigate('/login')
   }
 
   useEffect(() => {
+    if (!userId) return undefined
+    let active = true
     const load = async () => {
-      if (!user) return
       try {
         const orders = await api.orders()
-        const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
-        const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
+        if (!active) return
+        const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${userId}`) || '[]')
+        const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${userId}`) || '[]')
         const list = orders.slice(0, 5).map((order) => ({
           id: order.id,
           text: `Order ${order.id} is ${order.status}`,
           opened: openedIds.includes(order.id),
         }))
         setNotifications(list.filter((item) => !deletedIds.includes(item.id)))
-        const profile = await api.profile().catch(() => null)
-        setProfileImage(profile?.profileImage || '')
       } catch {
-        setNotifications([])
+        if (active) setNotifications([])
       }
     }
     load()
-  }, [user])
+    return () => { active = false }
+  }, [userId])
 
   useEffect(() => {
     document.body.classList.toggle('nav-quick-open', mobileQuickOpen)

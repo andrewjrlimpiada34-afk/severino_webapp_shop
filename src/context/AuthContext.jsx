@@ -1,8 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { clearLocalProfile, setLocalProfile } from '../lib/auth.js'
+import { loginErrors, normalizeLoginIdentifier } from '../../server/shared/loginValidation.js'
 
 const AuthContext = createContext(null)
+
+const applyTheme = (theme) => {
+  if (!theme || theme === 'Default') {
+    document.documentElement.removeAttribute('data-theme')
+  } else {
+    document.documentElement.setAttribute('data-theme', theme)
+  }
+}
 
 const transferPendingBuyNow = (user) => {
   if (!user?.id || user.role === 'admin') return
@@ -35,87 +44,90 @@ const transferPendingBuyNow = (user) => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const userId = user?.id
   const idleTimer = useRef(null)
+  const sessionVersion = useRef(0)
+  const currentUserId = useRef(null)
 
-  const applyTheme = (theme) => {
-    if (!theme || theme === 'Default') {
+  const acceptUser = useCallback((me) => {
+    let resolved = me
+    if (me.role === 'admin') {
       document.documentElement.removeAttribute('data-theme')
-      return
-    }
-    document.documentElement.setAttribute('data-theme', theme)
-  }
-
-  const resolveUserTheme = async (me) => {
-    if (!me || me.role === 'admin') {
-      document.documentElement.removeAttribute('data-theme')
-      return { ...me }
-    }
-    try {
-      const profile = await api.profile()
+    } else {
       const stored = localStorage.getItem(`severino_theme_${me.id}`)
-      const theme = profile.preferredTheme || stored || 'Default'
+      const theme = me.preferredTheme || stored || 'Default'
       localStorage.setItem(`severino_theme_${me.id}`, theme)
       applyTheme(theme)
-      return { ...me, preferredTheme: theme }
-    } catch {
-      document.documentElement.removeAttribute('data-theme')
-      return { ...me }
+      resolved = { ...me, preferredTheme: theme }
     }
-  }
-
-  const refresh = async () => {
-    try {
-      const data = await api.me()
-      const resolved = await resolveUserTheme(data)
-      transferPendingBuyNow(resolved)
-      setUser(resolved)
-      setLocalProfile(resolved)
-      return resolved
-    } catch {
-      setUser(null)
-      clearLocalProfile()
-      return null
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    refresh()
-  }, [])
-
-  const startLogin = async (identifier, password) => {
-    await api.login({ identifier, email: identifier, password })
-    const data = await api.me()
-    const resolved = await resolveUserTheme(data)
+    currentUserId.current = resolved.id
+    transferPendingBuyNow(resolved)
     setUser(resolved)
     setLocalProfile(resolved)
-    transferPendingBuyNow(resolved)
     return resolved
-  }
+  }, [])
 
-  const register = async (data) => {
-    return api.register(data)
-  }
-
-  const sendRegisterOtp = async (email) => {
-    return api.sendRegisterOtp(email)
-  }
-
-  const verifyRegisterOtp = async (payload) => {
-    return api.verifyRegisterOtp(payload)
-  }
-
-  const logout = useCallback(async () => {
-    await api.logout()
+  const clearSession = useCallback(() => {
+    currentUserId.current = null
     setUser(null)
     clearLocalProfile()
+    api.clearCache()
     document.documentElement.removeAttribute('data-theme')
     sessionStorage.removeItem('admin_session')
     Object.keys(sessionStorage)
       .filter((key) => key.startsWith('severino_login_popup_seen_'))
       .forEach((key) => sessionStorage.removeItem(key))
   }, [])
+
+  const refresh = useCallback(async () => {
+    const version = ++sessionVersion.current
+    try {
+      const data = await api.me()
+      if (version !== sessionVersion.current) return null
+      return acceptUser(data)
+    } catch {
+      if (version === sessionVersion.current) clearSession()
+      return null
+    } finally {
+      if (version === sessionVersion.current) setLoading(false)
+    }
+  }, [acceptUser, clearSession])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  const startLogin = useCallback(async (identifier, password) => {
+    const errors = loginErrors(identifier, password)
+    if (errors.identifier || errors.password) throw new Error(errors.identifier || errors.password)
+    const version = ++sessionVersion.current
+    const result = await api.login({ identifier: normalizeLoginIdentifier(identifier), password })
+    // Fall back to /me while an older backend is still deployed.
+    const data = result.user || await api.me()
+    if (version !== sessionVersion.current) throw new Error('Sign-in was interrupted. Please try again.')
+    setLoading(false)
+    return acceptUser(data)
+  }, [acceptUser])
+
+  const register = useCallback((data) => api.register(data), [])
+
+  const sendRegisterOtp = useCallback((email) => api.sendRegisterOtp(email), [])
+
+  const verifyRegisterOtp = useCallback((payload) => api.verifyRegisterOtp(payload), [])
+
+  const updateUser = useCallback((profile) => {
+    if (profile?.id === currentUserId.current) acceptUser(profile)
+  }, [acceptUser])
+
+  const logout = useCallback(async () => {
+    sessionVersion.current += 1
+    try {
+      await api.logout()
+    } finally {
+      clearSession()
+      setLoading(false)
+    }
+  }, [clearSession])
 
   const value = useMemo(
     () => ({
@@ -127,18 +139,19 @@ export function AuthProvider({ children }) {
       verifyRegisterOtp,
       logout,
       refresh,
+      updateUser,
     }),
-    [user, loading]
+    [user, loading, startLogin, register, sendRegisterOtp, verifyRegisterOtp, logout, refresh, updateUser]
   )
 
   useEffect(() => {
-    if (!user) return undefined
+    if (!userId) return undefined
     const idleMs = 15 * 60 * 1000
 
     const resetTimer = () => {
       if (idleTimer.current) clearTimeout(idleTimer.current)
       idleTimer.current = setTimeout(() => {
-        logout()
+        logout().catch(() => {})
       }, idleMs)
     }
 
@@ -156,7 +169,7 @@ export function AuthProvider({ children }) {
       events.forEach((event) => window.removeEventListener(event, resetTimer))
       window.removeEventListener('beforeunload', clearAdminSession)
     }
-  }, [user])
+  }, [userId, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

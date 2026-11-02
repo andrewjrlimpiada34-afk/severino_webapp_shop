@@ -1,45 +1,11 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+import { createApiClient } from './apiClient.js'
 
-async function request(path, options = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  })
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}))
-    const message = payload.message || 'Request failed'
-    const error = new Error(message)
-    error.status = response.status
-    throw error
-  }
-  return response.json()
-}
-
-async function upload(path, file, fieldName = 'image') {
-  const formData = new FormData()
-  const filename = file?.name || 'upload.jpg'
-  formData.append(fieldName, file, filename)
-  const response = await fetch(`${API_URL}${path}`, {
-    method: 'POST',
-    credentials: 'include',
-    body: formData,
-  })
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}))
-    const message = payload.message || 'Upload failed'
-    const error = new Error(message)
-    error.status = response.status
-    throw error
-  }
-  return response.json()
-}
+export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/+$/, '')
+const { request, upload, clearCache } = createApiClient({ baseUrl: API_URL })
+const publicCache = { cacheTtl: 60000 }
 
 export const api = {
+  clearCache,
   login: (data) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   sendRegisterOtp: (email) =>
     request('/api/auth/otp/send', { method: 'POST', body: JSON.stringify({ email }) }),
@@ -57,7 +23,7 @@ export const api = {
     request('/api/users/theme', { method: 'PATCH', body: JSON.stringify({ preferredTheme }) }),
   updatePassword: (data) =>
     request('/api/users/password', { method: 'PATCH', body: JSON.stringify(data) }),
-  products: () => request('/api/products'),
+  products: (options = {}) => request('/api/products', { ...publicCache, ...options }),
   product: (id) => request(`/api/products/${id}`),
   createProduct: (data) =>
     request('/api/products', { method: 'POST', body: JSON.stringify(data) }),
@@ -107,12 +73,12 @@ export const api = {
     request('/api/admin/hero-image', { method: 'PUT', body: JSON.stringify({ image }) }),
   uploadImage: (file) => upload('/api/uploads/image', file),
   uploadMedia: (file) => upload('/api/uploads/media', file, 'media'),
-  loginPopup: () => request('/api/public/login-popup'),
-  loginAnnouncement: () => request('/api/public/login-announcement'),
-  bannerStories: () => request('/api/public/banner-stories'),
-  heroImage: () => request('/api/public/hero-image'),
-  banners: () => request('/api/public/banners'),
-  featuredBanners: () => request('/api/public/featured-banners'),
+  loginPopup: () => request('/api/public/login-popup', publicCache),
+  loginAnnouncement: () => request('/api/public/login-announcement', publicCache),
+  bannerStories: () => request('/api/public/banner-stories', publicCache),
+  heroImage: () => request('/api/public/hero-image', publicCache),
+  banners: () => request('/api/public/banners', publicCache),
+  featuredBanners: () => request('/api/public/featured-banners', publicCache),
   adminFeaturedBanners: () => request('/api/admin/featured-banners'),
   updateFeaturedBanners: (items) =>
     request('/api/admin/featured-banners', {

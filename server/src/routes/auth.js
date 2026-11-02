@@ -5,6 +5,9 @@ import jwt from 'jsonwebtoken'
 import passport from 'passport'
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
 import { z } from 'zod'
+import rateLimit from 'express-rate-limit'
+import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
+import { loginSchema } from '../lib/loginSchema.js'
 import { callOtp, proxyOtp } from '../otp-client.js'
 import {
   createUser,
@@ -17,23 +20,21 @@ import {
 
 
 const router = express.Router()
+const invalidCredentials = 'Invalid email, mobile number, or password.'
+const dummyPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many sign-in attempts. Please try again in 15 minutes.' },
+})
 
-const normalizePhilippineMobile = (value = '') => {
-  const compact = String(value).replace(/[\s-]/g, '')
-  if (/^09\d{9}$/.test(compact)) {
-    return `+63${compact.slice(1)}`
-  }
-  if (/^9\d{9}$/.test(compact)) {
-    return `+63${compact}`
-  }
-  if (/^\+639\d{9}$/.test(compact)) {
-    return compact
-  }
-  if (/^639\d{9}$/.test(compact)) {
-    return `+${compact}`
-  }
-  return ''
-}
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store')
+  next()
+})
 
 const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
@@ -51,12 +52,6 @@ const registerSchema = z.object({
   zip: z.string().trim().min(3, 'ZIP is required'),
   country: z.string().trim().min(2, 'Country is required'),
   verificationId: z.string().min(8),
-})
-
-const loginSchema = z.object({
-  identifier: z.string().trim().min(3, 'Mobile number or email is required').optional(),
-  email: z.string().trim().optional(),
-  password: z.string().min(8),
 })
 
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
@@ -166,39 +161,35 @@ router.post('/register', async (req, res) => {
   })
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
   }
 
-  const identifier = parsed.data.identifier || parsed.data.email || ''
-  const normalizedPhone = normalizePhilippineMobile(identifier)
-  const normalizedEmail = identifier.toLowerCase()
-  const user = normalizedPhone
-    ? await getUserByPhone(normalizedPhone)
-    : await getUserByEmail(normalizedEmail)
-  if (!user || !user.passwordHash) {
-    return res.status(404).json({ message: 'Account not found' })
-  }
-  if (!user.verified && user.role !== 'admin') {
-    return res.status(403).json({ message: 'Account not verified' })
-  }
+  try {
+    const identifier = parsed.data.identifier
+    const normalizedPhone = normalizePhilippineMobile(identifier)
+    const user = normalizedPhone
+      ? await getUserByPhone(normalizedPhone)
+      : await getUserByEmail(identifier)
+    const match = await bcrypt.compare(parsed.data.password, user?.passwordHash || dummyPasswordHash)
+    if (!user || !user.passwordHash || !match || (!user.verified && user.role !== 'admin')) {
+      return res.status(401).json({ message: invalidCredentials })
+    }
 
-  const match = await bcrypt.compare(parsed.data.password, user.passwordHash)
-  if (!match) {
-    return res.status(401).json({ message: 'Invalid credentials' })
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: '2h',
+    })
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+    return res.json({ requires2fa: false, user: sanitizeUser(user) })
+  } catch (error) {
+    return next(error)
   }
-
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: '2h',
-  })
-  res.cookie('token', token, {
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  })
-  return res.json({ requires2fa: false })
 })
 
 router.post('/verify', proxyOtp('/verify'))

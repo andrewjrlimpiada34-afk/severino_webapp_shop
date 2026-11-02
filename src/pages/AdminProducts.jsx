@@ -23,7 +23,7 @@ function AdminProducts() {
   const load = async () => {
     try {
       setStatus({ loading: true, error: '', success: '' })
-      const data = await api.products()
+      const data = await api.products({ fresh: true })
       setItems(data)
       setStatus({ loading: false, error: '', success: '' })
     } catch (error) {

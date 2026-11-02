@@ -1,3 +1,7 @@
+import { normalizeEmail, normalizePhilippineMobile } from '../../server/shared/loginValidation.js'
+
+export { normalizePhilippineMobile }
+
 export const registrationSteps = ['Profile', 'Verify email', 'Security', 'Address', 'Review']
 
 export const registrationStepFields = [
@@ -8,21 +12,12 @@ export const registrationStepFields = [
   [],
 ]
 
-export const normalizePhilippineMobile = (value = '') => {
-  const compact = value.replace(/[\s-]/g, '')
-  if (/^09\d{9}$/.test(compact)) return `+63${compact.slice(1)}`
-  if (/^9\d{9}$/.test(compact)) return `+63${compact}`
-  if (/^\+639\d{9}$/.test(compact)) return compact
-  if (/^639\d{9}$/.test(compact)) return `+${compact}`
-  return ''
-}
-
 export function registrationProgress(form, verification) {
   const email = form.email.trim().toLowerCase()
   const errors = {
     firstName: form.firstName.trim() ? '' : 'Enter your first name.',
     lastName: form.lastName.trim() ? '' : 'Enter your last name.',
-    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? '' : 'Enter a valid email address.',
+    email: normalizeEmail(email) ? '' : 'Enter a valid email address.',
     mobile: normalizePhilippineMobile(form.mobile) ? '' : 'Enter a valid Philippine mobile number.',
     password: form.password.length >= 8 ? '' : 'Use at least 8 characters.',
     confirmPassword: form.confirmPassword && form.password === form.confirmPassword ? '' : 'Passwords must match.',

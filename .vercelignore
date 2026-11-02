@@ -1,6 +1,7 @@
-# The frontend imports this dependency-free banner helper.
+# The frontend imports these dependency-free shared helpers.
 # Keep backend code, settings, dependencies, and tests excluded.
 server/*
 !server/shared/
 server/shared/*
 !server/shared/bannerContent.js
+!server/shared/loginValidation.js

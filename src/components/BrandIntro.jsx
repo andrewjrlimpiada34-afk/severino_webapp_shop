@@ -101,7 +101,6 @@ export default function BrandIntro() {
             )}
           </svg>
         )}
-        <button className="brand-intro__skip" type="button" onClick={finish}>Skip intro</button>
       </div>
     </Modal>
   )

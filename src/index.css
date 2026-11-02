@@ -411,30 +411,6 @@ img {
   animation: brandIntroSpark 1.15s linear 0.9s both;
 }
 
-.brand-intro__skip {
-  padding: 10px 14px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #7b6b3c;
-  font-family: Arial, sans-serif;
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.brand-intro__skip:hover {
-  color: #4f421d;
-  text-decoration: underline;
-  text-underline-offset: 5px;
-}
-
-.brand-intro__skip:focus-visible {
-  outline: 1px solid #9b8231;
-  outline-offset: 4px;
-}
-
 .modal-backdrop.brand-intro--leaving {
   animation: brandIntroExit 0.38s ease forwards;
 }

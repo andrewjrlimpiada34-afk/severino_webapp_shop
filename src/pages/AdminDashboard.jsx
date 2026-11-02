@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
 import DriveVideoPlayer from '../components/DriveVideoPlayer.jsx'
+import AdminIcon from '../components/AdminIcon.jsx'
 import { defaultBannerStories, googleDriveVideo, normalizeBannerStories } from '../../server/shared/bannerContent.js'
 
 const defaultFeaturedBanners = [
@@ -28,14 +29,14 @@ const createAnnouncement = (index) => ({
 })
 
 const dashboardTabs = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'banners', label: 'Edit Banner' },
-  { id: 'banner-content', label: 'Banner Pop-up Content' },
-  { id: 'featured-images', label: 'Featured Banner Images' },
-  { id: 'featured-content', label: 'Featured Banner Pop-up Content' },
-  { id: 'hero', label: 'Hero Header Image' },
-  { id: 'announcements', label: 'Login Announcements' },
-  { id: 'login-popup', label: 'Login Pop-up Image' },
+  { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: 'overview' },
+  { id: 'banners', label: 'Edit Banner', shortLabel: 'Banners', icon: 'banners' },
+  { id: 'banner-content', label: 'Banner Pop-up Content', shortLabel: 'Stories', icon: 'stories' },
+  { id: 'featured-images', label: 'Featured Banner Images', shortLabel: 'Featured', icon: 'featured' },
+  { id: 'featured-content', label: 'Featured Banner Pop-up Content', shortLabel: 'Details', icon: 'details' },
+  { id: 'hero', label: 'Hero Header Image', shortLabel: 'Hero', icon: 'hero' },
+  { id: 'announcements', label: 'Login Announcements', shortLabel: 'Notices', icon: 'notices' },
+  { id: 'login-popup', label: 'Login Pop-up Image', shortLabel: 'Pop-up', icon: 'popup' },
 ]
 
 function DashboardPanel({ id, activeTab, children }) {
@@ -286,12 +287,16 @@ function AdminDashboard() {
             role="tab"
             aria-selected={activeTab === tab.id}
             aria-controls={`admin-panel-${tab.id}`}
+            aria-label={tab.label}
+            title={tab.label}
             tabIndex={activeTab === tab.id ? 0 : -1}
             onClick={() => setActiveTab(tab.id)}
             onKeyDown={(event) => {
               let nextIndex
               if (event.key === 'ArrowRight') nextIndex = (index + 1) % dashboardTabs.length
               else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + dashboardTabs.length) % dashboardTabs.length
+              else if (event.key === 'ArrowDown') nextIndex = (index + 4) % dashboardTabs.length
+              else if (event.key === 'ArrowUp') nextIndex = (index - 4 + dashboardTabs.length) % dashboardTabs.length
               else if (event.key === 'Home') nextIndex = 0
               else if (event.key === 'End') nextIndex = dashboardTabs.length - 1
               else return
@@ -299,10 +304,10 @@ function AdminDashboard() {
               setActiveTab(dashboardTabs[nextIndex].id)
               const nextTab = event.currentTarget.parentElement.children[nextIndex]
               nextTab.focus()
-              nextTab.scrollIntoView({ block: 'nearest', inline: 'nearest' })
             }}
           >
-            {tab.label}
+            <AdminIcon name={tab.icon} />
+            <span className="admin-dashboard-tab-label">{tab.shortLabel}</span>
           </button>
         ))}
       </div>

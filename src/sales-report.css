@@ -665,31 +665,6 @@
 }
 
 .sales-winner {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 0;
-}
-
-.sales-winner-bottle {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 76px;
-  height: 94px;
-  border: 1px solid #a5b38c40;
-  border-radius: 20px;
-  background: #e1e8d4;
-  color: #718352;
-}
-
-.sales-winner-bottle .admin-icon {
-  width: 40px;
-  height: 40px;
-  stroke-width: 1.15;
-}
-
-.sales-winner-copy {
   min-width: 0;
 }
 
@@ -859,16 +834,6 @@
     gap: 22px;
   }
 
-  .sales-winner {
-    gap: 16px;
-  }
-
-  .sales-winner-bottle {
-    width: 62px;
-    height: 80px;
-    border-radius: 16px;
-  }
-
   .sales-winner-stats {
     padding-top: 18px;
     border-top: 1px solid #dce3ce;
@@ -920,23 +885,10 @@
     display: none;
   }
 
-  .sales-winner {
-    align-items: start;
-  }
-
   .sales-year-layout {
     padding: 16px;
   }
 
-  .sales-winner-bottle {
-    width: 46px;
-    height: 64px;
-  }
-
-  .sales-winner-bottle .admin-icon {
-    width: 30px;
-    height: 30px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

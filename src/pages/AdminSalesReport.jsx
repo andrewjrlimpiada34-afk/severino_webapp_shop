@@ -127,7 +127,17 @@ function AdminSalesReport() {
         <section className="card sales-year-card" aria-labelledby="sales-year-title">
           <div className="sales-section-heading"><div><span className="sales-eyebrow">The annual favourite</span><h2 id="sales-year-title">Product of the year</h2></div><label className="sales-year-picker"><AdminIcon name="calendar" /><span className="sr-only">Product of the year</span><select value={year} onChange={(event) => selectMonth(`${event.target.value}-${month.slice(5)}`)}>{years.map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
           {winner ? <>
-            <div className="sales-year-layout"><div className="sales-winner"><span className="sales-winner-bottle"><AdminIcon name="bottle" /></span><div className="sales-winner-copy"><span className="sales-winner-badge"><AdminIcon name="trophy" />{year} best seller</span><h3>{winner.name}</h3><p>{winner.sold.toLocaleString()} units sold across the year</p></div></div><div className="sales-winner-stats"><div><span className="sales-eyebrow">Product revenue</span><strong>{formatSalesCurrency(winner.revenue)}</strong></div><div><span className="sales-eyebrow">Share of units sold</span><strong>{yearSummary.units ? Math.round(winner.sold / yearSummary.units * 100) : 0}%</strong></div></div></div>
+            <div className="sales-year-layout">
+              <div className="sales-winner">
+                <span className="sales-winner-badge"><AdminIcon name="trophy" />{year} best seller</span>
+                <h3>{winner.name}</h3>
+                <p>{winner.sold.toLocaleString()} units sold across the year</p>
+              </div>
+              <div className="sales-winner-stats">
+                <div><span className="sales-eyebrow">Product revenue</span><strong>{formatSalesCurrency(winner.revenue)}</strong></div>
+                <div><span className="sales-eyebrow">Share of units sold</span><strong>{yearSummary.units ? Math.round(winner.sold / yearSummary.units * 100) : 0}%</strong></div>
+              </div>
+            </div>
             {yearlyProducts.length > 1 && <div className="sales-runner-ups">{yearlyProducts.slice(1, 4).map((product, index) => <div key={product.id}><span className="sales-product-rank">{String(index + 2).padStart(2, '0')}</span><div><strong>{product.name}</strong><span>{product.sold.toLocaleString()} units · {formatSalesCurrency(product.revenue)}</span></div></div>)}</div>}
             <p className="sales-data-note">Ranked by units sold in {year}; product revenue breaks ties. Cancelled and removed items are excluded.</p>
           </> : <div className="sales-empty sales-year-empty"><AdminIcon name="trophy" /><h4>No product sales recorded for {year}</h4><p>Choose a different year to view its best seller.</p></div>}

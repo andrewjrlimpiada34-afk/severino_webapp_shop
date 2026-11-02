@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
+import { getOrderItemStatus } from '../../server/shared/orderWorkflow.js'
 
 function OrderHistory() {
   const [orders, setOrders] = useState([])
@@ -41,6 +42,7 @@ function OrderHistory() {
       status === 'To Ship' ||
       status === 'Pending' ||
       status === 'Pending COD' ||
+      status === 'Approved' ||
       status === 'Verified'
     )
       return 'To ship'
@@ -103,14 +105,7 @@ function OrderHistory() {
                   setSuccessMessage('Order Item Cancelled')
                   setStatus((prev) => ({ ...prev, error: '' }))
                 } catch (error) {
-                  // Some cancellation requests return 404/Not found for already-cancelled
-                  // or mismatched item identifiers. Treat that case as a completed cancel.
-                  if (String(error?.message || '') === 'Not found') {
-                    setSuccessMessage('Order Item Cancelled')
-                    setStatus((prev) => ({ ...prev, error: '' }))
-                  } else {
-                    setStatus((prev) => ({ ...prev, error: error.message }))
-                  }
+                  setStatus((prev) => ({ ...prev, error: error.message }))
                 } finally {
                   setCancelConfirm({ open: false, orderId: '', itemKey: '' })
                 }
@@ -167,7 +162,7 @@ function OrderHistory() {
                   </td>
 
                   <td>
-                    {item.trackingStatus === 'Pending COD' && (
+                    {getOrderItemStatus(order, item) === 'Pending COD' && (
                       <button
                         className="button ghost"
                         onClick={() => {

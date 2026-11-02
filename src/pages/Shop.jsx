@@ -9,6 +9,8 @@ import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 import { useActionAnimation } from '../context/useActionAnimation.js'
+import useInventoryStock from '../hooks/useInventoryStock.js'
+import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function Shop() {
   const [query, setQuery] = useState('')
@@ -16,7 +18,9 @@ function Shop() {
   const [category, setCategory] = useState('all')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [items, setItems] = useState([])
+  const [catalog, setItems] = useState([])
+  const stocks = useInventoryStock()
+  const items = useMemo(() => catalog.map((item) => withInventoryStock(item, stocks)), [catalog, stocks])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [filtersOpen, setFiltersOpen] = useState(false)
   const { user } = useAuth()
@@ -68,6 +72,7 @@ function Shop() {
   }
 
   const [cartModal, setCartModal] = useState({ open: false, product: null, quantity: 1 })
+  const modalProduct = withInventoryStock(cartModal.product, stocks)
 
   const openAddToCartModal = (productId) => {
     const product = items.find((item) => item.id === productId)
@@ -92,7 +97,7 @@ function Shop() {
       navigate('/login')
       return
     }
-    const product = cartModal.product
+    const product = modalProduct
     if (!product || product.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
       closeAddToCartModal()
@@ -130,7 +135,7 @@ function Shop() {
     setFavorites(getFavorites(user?.id))
   }, [user])
 
-  const maxQty = cartModal.product ? Math.min(100, cartModal.product.stock ?? 100) : 1
+  const maxQty = modalProduct ? Math.min(100, modalProduct.stock ?? 100) : 1
 
   return (
     <section className="grid shop-page">
@@ -290,6 +295,7 @@ function Shop() {
                     aria-label={`Add ${product.name} to cart`}
                     title="Add to cart"
                     onClick={() => openAddToCartModal(product.id)}
+                    disabled={product.stock <= 0}
                   >
                     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -328,14 +334,15 @@ function Shop() {
             <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
               {cartModal.product.name}
             </h2>
-            <p className="section-subtitle">Select quantity</p>
+            <p className="section-subtitle">{maxQty > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>
 
             <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
               <div>
                 <div className="label">Quantity</div>
                 <select
                   className="input"
-                  value={cartModal.quantity}
+                  value={Math.min(cartModal.quantity, maxQty)}
+                  disabled={maxQty <= 0}
                   onChange={(e) =>
                     setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
                   }
@@ -352,7 +359,7 @@ function Shop() {
                 <button className="button secondary" type="button" onClick={closeAddToCartModal}>
                   Cancel
                 </button>
-                <button className="button" type="button" onClick={addToCartWithQuantity}>
+                <button className="button" type="button" disabled={maxQty <= 0} onClick={addToCartWithQuantity}>
                   Add
                 </button>
               </div>

@@ -7,14 +7,19 @@ import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
+import useInventoryStock from '../hooks/useInventoryStock.js'
+import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function Search() {
   const [query, setQuery] = useState('')
   const [note, setNote] = useState('all')
   const [category, setCategory] = useState('all')
-  const [items, setItems] = useState([])
+  const [catalog, setItems] = useState([])
+  const stocks = useInventoryStock()
+  const items = useMemo(() => catalog.map((item) => withInventoryStock(item, stocks)), [catalog, stocks])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [cartModal, setCartModal] = useState({ open: false, product: null, quantity: 1 })
+  const modalProduct = withInventoryStock(cartModal.product, stocks)
 
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -74,7 +79,7 @@ function Search() {
       return
     }
 
-    const product = cartModal.product
+    const product = modalProduct
     if (!product || product.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
       closeAddToCartModal()
@@ -103,7 +108,7 @@ function Search() {
     }
   }
 
-  const maxQty = cartModal.product ? Math.min(100, cartModal.product.stock ?? 100) : 1
+  const maxQty = modalProduct ? Math.min(100, modalProduct.stock ?? 100) : 1
 
   return (
     <section className="grid" style={{ gap: '24px' }}>
@@ -215,6 +220,7 @@ function Search() {
                     aria-label={`Add ${product.name} to cart`}
                     title="Add to cart"
                     onClick={() => openAddToCartModal(product.id)}
+                    disabled={product.stock <= 0}
                   >
                     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path
@@ -252,14 +258,15 @@ function Search() {
             <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
               {cartModal.product.name}
             </h2>
-            <p className="section-subtitle">Select quantity</p>
+            <p className="section-subtitle">{maxQty > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>
 
             <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
               <div>
                 <div className="label">Quantity</div>
                 <select
                   className="input"
-                  value={cartModal.quantity}
+                  value={Math.min(cartModal.quantity, maxQty)}
+                  disabled={maxQty <= 0}
                   onChange={(e) =>
                     setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
                   }
@@ -276,7 +283,7 @@ function Search() {
                 <button className="button secondary" type="button" onClick={closeAddToCartModal}>
                   Cancel
                 </button>
-                <button className="button" type="button" onClick={addToCartWithQuantity}>
+                <button className="button" type="button" disabled={maxQty <= 0} onClick={addToCartWithQuantity}>
                   Add
                 </button>
               </div>

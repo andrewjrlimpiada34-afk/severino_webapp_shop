@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { CardSkeleton } from '../components/Skeleton.jsx'
+import useInventoryStock from '../hooks/useInventoryStock.js'
+import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function Cart() {
-  const [items, setItems] = useState([])
+  const [cartItems, setItems] = useState([])
+  const stocks = useInventoryStock()
+  const items = useMemo(() => cartItems.map((item) => withInventoryStock(item, stocks)), [cartItems, stocks])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [selected, setSelected] = useState({})
   const navigate = useNavigate()
   const { user } = useAuth()
+  const invalidSelection = items.some((item) => selected[item.id] && (item.stock <= 0 || item.quantity > item.stock))
   const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
   const directPurchaseKey = user
     ? `severino_direct_checkout_${user.id}`
@@ -25,6 +30,10 @@ function Cart() {
   )
 
   const updateQuantity = async (id, delta) => {
+    if (items.find((item) => item.id === id)?.stock <= 0) {
+      setStatus((current) => ({ ...current, error: 'This item is out of stock.' }))
+      return
+    }
     const next = items.map((item) => {
       if (item.id !== id) return item
       const maxQty = Math.min(100, item.stock ?? 100)
@@ -117,14 +126,15 @@ function Cart() {
                   <td>
                     <strong>{item.name}</strong>
                     <div className="section-subtitle">{item.size}</div>
+                    <div className="section-subtitle">{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button className="button ghost" onClick={() => updateQuantity(item.id, -1)}>
+                      <button className="button ghost" disabled={item.stock <= 0 || item.quantity <= 1} onClick={() => updateQuantity(item.id, -1)}>
                         -
                       </button>
                       <span>{item.quantity}</span>
-                      <button className="button ghost" onClick={() => updateQuantity(item.id, 1)}>
+                      <button className="button ghost" disabled={item.stock <= 0 || item.quantity >= item.stock} onClick={() => updateQuantity(item.id, 1)}>
                         +
                       </button>
                     </div>
@@ -172,10 +182,12 @@ function Cart() {
             ₱{total.toLocaleString()}
           </div>
           <div className="pill">COD only · Verified delivery</div>
+          {invalidSelection && <p className="section-subtitle" role="status">Stock has changed. Adjust or deselect unavailable quantities before checkout.</p>}
           <div style={{ marginTop: '18px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button
               className="button"
               type="button"
+              disabled={invalidSelection}
               onClick={() => {
                 const selectedIds = Object.entries(selected)
                   .filter(([, value]) => value)

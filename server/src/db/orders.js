@@ -1,10 +1,13 @@
 import { getDb, withTransaction } from './postgres.js'
 import { createId, parseJson } from './util.js'
+import { getNextOrderStatus, getOrderItemStatus, normalizeOrderStatus, orderSteps, summarizeOrderStatus } from '../../shared/orderWorkflow.js'
+import { inventoryChange, notifyInventoryChange, publishInventoryChange } from '../lib/inventoryEvents.js'
 
 const mapOrder = (row) =>
   row
     ? {
         id: row.id,
+        workflowVersion: 1,
         userId: row.user_id,
         items: parseJson(row.items, []),
         total: Number(row.total),
@@ -72,93 +75,111 @@ export const createOrder = async (data) => {
   return getOrderById(id)
 }
 
-export const updateOrderStatus = async (id, status) => {
-  const db = getDb()
-  const result = await db.query('UPDATE orders SET status = $1 WHERE id = $2', [status, id])
-  return result.rowCount ? getOrderById(id) : null
+const workflowError = (message, statusCode = 409) => Object.assign(new Error(message), { statusCode })
+
+const inventoryTransaction = async (work) => {
+  const result = await withTransaction(work)
+  if (result.event) publishInventoryChange(result.event)
+  return result.order
 }
 
-export const cancelOrder = async (id, userId) =>
-  withTransaction(async (connection) => {
-    const order = await selectOrderById(connection, id, true)
-    if (!order || order.userId !== userId || order.status !== 'Pending COD') return null
-    const at = new Date().toISOString()
-    const items = order.items.map((item) => ({
-      ...item,
-      trackingStatus: 'Cancelled',
-      trackingEvents: [...(item.trackingEvents || []), { status: 'Cancelled', at }],
-    }))
-    await connection.query(
-      `UPDATE orders SET status = 'Cancelled', items = $1 WHERE id = $2`,
-      [JSON.stringify(items), id]
-    )
-    return { ...order, status: 'Cancelled', items }
-  })
+async function saveItems(connection, order, items, products = []) {
+  const status = summarizeOrderStatus(items, order.status)
+  await connection.query('UPDATE orders SET items = $1, status = $2 WHERE id = $3', [JSON.stringify(items), status, order.id])
+  const event = products.length ? inventoryChange(products) : null
+  // PostgreSQL delivers this notification only after the transaction commits.
+  if (event) await notifyInventoryChange(connection, event)
+  return { order: { ...order, items, status }, event }
+}
 
-export const updateOrderItemStatus = async (orderId, itemId, status, userId = null) =>
-  withTransaction(async (connection) => {
+async function advanceItem(connection, order, item, target, userId, products) {
+  const current = getOrderItemStatus(order, item)
+  if (current === target) return item
+  if (current === 'Cancelled' || current === 'Removed') throw workflowError('This item is no longer active.')
+  if (userId) {
+    if (target !== 'Cancelled' || current !== 'Pending COD') throw workflowError('Only pending items can be cancelled.')
+  } else if (!orderSteps.includes(target) || getNextOrderStatus(current) !== target) {
+    throw workflowError(`Complete ${getNextOrderStatus(current) || 'the current step'} before moving this item to ${target}.`)
+  }
+
+  const at = new Date().toISOString()
+  let updated = { ...item }
+  if (target === 'Approved' && !item.stockDeductedAt) {
+    const quantity = Number(item.quantity)
+    if (!Number.isInteger(quantity) || quantity <= 0) throw workflowError('Invalid item quantity.', 400)
+    const { rows } = await connection.query(
+      'SELECT id, legacy_id FROM products WHERE id = $1 OR legacy_id = $2 LIMIT 1 FOR UPDATE',
+      [item.productId, item.productId]
+    )
+    if (!rows[0]) throw workflowError('Product no longer exists.', 404)
+    const result = await connection.query(
+      'UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3 RETURNING id, legacy_id, stock',
+      [quantity, rows[0].id, quantity]
+    )
+    if (!result.rowCount) throw workflowError('Insufficient stock. Refresh inventory before approving this item.')
+    products.push({ id: rows[0].id, legacyId: rows[0].legacy_id || null, stock: Number(result.rows[0].stock) })
+    updated = { ...updated, approvedAt: at, stockDeductedAt: at, stockDeductedQuantity: quantity }
+  }
+  return { ...updated, trackingStatus: target, trackingEvents: [...(item.trackingEvents || []), { status: target, at }] }
+}
+
+export const updateOrderItemStatus = async (orderId, itemId, status, userId = null) => {
+  const target = normalizeOrderStatus(status)
+  if (!(userId ? target === 'Cancelled' : orderSteps.includes(target))) throw workflowError('Invalid order status.', 400)
+  return inventoryTransaction(async (connection) => {
     const order = await selectOrderById(connection, orderId, true)
-    if (!order || (userId && order.userId !== userId)) return null
-    if (userId && order.status !== 'Pending COD' && order.status !== 'Pending') return null
-    const itemIndex = order.items.findIndex((item) => item.itemId === itemId)
-    if (itemIndex < 0) return null
-    const at = new Date().toISOString()
+    if (!order || (userId && order.userId !== userId)) return { order: null }
+    const index = order.items.findIndex((item, itemIndex) => (item.itemId || `${itemIndex}-${item.productId}`) === itemId)
+    if (index < 0) return { order: null }
+    const products = []
+    const updated = await advanceItem(connection, order, order.items[index], target, userId, products)
+    if (updated === order.items[index]) return { order }
     const items = [...order.items]
-    items[itemIndex] = {
-      ...items[itemIndex],
-      trackingStatus: status,
-      trackingEvents: [...(items[itemIndex].trackingEvents || []), { status, at }],
-    }
-    await connection.query('UPDATE orders SET items = $1 WHERE id = $2', [
-      JSON.stringify(items),
-      orderId,
-    ])
-    return { ...order, items }
+    items[index] = updated
+    return saveItems(connection, order, items, products)
   })
+}
 
-export const verifyOrder = async (id) =>
-  withTransaction(async (connection) => {
+export const updateOrderStatus = async (id, status) => {
+  const target = normalizeOrderStatus(status)
+  if (target !== 'Removed' && !orderSteps.includes(target)) throw workflowError('Invalid order status.', 400)
+  return inventoryTransaction(async (connection) => {
     const order = await selectOrderById(connection, id, true)
-    if (!order) return null
-    if (order.status !== 'Pending COD') {
-      const error = new Error('Order already processed')
-      error.statusCode = 400
-      throw error
+    if (!order) return { order: null }
+    if (target === 'Removed') {
+      await connection.query('UPDATE orders SET status = $1 WHERE id = $2', ['Removed', id])
+      return { order: { ...order, status: 'Removed' } }
     }
-    const at = new Date().toISOString()
-
-    for (const item of order.items) {
-      const { rows: products } = await connection.query(
-        'SELECT id FROM products WHERE id = $1 OR legacy_id = $2 LIMIT 1 FOR UPDATE',
-        [item.productId, item.productId]
-      )
-      if (!products[0]) {
-        const error = new Error(`Product not found: ${item.productId}`)
-        error.statusCode = 400
-        throw error
-      }
-      const result = await connection.query(
-        'UPDATE products SET stock = stock - $1 WHERE id = $2 AND stock >= $3',
-        [item.quantity, products[0].id, item.quantity]
-      )
-      if (!result.rowCount) {
-        const error = new Error(`Insufficient stock for ${item.productId}`)
-        error.statusCode = 400
-        throw error
-      }
+    if (['Cancelled', 'Removed'].includes(normalizeOrderStatus(order.status))) throw workflowError('This order is no longer active.')
+    if (!order.items.some((item) => !['Cancelled', 'Removed'].includes(getOrderItemStatus(order, item)))) throw workflowError('This order has no active items.')
+    const products = []
+    const items = [...order.items]
+    const indices = items.map((_, index) => index).sort((a, b) => String(items[a].productId).localeCompare(String(items[b].productId)))
+    for (const index of indices) {
+      const current = getOrderItemStatus(order, items[index])
+      if (['Cancelled', 'Removed'].includes(current) || orderSteps.indexOf(current) >= orderSteps.indexOf(target)) continue
+      items[index] = await advanceItem(connection, order, items[index], target, null, products)
     }
-
-    const items = order.items.map((item) => ({
-      ...item,
-      trackingStatus: 'To Ship',
-      trackingEvents: [...(item.trackingEvents || []), { status: 'To Ship', at }],
-    }))
-    await connection.query(
-      `UPDATE orders SET status = 'To Ship', items = $1 WHERE id = $2`,
-      [JSON.stringify(items), id]
-    )
-    return { ...order, status: 'To Ship', items }
+    if (items.every((item, index) => item === order.items[index])) return { order }
+    return saveItems(connection, order, items, products)
   })
+}
+
+export const verifyOrder = (id) => updateOrderStatus(id, 'Approved')
+
+export const cancelOrder = (id, userId) => inventoryTransaction(async (connection) => {
+  const order = await selectOrderById(connection, id, true)
+  if (!order || order.userId !== userId) return { order: null }
+  if (normalizeOrderStatus(order.status) === 'Cancelled') return { order }
+  if (normalizeOrderStatus(order.status) === 'Removed') throw workflowError('This order is no longer active.')
+  const products = []
+  const items = []
+  for (const item of order.items) {
+    const current = getOrderItemStatus(order, item)
+    items.push(current === 'Cancelled' || current === 'Removed' ? item : await advanceItem(connection, order, item, 'Cancelled', userId, products))
+  }
+  return saveItems(connection, order, items)
+})
 
 export const removeOrderById = async (id) => {
   const order = await getOrderById(id)

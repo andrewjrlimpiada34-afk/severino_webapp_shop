@@ -64,6 +64,28 @@ the frontend to reuse profile data without extra session/profile requests.
 Deploy the Node backend and frontend changes together. No Python OTP service
 changes or environment updates are required for this login/request cleanup.
 
+## Approval workflow and live inventory
+
+Deploy the Node backend before the matching frontend. The frontend enables
+approval controls only for order responses declaring `workflowVersion: 1`, so an
+older backend cannot accept an approval without the new inventory checks.
+
+The item workflow is `Pending COD -> Approved -> To Ship -> To Receive -> To Review`.
+Approval deducts stock once in the same transaction as the item update. Deduction
+metadata is stored in the existing JSONB order items; no schema migration or new
+environment variables are required. Retried approvals are safe. Cancelling an
+already-approved item and skipping or reversing delivery stages are rejected.
+
+`GET /api/products/stock-events` streams public stock notifications. Each Node
+instance listens on PostgreSQL channel `severino_inventory`; keep the Session
+Pooler connection described above, since notifications need a persistent session.
+Customer pages share one stream and refresh stock after a notification, reconnect,
+or return to the tab. Stock-bearing product responses use `Cache-Control: no-store`.
+
+Previously shipped/review-ready items are not automatically deducted again.
+Check those older items against actual inventory before any manual correction.
+The Python OTP service does not need changes or redeployment for this workflow.
+
 ## 4. Cut over safely
 
 Disable Render Auto-Deploy before pushing the PostgreSQL code. During a quiet period, run `npm run db:migrate` one final time locally, push the code, save the Supabase environment variables, and manually deploy the latest commit.

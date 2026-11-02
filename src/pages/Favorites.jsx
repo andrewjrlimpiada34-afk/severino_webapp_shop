@@ -1,13 +1,17 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { buildCloudinarySrcSet } from '../lib/image.js'
 import { ProductGridSkeleton } from '../components/Skeleton.jsx'
+import useInventoryStock from '../hooks/useInventoryStock.js'
+import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function Favorites() {
-  const [items, setItems] = useState([])
+  const [catalog, setItems] = useState([])
+  const stocks = useInventoryStock()
+  const items = useMemo(() => catalog.map((item) => withInventoryStock(item, stocks)), [catalog, stocks])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const navigate = useNavigate()
   const { user } = useAuth()

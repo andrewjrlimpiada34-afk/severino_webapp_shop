@@ -1,5 +1,5 @@
 import Modal from '../components/Modal.jsx'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -8,13 +8,18 @@ import { buildCloudinarySrcSet, buildCloudinaryUrl } from '../lib/image.js'
 import { DetailSkeleton } from '../components/Skeleton.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import MediaAttachmentField, { MediaAttachmentDisplay } from '../components/MediaAttachmentField.jsx'
+import RatingStars from '../components/RatingStars.jsx'
+import useInventoryStock from '../hooks/useInventoryStock.js'
+import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { playActionAnimation } = useActionAnimation()
-  const [product, setProduct] = useState(null)
+  const [productData, setProduct] = useState(null)
+  const stocks = useInventoryStock()
+  const product = useMemo(() => withInventoryStock(productData, stocks), [productData, stocks])
   const [reviews, setReviews] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
@@ -237,13 +242,14 @@ function ProductDetail() {
             <div className="pill out-stock">Out of Stock</div>
           )}
           <div className="product-detail-actions">
-            <button className="button" onClick={openBuyNowModal}>
+            <button className="button" disabled={product.stock <= 0} onClick={openBuyNowModal}>
               Buy Now
             </button>
             <button
               className="button secondary product-detail-actions__add"
               type="button"
               onClick={openAddToCartModal}
+              disabled={product.stock <= 0}
               aria-label="Add to Cart"
               title="Add to Cart"
             >
@@ -304,14 +310,15 @@ function ProductDetail() {
             <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
               {product.name}
             </h2>
-            <p className="section-subtitle">Select quantity</p>
+            <p className="section-subtitle">{product.stock > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>
 
             <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
               <div>
                 <div className="label">Quantity</div>
                 <select
                   className="input"
-                  value={quantityModal.quantity}
+                  value={Math.min(quantityModal.quantity, product.stock, 100)}
+                  disabled={product.stock <= 0}
                   onChange={(e) =>
                     setQuantityModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
                   }
@@ -340,6 +347,7 @@ function ProductDetail() {
                 <button
                   className="button"
                   type="button"
+                  disabled={product.stock <= 0}
                   onClick={
                     quantityModal.action === 'buy-now'
                       ? buyNowWithQuantity
@@ -367,21 +375,7 @@ function ProductDetail() {
               {reviews.map((review) => review.userName || 'Customer').join(', ') || 'No reviews yet'}
             </div>
           </div>
-          <div>
-            <div className="label">Rating</div>
-            <div className="star-row large">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`star ${Number(reviewForm.rating) >= value ? 'active' : ''}`}
-                  onClick={() => setReviewForm((prev) => ({ ...prev, rating: value }))}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-          </div>
+          <RatingStars value={reviewForm.rating} onChange={(rating) => setReviewForm((prev) => ({ ...prev, rating }))} disabled={reviewSubmitting} />
           <div>
             <div className="label">Comment</div>
             <textarea
@@ -413,13 +407,7 @@ function ProductDetail() {
           {reviews.length === 0 && <p className="section-subtitle">No reviews yet.</p>}
           {reviews.map((review) => (
             <div key={review.id} className="review-card">
-              <div className="star-row readonly large">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <span key={value} className={`star ${review.rating >= value ? 'active' : ''}`}>
-                    ★
-                  </span>
-                ))}
-              </div>
+              <RatingStars value={review.rating} readOnly />
               <p>{review.comment}</p>
               <MediaAttachmentDisplay attachment={review.attachment} />
               {user?.id === review.userId && (

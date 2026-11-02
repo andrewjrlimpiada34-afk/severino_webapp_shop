@@ -1,4 +1,50 @@
 /* Admin presentation stays scoped to the login and admin workspace. */
+.admin-order-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 7px;
+  min-width: 230px;
+  max-width: 340px;
+}
+
+.admin-order-actions .admin-order-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 8px 10px;
+  font: 500 11px system-ui, sans-serif;
+}
+
+.admin-order-actions .admin-order-step.is-next {
+  color: #fff;
+  background: #3e5432;
+  border-color: #3e5432;
+}
+
+.admin-order-actions .admin-order-step.is-complete {
+  color: #607d4f;
+  background: #e8efdf;
+  opacity: 1;
+}
+
+.admin-order-step-number {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 9px;
+}
+
+.admin-order-action-hint {
+  grid-column: 1 / -1;
+  color: #758268;
+  font: 10px/1.5 system-ui, sans-serif;
+}
+
 .admin-login-page {
   min-height: 100vh;
   min-height: 100dvh;

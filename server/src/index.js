@@ -20,6 +20,7 @@ import publicRoutes from './routes/public.js'
 import uploadRoutes from './routes/uploads.js'
 import { closeDb, testDbConnection } from './db/postgres.js'
 import { errorHandler } from './middleware/error.js'
+import { startInventoryListener, stopInventoryListener } from './lib/inventoryEvents.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -93,6 +94,7 @@ let shuttingDown = false
 const shutdown = (signal, fatalError = null) => {
   if (shuttingDown) return
   shuttingDown = true
+  stopInventoryListener()
   console.log(`Received ${signal}; shutting down.`)
 
   const forceExit = setTimeout(() => {
@@ -123,6 +125,7 @@ process.on('uncaughtException', (error) => shutdown('uncaughtException', error))
 
 try {
   await testDbConnection()
+  void startInventoryListener()
   server = app.listen(port, '0.0.0.0', () => {
     console.log(`Severino backend listening on 0.0.0.0:${port}`)
   })

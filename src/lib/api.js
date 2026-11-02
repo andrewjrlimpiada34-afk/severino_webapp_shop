@@ -23,7 +23,7 @@ export const api = {
     request('/api/users/theme', { method: 'PATCH', body: JSON.stringify({ preferredTheme }) }),
   updatePassword: (data) =>
     request('/api/users/password', { method: 'PATCH', body: JSON.stringify(data) }),
-  products: (options = {}) => request('/api/products', { ...publicCache, ...options }),
+  products: (options = {}) => request('/api/products', options),
   product: (id) => request(`/api/products/${id}`),
   createProduct: (data) =>
     request('/api/products', { method: 'POST', body: JSON.stringify(data) }),

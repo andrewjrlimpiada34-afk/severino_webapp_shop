@@ -2125,31 +2125,106 @@ img {
 }
 
 
-.star-row {
-  display: flex;
-  gap: 6px;
-  font-size: 20px;
-  align-items: center;
-}
-
-.star {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: rgba(16, 20, 14, 0.2);
+.rating-picker {
+  min-width: 0;
+  margin: 0;
   padding: 0;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
-  text-align: center;
+  border: 0;
 }
 
-.star.active {
-  color: #c49a1d;
+.rating-picker legend {
+  margin-bottom: 10px;
+  padding: 0;
 }
 
-.star-row.readonly .star {
+.rating-picker-choices {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  width: min(100%, 244px);
+  padding: 5px;
+  border: 1px solid #c49a1d30;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #fffaf0, #f8f3e6);
+}
+
+.rating-picker-choice {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 11px;
+  color: #b7ad96;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.rating-picker-choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.rating-picker-choice svg {
+  width: 27px;
+  height: 27px;
+  pointer-events: none;
+}
+
+.rating-picker-choice.is-filled,
+.rating-display .is-filled {
+  color: #b88d20;
+}
+
+.rating-picker-choice:hover,
+.rating-picker-choice:has(input:checked) {
+  background: #c49a1d12;
+}
+
+.rating-picker-choice:has(input:focus-visible) {
+  outline: 2px solid #7f672e;
+  outline-offset: 2px;
+}
+
+.rating-picker:disabled .rating-picker-choices {
+  opacity: 0.6;
+}
+
+.rating-picker:disabled .rating-picker-choice {
   cursor: default;
+}
+
+.rating-picker-hint {
+  margin: 8px 0 0;
+  color: var(--olive-600);
+  font: 12px/1.5 system-ui, sans-serif;
+}
+
+.rating-picker-hint span {
+  margin: 0 3px;
+}
+
+.rating-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #b7ad96;
+}
+
+.rating-display svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+[data-theme='Shadow Dark Mode'] .rating-picker-choices {
+  background: #29261f;
+  border-color: #c49a1d50;
 }
 
 .thumb {
@@ -6486,17 +6561,6 @@ img {
     stroke-dashoffset: 0;
   }
 }
-.star-row.large {
-  font-size: 40px;
-  gap: 8px;
-}
-
-.star-row.large .star {
-  width: 40px;
-  height: 40px;
-  line-height: 40px;
-}
-
 @media (max-width: 768px) {
   html,
   body,

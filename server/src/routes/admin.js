@@ -24,10 +24,10 @@ import { z } from 'zod'
 import { normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
+import { inventoryCache } from '../lib/inventoryEvents.js'
 import { bannerStoriesSchema } from '../lib/bannerStorySchema.js'
 
 const router = express.Router()
-const inventoryCache = createCache(20000)
 const bannersCache = createCache(20000)
 
 router.use(requireAuth, requireAdmin)

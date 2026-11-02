@@ -149,6 +149,13 @@ function Checkout() {
           setStatus({ loading: false, error: 'Please pick an item to order.', success: '' })
           return
         }
+        if (filtered.some((item) => {
+          const product = products.find((entry) => entry.id === item.productId)
+          return !product || product.stock < item.quantity
+        })) {
+          setStatus({ loading: false, error: 'Stock has changed. Review your cart quantities before placing this order.', success: '' })
+          return
+        }
         items = filtered.map((item) => {
           const product = products.find((entry) => entry.id === item.productId)
           return {

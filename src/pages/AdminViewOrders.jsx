@@ -1,17 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { groupActiveOrdersByAddress } from '../utils/ordersByAddress.js'
-
-function getItemStatus(order, item) {
-  return item.trackingStatus || order.status || ''
-}
+import { getNextOrderStatus, getOrderItemStatus as getItemStatus, orderSteps } from '../../server/shared/orderWorkflow.js'
 
 function getStatusTone(status) {
   const normalized = String(status || '').toLowerCase()
   if (normalized.includes('cancelled')) return 'cancelled'
   if (normalized.includes('pending')) return 'pending'
   if (
-    normalized.includes('to ship') ||
+    normalized === 'approved' || normalized.includes('to ship') ||
     normalized.includes('to review') ||
     normalized.includes('to receive')
   ) {
@@ -23,6 +20,24 @@ function getStatusTone(status) {
 function AdminViewOrders() {
   const [orders, setOrders] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '' })
+  const [pending, setPending] = useState({})
+  const lockedOrders = useRef(new Set())
+
+  const runAction = async (orderId, action, execute) => {
+    if (lockedOrders.current.has(orderId)) return
+    lockedOrders.current.add(orderId)
+    setPending((current) => ({ ...current, [orderId]: action }))
+    setStatus((current) => ({ ...current, error: '' }))
+    try {
+      const updated = await execute()
+      setOrders((current) => current.map((order) => order.id === orderId ? updated : order))
+    } catch (error) {
+      setStatus((current) => ({ ...current, error: error.message }))
+    } finally {
+      lockedOrders.current.delete(orderId)
+      setPending((current) => { const next = { ...current }; delete next[orderId]; return next })
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -42,10 +57,9 @@ function AdminViewOrders() {
 
   const orderRows = useMemo(
     () =>
-      orders.flatMap((order, orderIndex) =>
+      orders.flatMap((order) =>
         (order.items || []).map((item, itemIndex) => ({
           order,
-          orderIndex,
           item,
           itemIndex,
           itemTotal: (Number(item.price) || 0) * (Number(item.quantity) || 0),
@@ -67,7 +81,7 @@ function AdminViewOrders() {
           Loading orders...
         </div>
       )}
-      {status.error && <div className="card">Error: {status.error}</div>}
+      {status.error && <div className="card" role="alert">{status.error}</div>}
       <div className="card table-scroll">
         <h2 className="section-title" style={{ fontSize: '22px' }}>
           Orders by Address
@@ -115,12 +129,13 @@ function AdminViewOrders() {
             </tr>
           </thead>
           <tbody>
-            {orderRows.map(({ order, orderIndex, item, itemIndex, itemTotal }, rowIndex) => (
+            {orderRows.map(({ order, item, itemIndex, itemTotal }, rowIndex) => (
               <tr
                 key={`${order.id}-${item.itemId}-${itemIndex}`}
                 className={`admin-order-row admin-order-row--${getStatusTone(
                   getItemStatus(order, item)
                 )}`}
+                aria-busy={Boolean(pending[order.id])}
               >
                 <td>{rowIndex + 1}</td>
                 <td>
@@ -137,49 +152,39 @@ function AdminViewOrders() {
                 <td>
                   {getStatusTone(getItemStatus(order, item)) === 'cancelled' ? (
                     <span className="admin-order-readonly">Cancelled by user</span>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {['To Ship', 'To Receive', 'To Review'].map((label) => (
+                  ) : getItemStatus(order, item) === 'Removed' ? <span className="admin-order-readonly">Removed</span> : (
+                    <div className="admin-order-actions">
+                      {orderSteps.map((step, index) => {
+                        const current = getItemStatus(order, item)
+                        const completed = orderSteps.indexOf(current) >= index
+                        const isNext = getNextOrderStatus(current) === step
+                        return (
                         <button
-                          key={label}
-                          className="button ghost"
-                          onClick={async () => {
-                            try {
-                              const updated = await api.updateOrderItemStatus(
-                                order.id,
-                                item.itemId || `${orderIndex}-${itemIndex}`,
-                                label
-                              )
-
-                              setOrders((prev) =>
-                                prev.map((o) => (o.id === order.id ? updated : o))
-                              )
-                            } catch (error) {
-                              setStatus((prev) => ({ ...prev, error: error.message }))
-                            }
-                          }}
+                          key={step}
+                          type="button"
+                          className={`button ghost admin-order-step ${completed ? 'is-complete' : ''} ${isNext ? 'is-next' : ''}`}
+                          disabled={order.workflowVersion !== 1 || Boolean(pending[order.id]) || !isNext}
+                          title={completed ? `${step} completed` : isNext ? `Move item to ${step}` : 'Complete the previous step first'}
+                          onClick={() => runAction(order.id, step, () => api.updateOrderItemStatus(order.id, item.itemId || `${itemIndex}-${item.productId}`, step))}
                         >
-                          {label}
+                          <span className="admin-order-step-number" aria-hidden="true">{completed ? '✓' : index + 1}</span>
+                          {pending[order.id] === step ? 'Saving…' : step === 'Approved' && !completed ? 'Approve' : step}
                         </button>
-                      ))}
+                        )
+                      })}
                       <button
                         className="button ghost"
                         type="button"
+                        disabled={Boolean(pending[order.id])}
                         onClick={async () => {
-                          try {
-                            const ok = window.confirm('Remove this order? This cannot be undone.')
-                            if (!ok) return
-                            const updated = await api.deleteOrder(order.id)
-                            setOrders((prev) =>
-                              prev.map((o) => (o.id === order.id ? updated : o))
-                            )
-                          } catch (error) {
-                            setStatus((prev) => ({ ...prev, error: error.message }))
-                          }
+                          if (!window.confirm('Remove this order? This cannot be undone.')) return
+                          await runAction(order.id, 'Removed', () => api.deleteOrder(order.id))
                         }}
                       >
                         Remove
                       </button>
+                      <span className="admin-order-action-hint">{order.workflowVersion !== 1 ? 'Approval controls are temporarily unavailable. Refresh and try again.' : getItemStatus(order, item) === 'Pending COD' ? 'Approval required before shipping' : getNextOrderStatus(getItemStatus(order, item)) ? 'Complete each step in order' : 'Order fulfilled'}</span>
+                      {orderSteps.includes(getItemStatus(order, item)) && !item.stockDeductedAt && <span className="admin-order-action-hint">Older record: confirm its stock deduction in inventory.</span>}
                     </div>
                   )}
                 </td>

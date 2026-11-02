@@ -14,18 +14,21 @@ import { recordSale } from '../db/inventory.js'
 import { getProductById } from '../db/products.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { normalizeId, normalizeList } from '../db/util.js'
+import { orderSteps } from '../../shared/orderWorkflow.js'
 
 const router = express.Router()
+const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
+const statusSchema = z.object({ status: z.enum(orderSteps) })
 
 const orderSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string(),
       name: z.string().min(2).optional(),
-      quantity: z.number().min(1),
+      quantity: z.number().int().min(1),
       price: z.number().min(0),
     })
-  ),
+  ).min(1),
   address: z.string().min(5),
   contactName: z.string().min(2),
   phone: z.string().min(7),
@@ -33,14 +36,14 @@ const orderSchema = z.object({
   paymentMethod: z.literal('COD'),
 })
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, asyncRoute(async (req, res) => {
   if (req.user.role === 'admin') {
     return res.json(normalizeList(await getOrders()))
   }
   return res.json(normalizeList(await getOrdersByUserId(req.user.id)))
-})
+}))
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, asyncRoute(async (req, res) => {
   const parsed = orderSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ message: 'Invalid input' })
   if (parsed.data.items.some((item) => item.quantity > 100)) {
@@ -48,7 +51,8 @@ router.post('/', requireAuth, async (req, res) => {
   }
   for (const item of parsed.data.items) {
     const product = await getProductById(item.productId)
-    if (product && item.quantity > product.stock) {
+    if (!product) return res.status(400).json({ message: 'Product not found' })
+    if (item.quantity > product.stock) {
       return res.status(400).json({ message: 'Quantity exceeds stock' })
     }
   }
@@ -61,53 +65,48 @@ router.post('/', requireAuth, async (req, res) => {
   })
   await recordSale(order.id, total)
   return res.status(201).json(normalizeId(order))
-})
+}))
 
-router.patch('/:id/cancel', requireAuth, async (req, res) => {
+router.patch('/:id/cancel', requireAuth, asyncRoute(async (req, res) => {
   const order = await getOrderById(req.params.id)
   if (!order) return res.status(404).json({ message: 'Not found' })
   if (order.userId !== req.user.id) return res.status(403).json({ message: 'Forbidden' })
-  if (order.status !== 'Pending COD') {
-    return res.status(400).json({ message: 'Order already processed' })
-  }
   const updated = await cancelOrder(req.params.id, req.user.id)
   if (!updated) return res.status(400).json({ message: 'Order already processed' })
   return res.json(normalizeId(updated))
-})
+}))
 
-router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
-  const order = await updateOrderStatus(req.params.id, req.body.status)
+router.patch('/:id/status', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
+  const parsed = statusSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ message: 'Invalid order status.' })
+  const order = await updateOrderStatus(req.params.id, parsed.data.status)
   if (!order) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(order))
-})
+}))
 
-router.patch('/:orderId/items/:itemId/cancel', requireAuth, async (req, res) => {
+router.patch('/:orderId/items/:itemId/cancel', requireAuth, asyncRoute(async (req, res) => {
   const { orderId, itemId } = req.params
   const order = await getOrderById(orderId)
   if (!order || order.userId !== req.user.id) {
     return res.status(404).json({ message: 'Not found' })
   }
-  if (order.status !== 'Pending COD' && order.status !== 'Pending') {
-    return res.status(400).json({ message: 'Order already processed' })
-  }
   const updated = await updateOrderItemStatus(orderId, itemId, 'Cancelled', req.user.id)
   if (!updated) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(updated))
-})
+}))
 
-router.patch('/:orderId/items/:itemId/status', requireAuth, requireAdmin, async (req, res) => {
+router.patch('/:orderId/items/:itemId/status', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
+  const parsed = statusSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ message: 'Invalid order status.' })
   const { orderId, itemId } = req.params
-  const updated = await updateOrderItemStatus(orderId, itemId, req.body.status)
+  const updated = await updateOrderItemStatus(orderId, itemId, parsed.data.status)
   if (!updated) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(updated))
-})
+}))
 
-router.patch('/:id/verify', requireAuth, requireAdmin, async (req, res, next) => {
+router.patch('/:id/verify', requireAuth, requireAdmin, asyncRoute(async (req, res, next) => {
   const order = await getOrderById(req.params.id)
   if (!order) return res.status(404).json({ message: 'Not found' })
-  if (order.status !== 'Pending COD') {
-    return res.status(400).json({ message: 'Order already processed' })
-  }
   try {
     const updated = await verifyOrder(req.params.id)
     return res.json(normalizeId(updated))
@@ -117,12 +116,12 @@ router.patch('/:id/verify', requireAuth, requireAdmin, async (req, res, next) =>
     }
     return next(error)
   }
-})
+}))
 
-router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
   const updated = await updateOrderStatus(req.params.id, 'Removed')
   if (!updated) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(updated))
-})
+}))
 
 export default router

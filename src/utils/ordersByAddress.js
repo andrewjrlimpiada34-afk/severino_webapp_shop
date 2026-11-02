@@ -1,11 +1,10 @@
-const activeStatuses = new Set(['pending', 'pending cod', 'verified', 'to ship', 'to receive'])
-const excludedOrderStatuses = new Set(['cancelled', 'canceled', 'removed'])
-const normalizeStatus = (status) => String(status || '').trim().toLowerCase().replace(/\s+/g, ' ')
+import { getOrderItemStatus } from '../../server/shared/orderWorkflow.js'
+
+const activeStatuses = new Set(['Pending COD', 'Approved', 'To Ship', 'To Receive'])
 
 export function hasActiveOrderItems(order) {
-  const orderStatus = normalizeStatus(order?.status)
-  if (excludedOrderStatuses.has(orderStatus) || !Array.isArray(order?.items)) return false
-  return order.items.some((item) => item && activeStatuses.has(normalizeStatus(item.trackingStatus) || orderStatus))
+  if (!Array.isArray(order?.items)) return false
+  return order.items.some((item) => item && activeStatuses.has(getOrderItemStatus(order, item)))
 }
 
 function parseAddress(address) {

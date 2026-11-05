@@ -5,15 +5,6 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { api, API_URL } from '../lib/api.js'
 import { loginErrors } from '../../server/shared/loginValidation.js'
 
-const loginGreetings = [
-  'Hello there!',
-  'Welcome to Severino!',
-  'Nice to see you!',
-  'Find your signature scent.',
-  'A fresh start awaits!',
-  'Your scent story starts here.',
-]
-
 const termsSections = [
   {
     number: '1',
@@ -69,7 +60,6 @@ const termsSections = [
 ]
 
 function Login() {
-  const [greeting] = useState(() => loginGreetings[Math.floor(Math.random() * loginGreetings.length)])
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [touched, setTouched] = useState({})
@@ -160,24 +150,21 @@ function Login() {
   }
 
   return (
-    <section className="grid" style={{ gap: '24px', maxWidth: '960px', margin: '0 auto' }}>
-      <div className="login-header-row">
-        <div>
-          <h1 className="section-title">Welcome back</h1>
-          <p className="section-subtitle">Sign in with your email or Philippine mobile number.</p>
+    <section className="boutique-page boutique-login">
+      <div className="store-login-panel">
+        <div className="store-login-visual">
+          <img src="/images/severino-editorial.webp" alt="Severino perfume in warm afternoon light" fetchPriority="high" />
+          <div className="store-login-caption"><span className="store-eyebrow">The Severino collection</span><p>Find your<br />signature scent.</p></div>
         </div>
-        {hasAnnouncement && (
-          <button
-            className="announcement-trigger"
-            type="button"
-            onClick={() => setAnnouncementOpen(true)}
-            aria-label="View announcements"
-          >
-            !
-          </button>
-        )}
-      </div>
-      <div className="grid two">
+        <div className="store-login-content">
+          <div className="login-header-row">
+            <div>
+              <span className="store-eyebrow">A little everyday elegance</span>
+              <h1 className="section-title">Welcome back</h1>
+              <p className="section-subtitle">Sign in to save your favorites, discover new scents, and keep track of your orders.</p>
+            </div>
+            {hasAnnouncement && <button className="announcement-trigger" type="button" onClick={() => setAnnouncementOpen(true)} aria-label="View announcements">!</button>}
+          </div>
         <form className="card form auth-login-form" onSubmit={handleSubmit} noValidate aria-busy={status.loading}>
           <div className="auth-field">
             <label className="label" htmlFor="login-identifier">Email or Mobile Number</label>
@@ -241,7 +228,6 @@ function Login() {
             </div>
             {touched.password && errors.password && <p className="auth-field-error" id="login-password-error">{errors.password}</p>}
           </div>
-          <div className="pill">{greeting}</div>
           <label className="terms-check">
             <input
               type="checkbox"
@@ -270,6 +256,7 @@ function Login() {
           <button className="button" type="submit" disabled={status.loading}>
             {status.loading ? 'Signing in...' : 'Sign In'}
           </button>
+          <div className="store-auth-divider"><span>or</span></div>
           <a
             className="button secondary"
             href={termsAccepted && !status.loading ? googleUrl : undefined}
@@ -289,33 +276,11 @@ function Login() {
               }
             }}
           >
+            <svg className="store-google-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2.1H12v4h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.4Z" /><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5a6 6 0 0 1-9-3.1H3.1v2.6A10 10 0 0 0 12 22Z" /><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-4V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14Z" /><path fill="#EA4335" d="M12 6c1.5 0 2.9.5 4 1.6l3-3A10 10 0 0 0 3.1 7.4L6.4 10A6 6 0 0 1 12 6Z" /></svg>
             Continue with Google
           </a>
-          <Link to="/create-account" className="button secondary">
-            Create Account
-          </Link>
+          <p className="store-signup-prompt">New to Severino? <Link to="/create-account" className="store-text-link">Create an account</Link></p>
         </form>
-        <div className="card terms-summary-card">
-          <div className="tag">Agreement</div>
-          <h2 className="section-title" style={{ fontSize: '26px' }}>
-            Accept the terms and conditions
-          </h2>
-          <p className="section-subtitle">
-            Review and agree to the platform terms before accessing your account.
-          </p>
-          <div className="terms-preview">
-            <p>
-              By checking the "I Agree" box, accessing, or utilizing the Platform, you confirm that
-              you have read, understood, and agreed to be legally bound by this Agreement.
-            </p>
-            <p>
-              We process personal data, system logs, and operational telemetry in strict compliance
-              with applicable privacy regulations and platform security protocols.
-            </p>
-          </div>
-          <button className="button secondary" type="button" onClick={() => setTermsOpen(true)}>
-            Read More
-          </button>
         </div>
       </div>
       {termsOpen && (

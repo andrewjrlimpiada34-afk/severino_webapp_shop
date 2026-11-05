@@ -1,11 +1,11 @@
 import Modal from '../components/Modal.jsx'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
-import { buildCloudinarySrcSet } from '../lib/image.js'
-import { ProductGridSkeleton } from '../components/Skeleton.jsx'
+import StoreProductCard, { StoreCatalogSkeleton } from '../components/StoreProductCard.jsx'
+import StoreIcon from '../components/StoreIcon.jsx'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 import { useActionAnimation } from '../context/useActionAnimation.js'
@@ -13,9 +13,15 @@ import useInventoryStock from '../hooks/useInventoryStock.js'
 import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function Shop() {
-  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const query = searchParams.get('q') || ''
+  const categoryParam = searchParams.get('category')
+  const category = ['Men', 'Women', 'Unisex'].includes(categoryParam) ? categoryParam : 'all'
   const [sort, setSort] = useState('default')
-  const [category, setCategory] = useState('all')
+  const [view, setView] = useState(() => {
+    try { return localStorage.getItem('severino_shop_view') === 'list' ? 'list' : 'grid' }
+    catch { return 'grid' }
+  })
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [catalog, setItems] = useState([])
@@ -137,190 +143,84 @@ function Shop() {
 
   const maxQty = modalProduct ? Math.min(100, modalProduct.stock ?? 100) : 1
 
+  const updateSearchParam = (key, value) => setSearchParams((previous) => {
+    const next = new URLSearchParams(previous)
+    if (value && value !== 'all') next.set(key, value)
+    else next.delete(key)
+    return next
+  }, { replace: true })
+
+  const changeView = (next) => {
+    setView(next)
+    try { localStorage.setItem('severino_shop_view', next) } catch { /* The view still works when storage is unavailable. */ }
+  }
+
+  const clearFilters = () => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      next.delete('q')
+      next.delete('category')
+      return next
+    }, { replace: true })
+    setMinPrice('')
+    setMaxPrice('')
+  }
+  const hasFilters = Boolean(query || category !== 'all' || minPrice !== '' || maxPrice !== '')
+
   return (
-    <section className="grid shop-page">
+    <section className="boutique-page boutique-shop">
+      <header className="store-page-heading">
+        <span className="store-eyebrow">The Severino collection</span>
+        <h1>Shop the collection</h1>
+        <p>Your next signature scent is waiting to be discovered.</p>
+      </header>
 
-      <div className="page-hero shop-hero">
-        <div className="tag">Severino Collection</div>
-        <h1 className="section-title">Shop the Collection</h1>
-        <p className="section-subtitle">
-          Full lineup of signature scents, inspired with luxurious brands.
-        </p>
-      </div>
+      <AdaptiveScentFloating adaptive={adaptive} onViewProduct={(productId) => navigate(`/product/${productId}`)} />
 
-      <AdaptiveScentFloating
-        adaptive={adaptive}
-        onViewProduct={(productId) => navigate(`/product/${productId}`)}
-      />
-
-      <div className="card shop-filter-card">
-        <div className="filter-header">
-          <div className="tag">Filters</div>
-          <button
-            className="button secondary filter-toggle"
-            type="button"
-            onClick={() => setFiltersOpen((prev) => !prev)}
-          >
-            {filtersOpen ? 'Hide' : 'Show'}
-          </button>
+      <div className="store-shop-controls">
+        <div className="store-shop-toolbar">
+          <label className="store-search-field" htmlFor="shop-search">
+            <StoreIcon name="search" />
+            <input className="input" id="shop-search" type="search" placeholder="Search scents..." value={query} onChange={(event) => updateSearchParam('q', event.target.value)} />
+          </label>
+          <button className={`button secondary store-filter-toggle ${filtersOpen ? 'is-active' : ''}`} type="button" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen} aria-controls="shop-filter-options"><StoreIcon name="filter" />Filters{(category !== 'all' || minPrice !== '' || maxPrice !== '') && <span className="store-filter-indicator" />}</button>
+          <label className="store-sort-field" htmlFor="shop-sort"><span>Sort:</span><select className="input" id="shop-sort" value={sort} onChange={(event) => setSort(event.target.value)}><option value="default">Featured</option><option value="popularity">Popularity</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></label>
+          <div className="store-view-toggle" role="group" aria-label="Product view">
+            <button type="button" onClick={() => changeView('grid')} aria-pressed={view === 'grid'} aria-label="Grid view"><StoreIcon name="grid" /><span>Grid</span></button>
+            <button type="button" onClick={() => changeView('list')} aria-pressed={view === 'list'} aria-label="List view"><StoreIcon name="list" /><span>List</span></button>
+          </div>
         </div>
-        <div className={`grid three filter-body ${filtersOpen ? 'open' : ''}`}>
-          <div>
-            <div className="label">Search</div>
-            <input
-              className="input"
-              placeholder="Search by name"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </div>
-          <div>
-            <div className="label">Sort</div>
-            <select className="input" value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="default">Default</option>
-              <option value="popularity">Popularity</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-          </div>
-          <div>
-            <div className="label">Category</div>
-            <select
-              className="input"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            >
-              <option value="all">All</option>
-              <option value="Men">Men</option>
-              <option value="Women">Women</option>
-              <option value="Unisex">Unisex</option>
-            </select>
-          </div>
-          <div className="price-range">
-            <div>
-              <div className="label">Min. Price</div>
-              <input
-                className="input"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={minPrice}
-                onChange={(event) => setMinPrice(event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="label">Max. Price</div>
-              <input
-                className="input"
-                type="number"
-                min="0"
-                placeholder="3500"
-                value={maxPrice}
-                onChange={(event) => setMaxPrice(event.target.value)}
-              />
-            </div>
-          </div>
+        {filtersOpen && <div className="store-filter-options" id="shop-filter-options">
+          <div className="store-field"><label htmlFor="shop-category">Category</label><select className="input" id="shop-category" value={category} onChange={(event) => updateSearchParam('category', event.target.value)}><option value="all">All scents</option><option value="Men">Men</option><option value="Women">Women</option><option value="Unisex">Unisex</option></select></div>
+          <div className="store-field"><label htmlFor="shop-min-price">Minimum price</label><input className="input" id="shop-min-price" type="number" min="0" placeholder="? 0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /></div>
+          <div className="store-field"><label htmlFor="shop-max-price">Maximum price</label><input className="input" id="shop-max-price" type="number" min="0" placeholder="No maximum" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
+        </div>}
+        <div className="store-results-row">
+          <span role="status" aria-live="polite">{status.loading ? 'Discovering scents...' : `${filtered.length} ${filtered.length === 1 ? 'fragrance' : 'fragrances'}`}</span>
+          {category !== 'all' && <button className="store-filter-chip" type="button" onClick={() => updateSearchParam('category', '')} aria-label={`Remove ${category} category filter`}>{category}<StoreIcon name="close" /></button>}
+          {query && <button className="store-filter-chip" type="button" onClick={() => updateSearchParam('q', '')} aria-label="Clear search">?{query}?<StoreIcon name="close" /></button>}
+          {minPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMinPrice('')} aria-label="Remove minimum price">From ?{Number(minPrice).toLocaleString()}<StoreIcon name="close" /></button>}
+          {maxPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMaxPrice('')} aria-label="Remove maximum price">Up to ?{Number(maxPrice).toLocaleString()}<StoreIcon name="close" /></button>}
+          {hasFilters && <button className="store-clear-filters" type="button" onClick={clearFilters}>Clear all</button>}
         </div>
       </div>
 
-      {status.loading && <ProductGridSkeleton count={8} />}
-      {status.error && <div className="card">Error: {status.error}</div>}
-      {!status.loading && <div className="grid four shop-product-grid catalog-product-grid">
-        {filtered.map((product) => {
-          const isFav = favorites.includes(product.id)
-          const isAdaptivePick =
-            adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)
-          return (
-            <article key={product.id} className="product-card">
-              {isAdaptivePick && <span className="adaptive-pick-badge">Adaptive Pick</span>}
-
-
-              <div className="product-image">
-                {product.imageUrls?.[0] || product.imageUrl ? (
-                  <img
-                    className="product-image-img"
-                    src={product.imageUrls?.[0] || product.imageUrl}
-                    srcSet={buildCloudinarySrcSet(product.imageUrls?.[0] || product.imageUrl)}
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 220px"
-                    alt={product.name}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <span>{product.name}</span>
-                )}
-              </div>
-              <div className="product-copy">
-                <strong>{product.name}</strong>
-                <p className="section-subtitle">{product.notes}</p>
-              </div>
-              <div className="pill">{product.size}</div>
-              <div className="product-card-footer">
-                <span>₱{product.price.toLocaleString()}</span>
-                <div className="product-actions">
-                  <button className="button secondary" onClick={() => navigate(`/product/${product.id}`)}>
-                    View
-                  </button>
-                  <button
-                    className={`icon-button ${isFav ? 'favorited' : ''}`}
-                    type="button"
-                    onClick={() => {
-                      if (!user) {
-                        navigate('/login')
-                        return
-                      }
-                      const next = toggleFavorite(product.id, user?.id)
-                      setFavorites(next)
-                      if (!isFav && next.includes(product.id)) {
-                        playActionAnimation('favorite')
-                      }
-                    }}
-                    aria-label="Favorite"
-                    aria-pressed={isFav}
-                    title="Favorite"
-                  >
-                    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                        fill={isFav ? 'currentColor' : 'none'}
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    className="button shop-cart-button"
-                    type="button"
-                    aria-label={`Add ${product.name} to cart`}
-                    title="Add to cart"
-                    onClick={() => openAddToCartModal(product.id)}
-                    disabled={product.stock <= 0}
-                  >
-                    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle cx="9" cy="19" r="1.4" fill="currentColor" />
-                      <circle cx="17" cy="19" r="1.4" fill="currentColor" />
-                    </svg>
-                  </button>
-
-                </div>
-              </div>
-            </article>
-          )
-        })}
+      {status.loading && <StoreCatalogSkeleton view={view} count={8} />}
+      {status.error && <div className="store-notice" role="alert"><span>{status.error}</span><button className="store-text-link" type="button" onClick={loadProducts}>Try again</button></div>}
+      {!status.loading && filtered.length > 0 && <div className={`store-catalog store-${view}`}>
+        {filtered.map((product) => <StoreProductCard key={product.id} product={product} favorite={favorites.includes(product.id)} adaptivePick={adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)} onAdd={() => openAddToCartModal(product.id)} onFavorite={() => {
+          if (!user) { navigate('/login'); return }
+          const wasFavorite = favorites.includes(product.id)
+          const next = toggleFavorite(product.id, user.id)
+          setFavorites(next)
+          if (!wasFavorite && next.includes(product.id)) playActionAnimation('favorite')
+        }} />)}
       </div>}
+      {!status.loading && !status.error && filtered.length === 0 && <div className="store-empty-state"><StoreIcon name="search" /><h2>{hasFilters ? 'No scents found' : 'A new scent story is on its way'}</h2><p>{hasFilters ? 'Try another name or adjust your filters to find your next favorite.' : 'Our collection will be here soon. Check back for something special.'}</p>{hasFilters && <button className="button secondary" type="button" onClick={clearFilters}>Clear filters</button>}</div>}
 
       {cartModal.open && cartModal.product && (
         <Modal>
-          <div className="modal-card" role="dialog" aria-modal="true">
+          <div className="modal-card store-cart-modal" role="dialog" aria-modal="true" aria-labelledby="shop-cart-title">
             <button
               className="modal-close"
               type="button"
@@ -331,7 +231,7 @@ function Shop() {
             </button>
 
             <div className="tag">Add to Cart</div>
-            <h2 className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
+            <h2 id="shop-cart-title" className="section-title" style={{ fontSize: '28px', marginTop: '10px' }}>
               {cartModal.product.name}
             </h2>
             <p className="section-subtitle">{maxQty > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>

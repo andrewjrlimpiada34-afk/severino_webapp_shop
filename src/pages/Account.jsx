@@ -1,10 +1,11 @@
 import Modal from '../components/Modal.jsx'
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import StoreIcon from '../components/StoreIcon.jsx'
 
 function Account() {
   const navigate = useNavigate()
@@ -28,6 +29,8 @@ function Account() {
   const [canManageSecurity, setCanManageSecurity] = useState(false)
   const [securityOpen, setSecurityOpen] = useState(false)
   const [profileUpdatedOpen, setProfileUpdatedOpen] = useState(false)
+  const photoInput = useRef(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -146,183 +149,75 @@ function Account() {
     api.updateTheme(value).catch(() => {})
   }
 
+  const handlePhotoChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setPhotoUploading(true)
+    try {
+      const compressed = await compressImageFile(file, { maxSize: 800, quality: 0.8 })
+      const upload = await api.uploadImage(compressed)
+      setForm((previous) => ({ ...previous, profileImage: String(upload.url) }))
+    } catch (error) {
+      setStatus({ loading: false, error: error?.message || 'Failed to process image.', success: '' })
+    } finally {
+      setPhotoUploading(false)
+      event.target.value = ''
+    }
+  }
+  const initials = form.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S'
+
   return (
-    <section className="grid" style={{ gap: '24px' }}>
-      <div className="account-hero">
-        <div className="tag">Severino Account</div>
-        <h1 className="section-title">Account</h1>
-        <p className="section-subtitle">
-          Manage your profile, delivery addresses, and security settings.
-        </p>
+    <section className="boutique-page boutique-account">
+      <header className="store-page-heading"><span className="store-eyebrow">Your Severino space</span><h1>My account</h1><p>A few details for a more personal experience.</p></header>
+
+      <div className="store-account-identity">
+        <div className="store-account-avatar">{form.profileImage ? <img src={form.profileImage} alt="Your profile" /> : <span>{initials}</span>}</div>
+        <div className="store-account-name"><strong>{form.name || 'Your profile'}</strong>{form.email && <span>{form.email}</span>}<button className="store-text-link" type="button" onClick={() => photoInput.current?.click()} disabled={status.loading || photoUploading}>{photoUploading ? 'Uploading photo...' : 'Change photo'}</button><input ref={photoInput} className="sr-only" type="file" accept="image/*" aria-label="Upload profile photo" onChange={handlePhotoChange} disabled={status.loading || photoUploading} /></div>
+        <nav className="store-account-shortcuts" aria-label="Account shortcuts"><Link to="/orders"><StoreIcon name="box" /><span>Orders</span><StoreIcon name="chevron" /></Link><Link to="/favorites"><StoreIcon name="heart" /><span>Favorites</span><StoreIcon name="chevron" /></Link></nav>
       </div>
 
-      <div>
-        <h2 className="section-title" style={{ fontSize: '26px' }}>Profile & Contacts</h2>
-        <p className="section-subtitle">Keep your details up to date for faster deliveries.</p>
-      </div>
+      {status.loading && !userId && <CardSkeleton lines={4} />}
+      {status.error && <div className="store-notice" role="alert">{status.error}</div>}
 
-      <div className="card form account-theme-card">
-        <div className="label">Theme Preference</div>
-        <select
-          className="input"
-          value={theme}
-          onChange={(event) => handleThemeChange(event.target.value)}
-        >
-          <option>Default</option>
-          <option>Daylight</option>
-          <option>Pink Splush</option>
-          <option>Blazing Maroon</option>
-          <option>Forest Brown</option>
-          <option>Beach Blue</option>
-          <option>Luxurious Gold</option>
-          <option>Shadow Dark Mode</option>
-        </select>
-      </div>
-
-      {status.loading && <CardSkeleton lines={4} />}
-      {status.error && <div className="card">Error: {status.error}</div>}
-
-      <form className="grid two account-profile-grid" onSubmit={handleSubmit}>
-        <div className="card form">
-          <h3 className="account-form-title">Profile</h3>
-          <div>
-            <div className="label">Profile Picture (Optional)</div>
-            <input
-              className="input"
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                if (!file) return
-                compressImageFile(file, { maxSize: 800, quality: 0.8 })
-                  .then((compressed) => api.uploadImage(compressed))
-                  .then((upload) =>
-                    setForm((prev) => ({ ...prev, profileImage: String(upload.url) }))
-                  )
-                  .catch((error) =>
-                    setStatus({
-                      loading: false,
-                      error: error?.message || 'Failed to process image.',
-                      success: '',
-                    })
-                  )
-              }}
-            />
-          </div>
-          <div>
-            <div className="label">Full Name</div>
-            <input
-              className="input"
-              value={form.name}
-              onChange={(event) => updateField('name', event.target.value)}
-            />
-          </div>
-          {!canManageSecurity && (
-            <div>
-              <div className="label">Email</div>
-              <input
-                className="input"
-                type="email"
-                value={form.email}
-                onChange={(event) => updateField('email', event.target.value)}
-              />
+      <form className="store-account-form" onSubmit={handleSubmit} aria-busy={status.loading}>
+        <fieldset className="store-account-fields" disabled={status.loading || photoUploading}>
+          <section className="store-account-section">
+            <h2>Personal information</h2><p className="store-section-description">The details that make this account yours.</p>
+            <div className="store-field"><label htmlFor="account-name">Full name</label><input className="input" id="account-name" autoComplete="name" required value={form.name} onChange={(event) => updateField('name', event.target.value)} /></div>
+            <div className="store-field"><label htmlFor="account-email">Email</label><input className="input" id="account-email" type="email" autoComplete="email" readOnly={canManageSecurity} value={form.email} onChange={(event) => updateField('email', event.target.value)} /></div>
+            <div className="store-field"><label htmlFor="account-phone">Mobile number</label><input className="input" id="account-phone" type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => updateField('phone', event.target.value)} /></div>
+            <div className="store-account-preferences">
+              <div className="store-preference-row"><StoreIcon name="palette" /><label htmlFor="account-theme">Appearance</label><select className="input" id="account-theme" value={theme} onChange={(event) => handleThemeChange(event.target.value)}>{['Default', 'Daylight', 'Pink Splush', 'Blazing Maroon', 'Forest Brown', 'Beach Blue', 'Luxurious Gold', 'Shadow Dark Mode'].map((option) => <option key={option}>{option}</option>)}</select></div>
+              {canManageSecurity && <div className="store-preference-row"><StoreIcon name="shield" /><span>Security</span><button className="store-text-link" type="button" aria-expanded={securityOpen} aria-controls="account-password-form" onClick={() => setSecurityOpen((open) => !open)}>{securityOpen ? 'Close password settings' : 'Change password'}</button></div>}
             </div>
-          )}
-          <div>
-            <div className="label">Mobile Number</div>
-            <input
-              className="input"
-              value={form.phone}
-              onChange={(event) => updateField('phone', event.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="card form">
-          <h3 className="account-form-title">Contact Info</h3>
-          <div className="label">Street Address (Optional)</div>
-          <input
-            className="input"
-            value={form.addressLine}
-            onChange={(event) => updateField('addressLine', event.target.value)}
-          />
-          <div className="label">Backup Address (Optional)</div>
-          <input
-            className="input"
-            value={form.backupAddress}
-            onChange={(event) => updateField('backupAddress', event.target.value)}
-          />
-          <div className="grid two">
-            <div>
-              <div className="label">Barangay (Required)</div>
-              <input
-                className="input"
-                value={form.barangay}
-                onChange={(event) => updateField('barangay', event.target.value)}
-              />
+          </section>
+          <section className="store-account-section">
+            <h2>Delivery address</h2><p className="store-section-description">Help your next favorite find its way to you.</p>
+            <div className="store-field"><label htmlFor="account-street">Street address <span>(optional)</span></label><input className="input" id="account-street" autoComplete="address-line1" value={form.addressLine} onChange={(event) => updateField('addressLine', event.target.value)} /></div>
+            <div className="store-field-pair">
+              <div className="store-field"><label htmlFor="account-barangay">Barangay</label><input className="input" id="account-barangay" autoComplete="address-level3" required value={form.barangay} onChange={(event) => updateField('barangay', event.target.value)} /></div>
+              <div className="store-field"><label htmlFor="account-city">City / Municipality</label><input className="input" id="account-city" autoComplete="address-level2" required value={form.city} onChange={(event) => updateField('city', event.target.value)} /></div>
             </div>
-            <div>
-              <div className="label">City/Municipality (Required)</div>
-              <input
-                className="input"
-                value={form.city}
-                onChange={(event) => updateField('city', event.target.value)}
-              />
+            <div className="store-field-pair">
+              <div className="store-field"><label htmlFor="account-province">Province / State</label><input className="input" id="account-province" autoComplete="address-level1" required value={form.province} onChange={(event) => updateField('province', event.target.value)} /></div>
+              <div className="store-field"><label htmlFor="account-zip">ZIP code</label><input className="input" id="account-zip" autoComplete="postal-code" required value={form.zip} onChange={(event) => updateField('zip', event.target.value)} /></div>
             </div>
-          </div>
-          <div className="grid two">
-            <div>
-              <div className="label">Province/State (Required)</div>
-              <input
-                className="input"
-                value={form.province}
-                onChange={(event) => updateField('province', event.target.value)}
-              />
-            </div>
-            <div>
-              <div className="label">ZIP Code (Required)</div>
-              <input
-                className="input"
-                value={form.zip}
-                onChange={(event) => updateField('zip', event.target.value)}
-              />
-            </div>
-          </div>
-          <div className="label">Country (Required)</div>
-          <input
-            className="input"
-            value={form.country}
-            onChange={(event) => updateField('country', event.target.value)}
-          />
-        </div>
-        <div className="account-update-actions">
-          <button className="button" type="submit" disabled={status.loading}>
-            {status.loading ? 'Updating...' : 'Update Profile'}
-          </button>
-        </div>
+            <div className="store-field"><label htmlFor="account-country">Country</label><input className="input" id="account-country" autoComplete="country-name" required value={form.country} onChange={(event) => updateField('country', event.target.value)} /></div>
+            <div className="store-field"><label htmlFor="account-backup">Backup address <span>(optional)</span></label><input className="input" id="account-backup" value={form.backupAddress} onChange={(event) => updateField('backupAddress', event.target.value)} /></div>
+          </section>
+        </fieldset>
+        <div className="store-account-save"><span>Keep your details up to date for smooth deliveries.</span><button className="button" type="submit" disabled={status.loading || photoUploading}>{status.loading ? 'Saving...' : 'Save changes'}</button></div>
       </form>
 
-      {canManageSecurity && (
-        <div className="card form">
-          <h2 className="section-title" style={{ fontSize: '24px' }}>Password Manager</h2>
-          <div className="pill">Use your current password before setting a new one.</div>
-          <button
-            className="button secondary"
-            type="button"
-            onClick={() => setSecurityOpen((prev) => !prev)}
-          >
-            {securityOpen ? 'Hide Password Manager' : 'Manage Password'}
-          </button>
-        </div>
-      )}
-
       {canManageSecurity && securityOpen && (
-        <form className="card form" onSubmit={handlePasswordChange}>
+        <form className="card form store-password-form" id="account-password-form" onSubmit={handlePasswordChange}>
           <div className="label">Change Password</div>
           <div>
-            <div className="label">Current Password</div>
+            <label className="label" htmlFor="account-current-password">Current password</label>
             <div className="input-row">
               <input
+                id="account-current-password"
+                autoComplete="current-password"
                 className="input"
                 type={showCurrent ? 'text' : 'password'}
                 value={passwordForm.currentPassword}
@@ -349,9 +244,11 @@ function Account() {
             </div>
           </div>
           <div>
-            <div className="label">New Password</div>
+            <label className="label" htmlFor="account-new-password">New password</label>
             <div className="input-row">
               <input
+                id="account-new-password"
+                autoComplete="new-password"
                 className="input"
                 type={showNew ? 'text' : 'password'}
                 placeholder="At least 8 chars, letters, numbers, symbols"
@@ -379,9 +276,11 @@ function Account() {
             </div>
           </div>
           <div>
-            <div className="label">Confirm New Password</div>
+            <label className="label" htmlFor="account-confirm-password">Confirm new password</label>
             <div className="input-row">
               <input
+                id="account-confirm-password"
+                autoComplete="new-password"
                 className="input"
                 type={showConfirm ? 'text' : 'password'}
                 value={passwordForm.confirmPassword}

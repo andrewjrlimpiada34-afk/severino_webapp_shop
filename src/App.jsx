@@ -70,7 +70,7 @@ function AppLayout({ children }) {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell storefront-shell">
       <NavBar />
       <main className="page">{children}</main>
       {showFooter && <Footer />}

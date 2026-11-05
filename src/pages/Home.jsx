@@ -1,11 +1,12 @@
 import BannerStoryModal from '../components/BannerStoryModal.jsx'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import AdaptiveScentFloating from '../components/AdaptiveScentFloating.jsx'
 import HomeScrollVideo from '../components/HomeScrollVideo.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
-import { useActionAnimation } from '../context/useActionAnimation.js'
+import StoreProductCard, { StoreCatalogSkeleton } from '../components/StoreProductCard.jsx'
+import StoreIcon from '../components/StoreIcon.jsx'
 
 import { useAuth } from '../context/AuthContext.jsx'
 import { defaultBannerStories, normalizeBannerStories } from '../../server/shared/bannerContent.js'
@@ -28,7 +29,6 @@ function getFacebookPluginUrl(width) {
 
 function Home() {
   const { user } = useAuth()
-  const { playActionAnimation } = useActionAnimation()
 
   const navigate = useNavigate()
   const [banners, setBanners] = useState([])
@@ -45,6 +45,8 @@ function Home() {
   const [loadedFeaturedImages, setLoadedFeaturedImages] = useState({})
   const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0)
   const [adaptiveProducts, setAdaptiveProducts] = useState([])
+  const [catalogStatus, setCatalogStatus] = useState('loading')
+  const [catalogAttempt, setCatalogAttempt] = useState(0)
   const [openBannerStory, setOpenBannerStory] = useState(null)
   const [facebookMobileWidth, setFacebookMobileWidth] = useState(320)
   const adaptive = useAdaptiveScent(adaptiveProducts)
@@ -115,9 +117,17 @@ function Home() {
   }, [banners.length])
 
   useEffect(() => {
-    if (!adaptive.enabled || adaptiveProducts.length) return
-    api.products().then(setAdaptiveProducts).catch(() => setAdaptiveProducts([]))
-  }, [adaptive.enabled, adaptiveProducts.length])
+    let active = true
+    setCatalogStatus('loading')
+    api.products().then((products) => {
+      if (!active) return
+      setAdaptiveProducts(products)
+      setCatalogStatus('ready')
+    }).catch(() => {
+      if (active) setCatalogStatus('error')
+    })
+    return () => { active = false }
+  }, [catalogAttempt])
 
   useEffect(() => {
     const frame = facebookEmbedFrameRef.current
@@ -202,39 +212,39 @@ function Home() {
     scrollToFeaturedBanner(next)
   }
 
-  const goToPage = async (event, path, type, message) => {
-    event.preventDefault()
-    await playActionAnimation(type, { duration: 760, message })
-    navigate(path)
-  }
-
   return (
-    <section className="grid home-page">
+    <section className="grid home-page boutique-page boutique-home">
       {SHOW_HOME_SCROLL_VIDEO && <HomeScrollVideo />}
 
-      <div
-        className="hero home-hero"
-        style={heroImage ? { '--hero-image': `url(${heroImage})` } : undefined}
-      >
-        <div className="hero-content">
-          <div className="tag">Severino Collection</div>
-          <h1 className="section-title">Scent stories crafted for calm confidence.</h1>
+      <div className="store-home-hero">
+        <div className="store-home-hero-copy">
+          <span className="store-eyebrow">The Severino collection</span>
+          <h1>Scent stories for<br />everyday elegance.</h1>
           <p className="section-subtitle">
-            Discover a boutique line of fragrances with luxurious notes, created for everyday
-            elegance. COD only, verified deliveries, and careful packaging for every order.
+            Thoughtfully chosen fragrances for quiet moments, calm confidence, and lasting impressions.
           </p>
-          <div className="hero-actions">
-            <a className="button" href="/shop">
-              Explore Collection
-            </a>
-            {!user && (
-              <a className="button secondary" href="/create-account">
-                Create Account
-              </a>
-            )}
+          <div className="store-hero-actions">
+            <Link className="button" to="/shop">Explore collection <StoreIcon name="arrow" /></Link>
+            {!user && <Link className="store-text-link" to="/create-account">Join Severino</Link>}
           </div>
+          <span className="store-hero-footnote">Cash on delivery · Carefully packed</span>
         </div>
+        <div className="store-home-hero-media"><img src={heroImage || '/images/severino-editorial.webp'} alt="The Severino fragrance collection" fetchPriority="high" /></div>
       </div>
+
+      <nav className="store-category-links" aria-label="Shop by category">
+        {['All scents', 'Men', 'Women', 'Unisex'].map((category, index) => <Link key={category} className={index === 0 ? 'is-active' : ''} to={index === 0 ? '/shop' : `/shop?category=${category}`}>{category}</Link>)}
+        <span>A scent for every version of you.</span>
+      </nav>
+
+      <section className="store-featured-section" aria-labelledby="featured-scents-title">
+        <div className="store-section-heading"><div><span className="store-eyebrow">Discover your next favorite</span><h2 id="featured-scents-title">Featured scents</h2></div><Link className="store-text-link" to="/shop">View collection <StoreIcon name="arrow" /></Link></div>
+        {catalogStatus === 'loading' && <StoreCatalogSkeleton />}
+        {catalogStatus === 'error' && <div className="store-empty-state" role="status"><p>We couldn’t load the collection right now.</p><button className="button secondary" type="button" onClick={() => setCatalogAttempt((attempt) => attempt + 1)}>Try again</button></div>}
+        {catalogStatus === 'ready' && (adaptiveProducts.length ? <div className="store-catalog store-grid">{adaptiveProducts.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}</div> : <div className="store-empty-state"><p>A new scent story is on its way. Check back soon.</p></div>)}
+      </section>
+
+      <div className="store-brand-story"><div className="store-brand-monogram" aria-hidden="true">S.</div><div><span className="store-eyebrow">A little more about us</span><h2>The Severino story</h2><p>Fragrances chosen for everyday elegance. Find your signature, make it part of your day.</p></div><Link className="store-text-link" to="/shop">Find your scent <StoreIcon name="arrow" /></Link></div>
 
       <AdaptiveScentFloating
         adaptive={adaptive}
@@ -355,58 +365,6 @@ function Home() {
       )}
 
       <div className="grid home-shop-section">
-        <div className="home-section-heading">
-          <h2 className="section-title">Explore the Shop</h2>
-          <p className="section-subtitle">Browse new scents, find your signature, and build your collection.</p>
-        </div>
-
-        <div className="card home-shop-card">
-          <div className="home-shop-card__copy">
-            <div className="tag">Curated for you</div>
-            <div className="home-shop-card__title">Severino Collection - always ready to discover.</div>
-          </div>
-          <div className="home-shop-icon-actions">
-            <a
-              className="button home-shop-icon-button"
-              href="/shop"
-              aria-label="Shop all scents"
-              title="Shop all scents"
-              onClick={(event) => goToPage(event, '/shop', 'shop', 'Opening shop')}
-            >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
-                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
-              </svg>
-            </a>
-            <a
-              className="button secondary home-shop-icon-button"
-              href="/search"
-              aria-label="Search products"
-              title="Search products"
-              onClick={(event) => goToPage(event, '/search', 'search', 'Searching scents')}
-            >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <path
-                  d="M16.5 16.5L21 21"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </a>
-          </div>
-        </div>
-
         {bannersLoading && (
           <section className="featured-banner-slider banner-skeleton-region" aria-label="Loading featured banners" aria-busy="true">
             <div className="featured-banner-slider__viewport" aria-hidden="true">

@@ -13,15 +13,20 @@ const WEATHER_ICONS = {
 const DEFAULT_POSITION = { x: 22, y: 92 }
 const POSITION_KEY = 'severino_adaptive_scent_position'
 
+function getDefaultPosition() {
+  if (typeof window === 'undefined') return DEFAULT_POSITION
+  return { x: window.innerWidth - 76, y: window.innerHeight - (window.innerWidth <= 640 ? 180 : 100) }
+}
+
 function getStoredPosition() {
   if (typeof window === 'undefined') return DEFAULT_POSITION
   try {
     const stored = JSON.parse(sessionStorage.getItem(POSITION_KEY) || 'null')
     if (Number.isFinite(stored?.x) && Number.isFinite(stored?.y)) return stored
   } catch {
-    return DEFAULT_POSITION
+    return getDefaultPosition()
   }
-  return DEFAULT_POSITION
+  return getDefaultPosition()
 }
 
 function clampPosition(position) {
@@ -111,6 +116,7 @@ function AdaptiveScentFloating({
         className={`adaptive-floating-button ${adaptive.enabled ? 'active' : ''} mood-${mood}`}
         type="button"
         aria-label="Open Adaptive Scent"
+        title="Find my scent · Drag to move"
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { api } from '../lib/api.js'
+import StoreIcon from './StoreIcon.jsx'
 
 const navAnimations = {
   '/': { type: 'home', message: 'Opening home' },
@@ -240,6 +241,15 @@ function NavBar() {
           </button>
         )}
         </div>
+        <form className="store-nav-search" role="search" onSubmit={(event) => {
+          event.preventDefault()
+          const query = String(new FormData(event.currentTarget).get('q') || '').trim()
+          navigate(query ? `/shop?q=${encodeURIComponent(query)}` : '/shop')
+        }}>
+          <label className="sr-only" htmlFor="nav-product-search">Search the collection</label>
+          <StoreIcon name="search" />
+          <input id="nav-product-search" name="q" type="search" placeholder="Search scents..." />
+        </form>
         <div className="nav-actions">
         {user && (
           <button

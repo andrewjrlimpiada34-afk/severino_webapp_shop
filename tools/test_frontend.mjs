@@ -110,7 +110,7 @@ if (location.search.includes('preview=registration')) {
   await render(<MemoryRouter><CreateAccount /></MemoryRouter>)
 } else if (location.search.includes('preview=terms')) {
   await render(<MemoryRouter><Login /></MemoryRouter>)
-  await click(button('Read More'))
+  await click(document.querySelector('.terms-link'))
 } else if (location.search.includes('preview=intro')) {
   await render(<BrandIntro />)
   await waitFor(() => document.querySelector('.brand-intro__logo'))
@@ -155,8 +155,8 @@ if (location.search.includes('preview=registration')) {
     }
     try {
       await render(<MemoryRouter><div className="admin-shell"><AdminDashboard /></div></MemoryRouter>)
-      await waitFor(() => document.querySelector('#banner-story-message-0')?.value === 'Existing perfume tips')
       await click(document.getElementById('admin-tab-banner-content'))
+      await waitFor(() => document.querySelector('#banner-story-message-0')?.value === 'Existing perfume tips')
       const videoInput = document.getElementById('why-severino-video')
       input(videoInput, 'https://example.com/not-a-drive-file')
       await click(button('Save Banner Content'))
@@ -208,7 +208,7 @@ if (location.search.includes('preview=registration')) {
     await render(opening('automatic'))
     assert(!document.querySelector('.brand-intro'), 'Intro does not replay on an app rerender')
     await render(opening('skip'))
-    await click(button('Skip intro'))
+    key(document.querySelector('.brand-intro'), 'Escape')
     await waitFor(() => !document.querySelector('.brand-intro'))
     assert(!document.documentElement.style.overflow, 'Skip restores scrolling')
     await render(opening('error'))
@@ -274,7 +274,7 @@ if (location.search.includes('preview=registration')) {
 
   await run('Terms retain content, remove illustrations, and scroll independently', async () => {
     await render(<MemoryRouter><Login /></MemoryRouter>)
-    await click(button('Read More'))
+    await click(document.querySelector('.terms-link'))
     const terms = document.querySelector('.terms-modal')
     assert(terms && terms.scrollHeight > terms.clientHeight, 'Agreement has a scrollable viewport')
     assert(getComputedStyle(terms).overscrollBehaviorY === 'contain', 'Agreement prevents scroll chaining')
@@ -356,6 +356,8 @@ const bundle = await build({
   define: { 'import.meta.env': '{}' },
   plugins: [{ name: 'test-auth', setup(build) {
     build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' }))
+    // Fixture transports are swapped between cases; resolve the current stub per request.
+    build.onLoad({ filter: /apiClient\.js$/ }, async ({ path }) => ({ contents: (await readFile(path, 'utf8')).replace('fetchImpl = globalThis.fetch', 'fetchImpl = (...args) => globalThis.fetch(...args)'), loader: 'js' }))
   } }],
 })
 const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')

@@ -8,6 +8,7 @@ import { ActionAnimationProvider } from './context/ActionAnimationContext.jsx'
 import './index.css'
 import './admin.css'
 import './customer-desktop.css'
+import './storefront.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

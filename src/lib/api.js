@@ -19,6 +19,7 @@ export const api = {
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   me: () => request('/api/auth/me'),
   profile: () => request('/api/users/me'),
+  checkDeliveryPhone: (phone) => request('/api/users/me/check-delivery-phone', { method: 'POST', body: JSON.stringify({ phone }) }),
   updateProfile: (data) => request('/api/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
   updateTheme: (preferredTheme) =>
     request('/api/users/theme', { method: 'PATCH', body: JSON.stringify({ preferredTheme }) }),

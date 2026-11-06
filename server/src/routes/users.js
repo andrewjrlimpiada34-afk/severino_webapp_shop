@@ -2,7 +2,8 @@
 import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
-import { getUserById, sanitizeUser, updateUser } from '../db/users.js'
+import { getUserById, isPhoneRegisteredToAnotherUser, sanitizeUser, updateUser } from '../db/users.js'
+import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 import { requireAuth } from '../middleware/auth.js'
 import { isDataUrl } from '../lib/images.js'
 
@@ -41,6 +42,18 @@ router.get('/me', requireAuth, asyncRoute(async (req, res) => {
   return res.json(sanitizeUser(user))
 }))
 
+const deliveryPhoneSchema = z.object({
+  phone: z.string().transform(normalizePhilippineMobile).refine(Boolean, 'Enter a valid Philippine mobile number.'),
+})
+
+router.post('/me/check-delivery-phone', requireAuth, asyncRoute(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const parsed = deliveryPhoneSchema.safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ message: 'Enter a valid Philippine mobile number.' })
+  const registeredToAnotherUser = await isPhoneRegisteredToAnotherUser(parsed.data.phone, req.user.id)
+  return res.json({ registeredToAnotherUser })
+}))
+
 router.patch('/me', requireAuth, asyncRoute(async (req, res) => {
   const parsed = profileSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -53,7 +66,19 @@ router.patch('/me', requireAuth, asyncRoute(async (req, res) => {
     delete nextData.email
   }
   const address = `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`
-  const user = await updateUser(req.user.id, { ...nextData, address })
+  let user
+  try {
+    user = await updateUser(req.user.id, { ...nextData, address })
+  } catch (error) {
+    const conflicts = {
+      users_phone_key: 'This mobile number is already registered to another user. Use a different number for your account.',
+      users_email_key: 'This email is already registered to another user. Use a different email for your account.',
+    }
+    if (error.code === '23505' && Object.hasOwn(conflicts, error.constraint)) {
+      return res.status(409).json({ message: conflicts[error.constraint] })
+    }
+    throw error
+  }
   if (!user) return res.status(404).json({ message: 'Not found' })
   return res.json(sanitizeUser(user))
 }))

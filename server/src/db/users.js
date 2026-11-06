@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { getDb } from './postgres.js'
 import { createId, nullable } from './util.js'
+import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 
 const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
 const adminPassword = process.env.ADMIN_PASSWORD
@@ -80,6 +81,22 @@ export const getUserByEmail = async (email) => {
 export const getUserByPhone = async (phone) => {
   await ensureAdmin()
   return phone ? findUser('phone', phone) : null
+}
+
+export const isPhoneRegisteredToAnotherUser = async (phone, userId) => {
+  const normalized = normalizePhilippineMobile(phone)
+  if (!normalized) return false
+  const local = normalized.slice(3)
+  const variants = [normalized, normalized.slice(1), `0${local}`, local]
+  const { rows } = await getDb().query(
+    `SELECT EXISTS (
+      SELECT 1 FROM users
+      WHERE id <> $1
+        AND regexp_replace(COALESCE(phone, ''), '[[:space:]-]', '', 'g') = ANY($2::text[])
+    ) AS registered`,
+    [userId, variants]
+  )
+  return rows[0].registered
 }
 
 export const getUserById = async (id) => {

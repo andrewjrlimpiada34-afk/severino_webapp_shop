@@ -34,13 +34,18 @@ const products = [
   { id: 'weekend', name: 'Burberry Weekend Eau de Parfum', notes: 'Peach, nectarine blossom, honeyed musk with a particularly long scent description', size: '90 mL', price: 2490, category: 'Unisex', stock: 4, imageUrl },
 ]
 const profile = { id: 'storefront-fixture-user', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', addressLine: 'Example Street', backupAddress: 'Example backup address', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', profileImage: '', hasPassword: true, preferredTheme: 'Default' }
-const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [] }
+const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [], phones: [] }
 window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, startLogin: async (...args) => { calls.login.push(args); return { role: 'customer' } } }
 window.EventSource = class { addEventListener() {} close() {} }
 Object.assign(api, {
   products: async () => { if (window.failCatalog) throw new Error('Collection temporarily unavailable'); return products },
   orders: async () => window.qaOrders || [], profile: async () => window.qaProfile || profile,
   product: async (id) => products.find(item => item.id === id),
+  checkDeliveryPhone: async (phone) => {
+    calls.phones.push(phone)
+    if (window.failPhoneCheck) throw new Error('Unable to check this mobile number. Please try again.')
+    return { registeredToAnotherUser: Boolean(window.registeredDeliveryPhone) }
+  },
   createOrder: async (data) => { calls.orders.push(data); if (window.holdOrder) await new Promise(resolve => { window.finishOrder = resolve }); return { ...data, id: 'new-fixture-order' } },
   cancelOrderItem: async (orderId, itemKey) => {
     calls.cancellations.push({ orderId, itemKey })
@@ -49,7 +54,7 @@ Object.assign(api, {
     const order = window.qaOrders.find(item => item.id === orderId)
     return { ...order, items: order.items.map((item, index) => (item.itemId || index + '-' + item.productId) === itemKey ? { ...item, trackingStatus: 'Cancelled' } : item) }
   },
-  updateProfile: async (data) => { calls.profile.push(data); return { ...profile, ...data } },
+  updateProfile: async (data) => { calls.profile.push(data); if (window.rejectProfileWrite) throw new Error('This mobile number is already registered to another user.'); return { ...profile, ...data } },
   updateTheme: async (theme) => { calls.theme.push(theme) },
   updatePassword: async (data) => { calls.password.push(data) },
   cart: async () => window.qaCart || { items: [] }, updateCart: async (items) => { calls.cart.push(items) },
@@ -114,11 +119,17 @@ if (preview) {
   if (preview === 'shop') localStorage.setItem('severino_shop_view', 'grid')
   const policyPreview = ['terms', 'privacy', 'cookies', 'terms-fashion'].includes(preview)
   if (preview.startsWith('checkout')) window.qaProfile = {}
+  if (preview === 'checkout-phone') {
+    window.qaProfile = profile
+    window.qaCart = { items: [{ productId: 'cucumber-melon', quantity: 1 }] }
+    window.registeredDeliveryPhone = true
+  }
   if (preview === 'cancel-order') window.qaOrders = [sampleOrder]
   if (preview === 'adaptive-intro') sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
   await render(preview.startsWith('checkout') ? 'checkout' : preview === 'cancel-order' ? 'orders' : preview === 'adaptive-intro' ? 'home' : policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
   if (preview === 'checkout-errors') await click(button('Next'))
   if (preview === 'checkout-contact') { await fillShipping(); await click(button('Next')) }
+  if (preview === 'checkout-phone') { await click(button('Next')); await click(button('Next')); await click(button('Confirm Order')) }
   if (preview === 'cancel-order') await click(button('Cancel'))
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
   if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
@@ -171,6 +182,8 @@ if (preview) {
     await click(document.querySelector('[aria-label="Close Adaptive Scent"]'))
   })
   await run('Checkout validates each step, preserves edits, and prevents duplicate or out-of-stock orders', async () => {
+    window.rejectProfileWrite = true
+    const initialProfileCount = calls.profile.length
     window.qaProfile = {}
     window.qaCart = { items: [{ productId: 'cucumber-melon', quantity: 1 }] }
     const initialOrderCount = calls.orders.length
@@ -208,6 +221,7 @@ if (preview) {
     const checkoutForm = document.querySelector('.checkout-card')
     flushSync(() => { checkoutForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); checkoutForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     assert(calls.orders.length === initialOrderCount + 1 && button('Back').disabled, 'Submitting disables navigation and prevents duplicate requests')
+    assert(calls.profile.length === initialProfileCount, 'Checkout saves delivery details on the order without updating account login identifiers')
     const payload = calls.orders.at(-1)
     assert(payload.contactName === 'Ana Cruz' && payload.email === 'ana@example.com' && payload.phone === '+639171234567' && !payload.address.startsWith(','), 'Final order data is trimmed and normalized')
     window.holdOrder = false
@@ -222,6 +236,73 @@ if (preview) {
     await click(button('Confirm Order'))
     await waitFor(() => document.querySelector('.checkout-notice.is-error'))
     assert(calls.orders.length === initialOrderCount + 1 && document.querySelector('.checkout-notice.is-error').textContent.includes('Stock has changed'), 'Stock is checked again before an order is created')
+    delete window.qaProfile
+    delete window.qaCart
+  })
+  delete window.rejectProfileWrite
+  await run('Registered delivery phone asks Yes or No and permits one order only after consent', async () => {
+    window.rejectProfileWrite = true
+    window.registeredDeliveryPhone = true
+    window.qaProfile = profile
+    const directKey = 'severino_direct_checkout_' + profile.id
+    localStorage.setItem(directKey, JSON.stringify({ productId: 'cucumber-melon', quantity: 1 }))
+    const initialOrderCount = calls.orders.length
+    const initialProfileCount = calls.profile.length
+    await render('checkout')
+    await click(button('Next'))
+    await input('checkout-mobile', '0928 765 4321')
+    await click(button('Next'))
+    await click(button('Confirm Order'))
+    await waitFor(() => document.querySelector('.checkout-phone-modal'))
+    const modal = document.querySelector('.checkout-phone-modal')
+    assert(modal.textContent.includes('already registered to another user') && modal.textContent.includes('+639287654321'), 'The dialog identifies the shared number and asks before continuing')
+    assert(document.activeElement.textContent === 'No', 'No is the focused default')
+    const rect = modal.getBoundingClientRect()
+    assert(rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight, 'Confirmation fits the viewport')
+    assert(parseInt(getComputedStyle(modal.parentElement).zIndex) > 20000, 'Confirmation appears above floating actions')
+    assert(calls.orders.length === initialOrderCount && calls.profile.length === initialProfileCount, 'A warning never places an order or modifies either account')
+    await click(button('No'))
+    await waitFor(() => document.activeElement.id === 'checkout-mobile')
+    assert(!document.querySelector('.checkout-phone-modal') && document.getElementById('checkout-mobile').value === '0928 765 4321', 'No returns to the contact field and preserves the entry')
+    await click(button('Next'))
+    await click(button('Confirm Order'))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    await waitFor(() => document.getElementById('checkout-mobile') && !document.querySelector('.checkout-phone-modal'))
+    assert(calls.orders.length === initialOrderCount, 'Escape dismisses without ordering')
+    await input('checkout-mobile', '0999 888 7777')
+    await click(button('Next'))
+    await click(button('Confirm Order'))
+    assert(document.querySelector('.checkout-phone-modal').textContent.includes('+639998887777'), 'A changed number gets a new confirmation')
+    const checksBeforeYes = calls.phones.length
+    window.holdOrder = true
+    const yes = button('Yes')
+    flushSync(() => { yes.click(); yes.click() })
+    await waitFor(() => window.finishOrder)
+    assert(calls.orders.length === initialOrderCount + 1 && calls.phones.length === checksBeforeYes, 'Yes resumes the approved number once without repeating the popup')
+    assert(calls.orders.at(-1).phone === '+639998887777' && calls.profile.length === initialProfileCount, 'Approved delivery contact is stored only on the order')
+    window.holdOrder = false
+    window.finishOrder()
+    await waitFor(() => !document.querySelector('.checkout-card'))
+    assert(localStorage.getItem(directKey) === null, 'A successful direct purchase clears its selection')
+    window.finishOrder = null
+    delete window.registeredDeliveryPhone
+    delete window.qaProfile
+  })
+  delete window.rejectProfileWrite
+  await run('Delivery phone lookup failures stop checkout and a retry checks again', async () => {
+    window.qaProfile = profile
+    window.qaCart = { items: [{ productId: 'cucumber-melon', quantity: 1 }] }
+    const initialOrderCount = calls.orders.length
+    await render('checkout')
+    await click(button('Next'))
+    await click(button('Next'))
+    window.failPhoneCheck = true
+    await click(button('Confirm Order'))
+    assert(document.querySelector('.checkout-notice.is-error')?.textContent.includes('Unable to check') && calls.orders.length === initialOrderCount, 'Failed checks do not silently place an order')
+    window.failPhoneCheck = false
+    await click(button('Confirm Order'))
+    await waitFor(() => !document.querySelector('.checkout-card'))
+    assert(calls.orders.length === initialOrderCount + 1 && !document.querySelector('.checkout-phone-modal'), 'An unregistered or own number continues without a popup')
     delete window.qaProfile
     delete window.qaCart
   })
@@ -596,7 +677,7 @@ async function browser(width) {
       if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
       if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
     }
-    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'cancel-order']) {
+    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'checkout-phone', 'cancel-order']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
       // Inspect the settled UI, rather than a partially transparent entrance animation.
       await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })

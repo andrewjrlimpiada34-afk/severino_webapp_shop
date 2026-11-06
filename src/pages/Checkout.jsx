@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { checkoutErrors, checkoutStepFields, firstInvalidCheckoutStep, normalizeCheckout } from '../lib/checkoutValidation.js'
+import Modal from '../components/Modal.jsx'
 
 const steps = ['Shipping', 'Contact', 'Review']
 
@@ -41,6 +42,7 @@ function Checkout() {
   const orderPlacedRef = useRef(false)
   const editedFields = useRef(new Set())
   const [directProduct, setDirectProduct] = useState(null)
+  const [phoneConfirmation, setPhoneConfirmation] = useState('')
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [form, setForm] = useState({
     name: '',
@@ -62,7 +64,25 @@ function Checkout() {
   }
 
   const errors = checkoutErrors(form)
-  const busy = status.loading || Boolean(status.success)
+  const busy = status.loading || Boolean(status.success) || Boolean(phoneConfirmation)
+  const declinePhoneConfirmation = useCallback(() => {
+    setPhoneConfirmation('')
+    setStepIndex(1)
+    window.requestAnimationFrame(() => {
+      const target = formRef.current?.elements.namedItem('mobile')
+      target?.focus({ preventScroll: true })
+      target?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!phoneConfirmation) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); declinePhoneConfirmation() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [phoneConfirmation, declinePhoneConfirmation])
   const changeStep = (next, invalidField) => {
     setStepIndex(next)
     window.requestAnimationFrame(() => {
@@ -124,7 +144,7 @@ function Checkout() {
     }
   }, [directPurchase])
 
-  const confirmOrder = async () => {
+  const confirmOrder = async (confirmedPhone = '') => {
     if (submittingRef.current || orderPlacedRef.current) return
     const invalidStep = firstInvalidCheckoutStep(form)
     if (invalidStep !== -1) {
@@ -135,17 +155,18 @@ function Checkout() {
     const clean = normalizeCheckout(form)
     try {
       setStatus({ loading: true, error: '', success: '' })
-      await api.updateProfile({
-        name: clean.name,
-        email: clean.email,
-        phone: clean.mobile,
-        addressLine: clean.addressLine,
-        barangay: clean.barangay,
-        city: clean.city,
-        province: clean.province,
-        zip: clean.zip,
-        country: clean.country,
-      })
+      if (confirmedPhone !== clean.mobile) {
+        const result = await api.checkDeliveryPhone(clean.mobile)
+        if (typeof result?.registeredToAnotherUser !== 'boolean') {
+          throw new Error('Unable to check this mobile number. Please try again.')
+        }
+        if (result.registeredToAnotherUser) {
+          setPhoneConfirmation(clean.mobile)
+          setStatus({ loading: false, error: '', success: '' })
+          return
+        }
+      }
+      // Delivery details belong to this order; checkout never changes account login identifiers.
       const products = await api.products({ fresh: true })
       let cart = null
       let items = []
@@ -234,6 +255,24 @@ function Checkout() {
 
   return (
     <section className="grid checkout-page" style={{ gap: '24px' }}>
+      {phoneConfirmation && (
+        <Modal className="checkout-phone-backdrop" onClick={declinePhoneConfirmation}>
+          <div className="modal-card checkout-phone-modal" role="alertdialog" aria-modal="true" aria-labelledby="checkout-phone-title" aria-describedby="checkout-phone-description" onClick={(event) => event.stopPropagation()}>
+            <h2 id="checkout-phone-title">Use this delivery number?</h2>
+            <p className="checkout-phone-number">{phoneConfirmation}</p>
+            <p id="checkout-phone-description">This number is already registered to another user. Continue using it for this delivery?</p>
+            <p className="checkout-phone-help">It will be used only as the contact number for this order.</p>
+            <div className="checkout-phone-actions">
+              <button className="button secondary" type="button" onClick={declinePhoneConfirmation}>No</button>
+              <button className="button" type="button" onClick={() => {
+                const phone = phoneConfirmation
+                setPhoneConfirmation('')
+                void confirmOrder(phone)
+              }}>Yes</button>
+            </div>
+          </div>
+        </Modal>
+      )}
       <div>
         <h1 className="section-title">Checkout</h1>
         <p className="section-subtitle">Your delivery details, then a final review. Payment is cash on delivery.</p>

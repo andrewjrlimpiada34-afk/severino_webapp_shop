@@ -15,6 +15,8 @@ import Home from './src/pages/Home.jsx'
 import Shop from './src/pages/Shop.jsx'
 import Login from './src/pages/Login.jsx'
 import Account from './src/pages/Account.jsx'
+import Checkout from './src/pages/Checkout.jsx'
+import OrderHistory from './src/pages/OrderHistory.jsx'
 import NavBar from './src/components/NavBar.jsx'
 import Footer from './src/components/Footer.jsx'
 import Notifications from './src/pages/Notifications.jsx'
@@ -32,16 +34,25 @@ const products = [
   { id: 'weekend', name: 'Burberry Weekend Eau de Parfum', notes: 'Peach, nectarine blossom, honeyed musk with a particularly long scent description', size: '90 mL', price: 2490, category: 'Unisex', stock: 4, imageUrl },
 ]
 const profile = { id: 'storefront-fixture-user', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', addressLine: 'Example Street', backupAddress: 'Example backup address', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', profileImage: '', hasPassword: true, preferredTheme: 'Default' }
-const calls = { login: [], cart: [], profile: [], theme: [], password: [] }
+const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [] }
 window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, startLogin: async (...args) => { calls.login.push(args); return { role: 'customer' } } }
 window.EventSource = class { addEventListener() {} close() {} }
 Object.assign(api, {
   products: async () => { if (window.failCatalog) throw new Error('Collection temporarily unavailable'); return products },
-  orders: async () => window.qaOrders || [], profile: async () => profile,
+  orders: async () => window.qaOrders || [], profile: async () => window.qaProfile || profile,
+  product: async (id) => products.find(item => item.id === id),
+  createOrder: async (data) => { calls.orders.push(data); if (window.holdOrder) await new Promise(resolve => { window.finishOrder = resolve }); return { ...data, id: 'new-fixture-order' } },
+  cancelOrderItem: async (orderId, itemKey) => {
+    calls.cancellations.push({ orderId, itemKey })
+    if (window.failCancellation) throw new Error('Cancellation is temporarily unavailable. Please try again.')
+    if (window.holdCancellation) await new Promise(resolve => { window.finishCancellation = resolve })
+    const order = window.qaOrders.find(item => item.id === orderId)
+    return { ...order, items: order.items.map((item, index) => (item.itemId || index + '-' + item.productId) === itemKey ? { ...item, trackingStatus: 'Cancelled' } : item) }
+  },
   updateProfile: async (data) => { calls.profile.push(data); return { ...profile, ...data } },
   updateTheme: async (theme) => { calls.theme.push(theme) },
   updatePassword: async (data) => { calls.password.push(data) },
-  cart: async () => ({ items: [] }), updateCart: async (items) => { calls.cart.push(items) },
+  cart: async () => window.qaCart || { items: [] }, updateCart: async (items) => { calls.cart.push(items) },
   banners: async () => [], bannerStories: async () => [], heroImage: async () => ({ image: '' }), featuredBanners: async () => [],
   loginAnnouncement: async () => [],
 })
@@ -83,8 +94,8 @@ const noOverflow = () => {
 }
 const render = async (page, route = page === 'home' ? '/' : '/' + page) => {
   window.qaAuth.user = page === 'login' ? null : profile
-  flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><div className="app-shell storefront-shell"><NavBar /><main className="page"><Routes><Route path="/" element={<Home />} /><Route path="/shop" element={<Shop />} /><Route path="/search" element={<ShopSearchRedirect />} /><Route path="/login" element={<Login />} /><Route path="/account" element={<Account />} /><Route path="/notifications" element={<Notifications />} /><Route path="/popup" element={<OfferPreview />} /></Routes></main>{!['account', 'notifications'].includes(page) && <Footer />}</div></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
-  await waitFor(() => page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
+  flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><div className="app-shell storefront-shell"><NavBar /><main className="page"><Routes><Route path="/" element={<Home />} /><Route path="/shop" element={<Shop />} /><Route path="/search" element={<ShopSearchRedirect />} /><Route path="/login" element={<Login />} /><Route path="/account" element={<Account />} /><Route path="/checkout" element={<Checkout />} /><Route path="/orders" element={<OrderHistory />} /><Route path="/notifications" element={<Notifications />} /><Route path="/popup" element={<OfferPreview />} /></Routes></main>{!['account', 'notifications', 'checkout', 'orders'].includes(page) && <Footer />}</div></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
+  await waitFor(() => page === 'checkout' ? document.getElementById('checkout-name') : page === 'orders' ? document.querySelector('.orders-empty-state, .table tbody .badge') : page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
   await document.fonts.ready
   await Promise.all(Array.from(document.images).map(async (image) => { image.loading = 'eager'; try { await image.decode() } catch { /* Missing optional media is covered by page fallbacks. */ } }))
   await settle()
@@ -94,10 +105,21 @@ const results = []
 const run = async (name, fn) => { try { await fn(); results.push({ name, passed: true }) } catch (error) { results.push({ name, passed: false, error: error.message, stack: error.stack }) } }
 
 const preview = new URLSearchParams(location.search).get('preview')
+const sampleOrder = { id: 'order-fixture-12345678', userId: profile.id, status: 'Pending COD', createdAt: '2026-11-06T04:00:00Z', items: [{ itemId: 'first-item', productId: 'cucumber-melon', name: 'Cucumber Melon', quantity: 2, price: 1690, trackingStatus: 'Pending COD' }, { itemId: 'second-item', productId: 'weekend', name: 'Burberry Weekend', quantity: 1, price: 2490, trackingStatus: 'Pending COD' }] }
+const fillShipping = async () => {
+  for (const [field, value] of Object.entries({ name: ' Ana Cruz ', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines' })) await input('checkout-' + field, value)
+}
+
 if (preview) {
   if (preview === 'shop') localStorage.setItem('severino_shop_view', 'grid')
   const policyPreview = ['terms', 'privacy', 'cookies', 'terms-fashion'].includes(preview)
-  await render(policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
+  if (preview.startsWith('checkout')) window.qaProfile = {}
+  if (preview === 'cancel-order') window.qaOrders = [sampleOrder]
+  if (preview === 'adaptive-intro') sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
+  await render(preview.startsWith('checkout') ? 'checkout' : preview === 'cancel-order' ? 'orders' : preview === 'adaptive-intro' ? 'home' : policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
+  if (preview === 'checkout-errors') await click(button('Next'))
+  if (preview === 'checkout-contact') { await fillShipping(); await click(button('Next')) }
+  if (preview === 'cancel-order') await click(button('Cancel'))
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
   if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
   if (preview === 'font-fashion') { await select('account-font', 'fashion'); await document.fonts.ready }
@@ -110,6 +132,137 @@ if (preview) {
   noOverflow()
   window.qaReady = true
 } else {
+  await run('Adaptive Scent introduction stays on screen, dismisses per tab, and opens from keyboard', async () => {
+    sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
+    sessionStorage.removeItem('severino_adaptive_scent_enabled')
+    sessionStorage.setItem('severino_adaptive_scent_position', JSON.stringify({ x: 12, y: 90 }))
+    await render('home')
+    let tip = document.querySelector('.adaptive-scent-hint')
+    assert(tip?.textContent.includes('Try this Adaptive Scent Feature'), 'The feature introduction explains the floating button')
+    let rect = tip.getBoundingClientRect()
+    assert(rect.left >= 0 && rect.right <= document.documentElement.clientWidth && rect.top >= 0 && rect.bottom <= innerHeight, 'Tip fits at the left edge')
+    await click(document.querySelector('[aria-label="Dismiss Adaptive Scent tip"]'))
+    await render('home')
+    assert(!document.querySelector('.adaptive-scent-hint'), 'Dismissal is remembered across pages in this tab')
+    const floating = document.querySelector('[aria-label="Open Adaptive Scent"]')
+    floating.setPointerCapture = () => {}
+    floating.hasPointerCapture = () => false
+    const origin = floating.getBoundingClientRect()
+    flushSync(() => {
+      floating.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0, clientX: origin.left + 20, clientY: origin.top + 20 }))
+      floating.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, clientX: origin.left + 50, clientY: origin.top + 50 }))
+      floating.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))
+      floating.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+    })
+    await settle()
+    assert(!document.querySelector('.adaptive-modal-card'), 'Dragging does not accidentally open the feature')
+    floating.focus()
+    await click(floating)
+    assert(document.querySelector('.adaptive-modal-card'), 'Keyboard-style activation opens the feature after dragging')
+    await click(document.querySelector('[aria-label="Close Adaptive Scent"]'))
+    sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
+    sessionStorage.setItem('severino_adaptive_scent_position', JSON.stringify({ x: innerWidth - 10, y: innerHeight - 10 }))
+    await render('home')
+    tip = document.querySelector('.adaptive-scent-hint')
+    rect = tip.getBoundingClientRect()
+    assert(rect.left >= 0 && rect.right <= document.documentElement.clientWidth && rect.top >= 0 && rect.bottom <= innerHeight, 'Tip fits at the bottom-right edge without covering the scrollbar')
+    await click(document.querySelector('.adaptive-scent-hint__message'))
+    assert(document.querySelector('.adaptive-modal-card') && !document.querySelector('.adaptive-scent-hint'), 'The thought bubble also opens and dismisses the introduction')
+    await click(document.querySelector('[aria-label="Close Adaptive Scent"]'))
+  })
+  await run('Checkout validates each step, preserves edits, and prevents duplicate or out-of-stock orders', async () => {
+    window.qaProfile = {}
+    window.qaCart = { items: [{ productId: 'cucumber-melon', quantity: 1 }] }
+    const initialOrderCount = calls.orders.length
+    await render('checkout')
+    await click(button('Next'))
+    assert(document.getElementById('checkout-step-title').textContent === 'Shipping details', 'Missing shipping details cannot advance')
+    await waitFor(() => document.activeElement.id === 'checkout-name')
+    assert(document.querySelectorAll('.checkout-field-error').length === 6 && calls.orders.length === initialOrderCount, 'Required fields are identified before any order request')
+    await fillShipping()
+    await click(button('Next'))
+    assert(document.getElementById('checkout-step-title').textContent === 'Contact details', 'Valid shipping advances without an optional street address')
+    const step = document.querySelector('.checkout-step-content')
+    assert(step.getAnimations().length > 0 || matchMedia('(prefers-reduced-motion: reduce)').matches, 'Step transition is animated when motion is allowed')
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) assert(step.getAnimations().length === 0, 'Step motion respects reduced motion')
+    await input('checkout-mobile', '123')
+    await input('checkout-email', 'invalid')
+    await click(button('Next'))
+    assert(document.getElementById('checkout-step-title').textContent === 'Contact details' && document.querySelectorAll('.checkout-field-error').length === 2, 'Invalid contact details cannot advance')
+    await input('checkout-mobile', '0917 123 4567')
+    await input('checkout-email', ' ANA@EXAMPLE.COM ')
+    await click(button('Next'))
+    assert(document.getElementById('checkout-step-title').textContent === 'Review your order', 'Valid contact advances without optional notes')
+    await click(button('Back'))
+    assert(document.getElementById('checkout-mobile').value === '0917 123 4567', 'Contact edits are preserved on Back')
+    await click(button('Back'))
+    await input('checkout-zip', ' ')
+    await click(button('Next'))
+    assert(document.getElementById('checkout-step-title').textContent === 'Shipping details' && document.getElementById('checkout-zip').getAttribute('aria-invalid') === 'true', 'Previously completed fields must remain valid after editing')
+    await input('checkout-zip', '4900')
+    await click(button('Next'))
+    await click(button('Next'))
+    window.holdOrder = true
+    await click(button('Confirm Order'))
+    await waitFor(() => window.finishOrder)
+    const checkoutForm = document.querySelector('.checkout-card')
+    flushSync(() => { checkoutForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); checkoutForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    assert(calls.orders.length === initialOrderCount + 1 && button('Back').disabled, 'Submitting disables navigation and prevents duplicate requests')
+    const payload = calls.orders.at(-1)
+    assert(payload.contactName === 'Ana Cruz' && payload.email === 'ana@example.com' && payload.phone === '+639171234567' && !payload.address.startsWith(','), 'Final order data is trimmed and normalized')
+    window.holdOrder = false
+    window.finishOrder()
+    await waitFor(() => !document.querySelector('.checkout-card') && document.querySelector('h1')?.textContent === 'Order Tracking')
+    window.finishOrder = null
+    window.qaProfile = profile
+    window.qaCart = { items: [{ productId: 'cloudy-scent', quantity: 1 }] }
+    await render('checkout')
+    await click(button('Next'))
+    await click(button('Next'))
+    await click(button('Confirm Order'))
+    await waitFor(() => document.querySelector('.checkout-notice.is-error'))
+    assert(calls.orders.length === initialOrderCount + 1 && document.querySelector('.checkout-notice.is-error').textContent.includes('Stock has changed'), 'Stock is checked again before an order is created')
+    delete window.qaProfile
+    delete window.qaCart
+  })
+  await run('Cancellation identifies one item, handles failures, and submits once with a safe default', async () => {
+    window.qaOrders = [sampleOrder]
+    await render('orders')
+    const originalFont = document.documentElement.dataset.font || 'editorial'
+    applyFontPreference('fashion')
+    await document.fonts.ready
+    const initialCount = calls.cancellations.length
+    await click(button('Cancel'))
+    let modal = document.querySelector('.order-cancel-modal')
+    assert(modal?.textContent.includes('Cucumber Melon') && modal.textContent.includes('Other items') && modal.textContent.includes('\u20b1'), 'Confirmation names the item, displays its price, and explains its scope')
+    assert(document.activeElement.textContent === 'Keep item' && document.documentElement.style.overflow === 'hidden', 'Safe action receives focus and the page is locked')
+    assert(document.elementFromPoint(innerWidth / 2, 10)?.closest('.order-cancel-backdrop'), 'Confirmation covers the sticky header')
+    assert(getComputedStyle(modal.querySelector('h2')).fontFamily.includes('Bodoni Moda'), 'Cancellation follows the chosen font')
+    await click(button('Keep item'))
+    assert(!document.querySelector('.order-cancel-modal') && calls.cancellations.length === initialCount, 'Keeping an item makes no cancellation request')
+    await click(button('Cancel'))
+    window.failCancellation = true
+    await click(button('Cancel item'))
+    await waitFor(() => document.querySelector('.order-cancel-error'))
+    assert(document.querySelector('.order-cancel-modal'), 'Failed cancellation remains open with an actionable error')
+    window.failCancellation = false
+    window.holdCancellation = true
+    await click(button('Cancel item'))
+    await waitFor(() => window.finishCancellation)
+    const pendingCount = calls.cancellations.length
+    await click(button('Cancelling…'))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    assert(calls.cancellations.length === pendingCount && document.querySelector('.order-cancel-modal') && button('Keep item').disabled, 'Pending cancellation cannot be duplicated or dismissed')
+    window.holdCancellation = false
+    window.finishCancellation()
+    await waitFor(() => !document.querySelector('.order-cancel-modal'))
+    assert(calls.cancellations.at(-1).orderId === sampleOrder.id && calls.cancellations.at(-1).itemKey === 'first-item', 'Only the intended order item is sent to the API')
+    const rows = document.querySelectorAll('.table tbody tr')
+    assert(rows[0].textContent.includes('Cancelled') && rows[1].textContent.includes('Pending COD'), 'The other order item remains active')
+    window.finishCancellation = null
+    window.qaOrders = []
+    applyFontPreference(originalFont)
+  })
   await run('Policy documents open independently, inherit fonts, and preserve agreement choice', async () => {
     await render('login')
     const originalFont = document.documentElement.dataset.font || 'editorial'
@@ -443,7 +596,7 @@ async function browser(width) {
       if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
       if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
     }
-    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions']) {
+    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'cancel-order']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
       // Inspect the settled UI, rather than a partially transparent entrance animation.
       await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
+import { checkoutErrors, checkoutStepFields, firstInvalidCheckoutStep, normalizeCheckout } from '../lib/checkoutValidation.js'
 
 const steps = ['Shipping', 'Contact', 'Review']
 
@@ -15,8 +16,10 @@ function Checkout() {
     ? `severino_direct_checkout_${user.id}`
     : 'severino_direct_checkout_guest'
   const selectedItems = useMemo(() => {
-    const selection = JSON.parse(localStorage.getItem(selectionKey) || '[]')
-    return selection.map(String)
+    try {
+      const selection = JSON.parse(localStorage.getItem(selectionKey) || '[]')
+      return Array.isArray(selection) ? selection.map(String) : []
+    } catch { return [] }
   }, [selectionKey])
   const directPurchase = useMemo(() => {
     try {
@@ -31,6 +34,12 @@ function Checkout() {
     }
   }, [directPurchaseKey])
   const [stepIndex, setStepIndex] = useState(0)
+  const [touched, setTouched] = useState({})
+  const formRef = useRef(null)
+  const headingRef = useRef(null)
+  const submittingRef = useRef(false)
+  const orderPlacedRef = useRef(false)
+  const editedFields = useRef(new Set())
   const [directProduct, setDirectProduct] = useState(null)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [form, setForm] = useState({
@@ -47,30 +56,56 @@ function Checkout() {
   })
 
   const updateField = (key, value) => {
+    editedFields.current.add(key)
     setForm((prev) => ({ ...prev, [key]: value }))
+    setStatus((prev) => ({ ...prev, error: '' }))
   }
 
+  const errors = checkoutErrors(form)
+  const busy = status.loading || Boolean(status.success)
+  const changeStep = (next, invalidField) => {
+    setStepIndex(next)
+    window.requestAnimationFrame(() => {
+      const target = invalidField ? formRef.current?.elements.namedItem(invalidField) : headingRef.current
+      target?.focus({ preventScroll: true })
+      if (invalidField) target?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+    })
+  }
+  const validateStep = (index) => {
+    const fields = checkoutStepFields[index]
+    setTouched((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, true])) }))
+    const invalidField = fields.find((field) => errors[field])
+    if (invalidField) {
+      setStatus({ loading: false, error: 'Check the highlighted fields before continuing.', success: '' })
+      changeStep(index, invalidField)
+      return false
+    }
+    return true
+  }
+  const field = (name, label, { required = true, ...props } = {}) => (
+    <div className="checkout-field">
+      <label className="label" htmlFor={`checkout-${name}`}>{label}{required && <span className="checkout-required" aria-hidden="true"> *</span>}</label>
+      <input className="input" id={`checkout-${name}`} name={name} value={form[name]} required={required} disabled={busy} onChange={(event) => updateField(name, event.target.value)} onBlur={() => setTouched((prev) => ({ ...prev, [name]: true }))} aria-invalid={Boolean(touched[name] && errors[name])} aria-describedby={touched[name] && errors[name] ? `checkout-${name}-error` : undefined} {...props} />
+      {touched[name] && errors[name] && <p className="checkout-field-error" id={`checkout-${name}-error`}>{errors[name]}</p>}
+    </div>
+  )
+
   useEffect(() => {
+    let active = true
     const loadProfile = async () => {
       try {
         const profile = await api.profile()
-        setForm((prev) => ({
-          ...prev,
-          name: profile.name || prev.name,
-          addressLine: profile.addressLine || prev.addressLine,
-          barangay: profile.barangay || prev.barangay,
-          city: profile.city || prev.city,
-          province: profile.province || prev.province,
-          zip: profile.zip || prev.zip,
-          country: profile.country || prev.country,
-          mobile: profile.phone || prev.mobile,
-          email: profile.email || prev.email,
-        }))
+        if (!active) return
+        setForm((prev) => {
+          const saved = { ...profile, mobile: profile.phone }
+          return Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, editedFields.current.has(key) ? value : saved[key] || value]))
+        })
       } catch {
         // ignore, user may not have profile yet
       }
     }
     loadProfile()
+    return () => { active = false }
   }, [selectionKey])
 
   useEffect(() => {
@@ -90,31 +125,26 @@ function Checkout() {
   }, [directPurchase])
 
   const confirmOrder = async () => {
-    if (
-      !form.name ||
-      !form.barangay ||
-      !form.city ||
-      !form.province ||
-      !form.zip ||
-      !form.country ||
-      !form.mobile ||
-      !form.email
-    ) {
-      setStatus({ loading: false, error: 'Please complete all required fields.', success: '' })
+    if (submittingRef.current || orderPlacedRef.current) return
+    const invalidStep = firstInvalidCheckoutStep(form)
+    if (invalidStep !== -1) {
+      validateStep(invalidStep)
       return
     }
+    submittingRef.current = true
+    const clean = normalizeCheckout(form)
     try {
       setStatus({ loading: true, error: '', success: '' })
       await api.updateProfile({
-        name: form.name,
-        email: form.email,
-        phone: form.mobile,
-        addressLine: form.addressLine,
-        barangay: form.barangay,
-        city: form.city,
-        province: form.province,
-        zip: form.zip,
-        country: form.country,
+        name: clean.name,
+        email: clean.email,
+        phone: clean.mobile,
+        addressLine: clean.addressLine,
+        barangay: clean.barangay,
+        city: clean.city,
+        province: clean.province,
+        zip: clean.zip,
+        country: clean.country,
       })
       const products = await api.products({ fresh: true })
       let cart = null
@@ -176,240 +206,113 @@ function Checkout() {
       }
       await api.createOrder({
         items,
-        address: `${form.addressLine || ''}, ${form.barangay}, ${form.city}, ${form.province}, ${form.zip}, ${form.country}`,
-        contactName: form.name,
-        phone: form.mobile,
-        email: form.email,
+        address: [clean.addressLine, clean.barangay, clean.city, clean.province, clean.zip, clean.country].filter(Boolean).join(', '),
+        contactName: clean.name,
+        phone: clean.mobile,
+        email: clean.email,
         paymentMethod: 'COD',
       })
+      orderPlacedRef.current = true
       if (directPurchase) {
         localStorage.removeItem(directPurchaseKey)
       } else if (selectedItems.length) {
         const remaining = cart.items.filter(
           (item) => !selectedItems.includes(String(item.productId))
         )
-        await api.updateCart(remaining)
+        await api.updateCart(remaining).catch(() => {})
         localStorage.removeItem(selectionKey)
       }
       setStatus({ loading: false, error: '', success: 'Order placed successfully.' })
-      await playActionAnimation('checkout', { duration: 1050 })
+      await playActionAnimation('checkout', { duration: 650 })
       navigate('/orders')
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
+    } finally {
+      submittingRef.current = false
     }
   }
 
   return (
-    <section className="grid" style={{ gap: '24px' }}>
+    <section className="grid checkout-page" style={{ gap: '24px' }}>
       <div>
-        <h1 className="section-title">Checkout Flow</h1>
-        <p className="section-subtitle">
-          Secure, COD-only checkout with validation and delivery confirmation.
-        </p>
+        <h1 className="section-title">Checkout</h1>
+        <p className="section-subtitle">Your delivery details, then a final review. Payment is cash on delivery.</p>
       </div>
 
-      <div className="card">
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {steps.map((step, index) => (
-            <span
-              key={step}
-              className="pill"
-              style={{
-                background: index === stepIndex ? 'rgba(95, 117, 65, 0.3)' : undefined,
-              }}
-            >
-              {index + 1}. {step}
-            </span>
-          ))}
-        </div>
+      <form className="card checkout-card" ref={formRef} noValidate onSubmit={(event) => {
+        event.preventDefault()
+        if (submittingRef.current || busy || orderPlacedRef.current) return
+        if (stepIndex === steps.length - 1) confirmOrder()
+        else if (validateStep(stepIndex)) {
+          setStatus({ loading: false, error: '', success: '' })
+          changeStep(stepIndex + 1)
+        }
+      }}>
+        <ol className="checkout-progress" aria-label="Checkout progress">
+          {steps.map((step, index) => <li key={step}><span className={`pill ${index === stepIndex ? 'is-current' : ''} ${index < stepIndex ? 'is-complete' : ''}`} aria-current={index === stepIndex ? 'step' : undefined}>{index + 1}. {step}</span></li>)}
+        </ol>
 
-        <div style={{ marginTop: '24px' }}>
-          {stepIndex === 0 && (
-            <div className="form">
-              <div>
-                <div className="label">Full Name</div>
-                <input
-                  className="input"
-                  placeholder="Juan Dela Cruz"
-                  required
-                  value={form.name}
-                  onChange={(event) => updateField('name', event.target.value)}
-                />
-              </div>
-              <div>
-                <div className="label">Street Address (Optional)</div>
-                <input
-                  className="input"
-                  placeholder="House no., street"
-                  value={form.addressLine}
-                  onChange={(event) => updateField('addressLine', event.target.value)}
-                />
-              </div>
-              <div className="grid two">
-                <div>
-                  <div className="label">Barangay (Required)</div>
-                  <input
-                    className="input"
-                    placeholder="Barangay"
-                    required
-                    value={form.barangay}
-                    onChange={(event) => updateField('barangay', event.target.value)}
-                  />
-                </div>
-                <div>
-                  <div className="label">City/Municipality (Required)</div>
-                  <input
-                    className="input"
-                    placeholder="City/Municipality"
-                    required
-                    value={form.city}
-                    onChange={(event) => updateField('city', event.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid two">
-                <div>
-                  <div className="label">Province/State (Required)</div>
-                  <input
-                    className="input"
-                    placeholder="Province"
-                    required
-                    value={form.province}
-                    onChange={(event) => updateField('province', event.target.value)}
-                  />
-                </div>
-                <div>
-                  <div className="label">ZIP Code (Required)</div>
-                  <input
-                    className="input"
-                    placeholder="Zip code"
-                    required
-                    value={form.zip}
-                    onChange={(event) => updateField('zip', event.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="label">Country (Required)</div>
-                <input
-                  className="input"
-                  placeholder="Country"
-                  required
-                  value={form.country}
-                  onChange={(event) => updateField('country', event.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          {stepIndex === 1 && (
-            <div className="form">
-              <div>
-                <div className="label">Mobile Number</div>
-                <input
-                  className="input"
-                  placeholder="+63 9xx xxx xxxx"
-                  required
-                  value={form.mobile}
-                  onChange={(event) => updateField('mobile', event.target.value)}
-                />
-              </div>
-              <div>
-                <div className="label">Email</div>
-                <input
-                  className="input"
-                  type="email"
-                  placeholder="you@email.com"
-                  required
-                  value={form.email}
-                  onChange={(event) => updateField('email', event.target.value)}
-                />
-              </div>
-              <div>
-                <div className="label">Delivery Notes</div>
-                <textarea
-                  className="input"
-                  rows="3"
-                  placeholder="Landmark, gate code, etc."
-                  value={form.notes}
-                  onChange={(event) => updateField('notes', event.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          {stepIndex === 2 && (
+        <div className="checkout-step-content" key={stepIndex} role="group" aria-labelledby="checkout-step-title">
+          <h2 id="checkout-step-title" className="section-title checkout-step-title" ref={headingRef} tabIndex={-1}>{['Shipping details', 'Contact details', 'Review your order'][stepIndex]}</h2>
+          {stepIndex < 2 && <p className="checkout-field-help">Fields marked * are required.</p>}
+          {stepIndex === 0 && <div className="form">
+            {field('name', 'Full name', { placeholder: 'Juan Dela Cruz', autoComplete: 'shipping name' })}
+            {field('addressLine', 'Street address (optional)', { required: false, placeholder: 'House no., street', autoComplete: 'shipping street-address' })}
             <div className="grid two">
-              {directPurchase && (
-                <div className="card">
-                  <div className="tag">Buy Now</div>
-                  <h3 className="section-title" style={{ fontSize: '24px' }}>
-                    {directProduct?.name || 'Selected product'}
-                  </h3>
-                  <p className="section-subtitle">Quantity: {directPurchase.quantity}</p>
-                  {directProduct && (
-                    <div className="pill">
-                      Subtotal: ₱{(directProduct.price * directPurchase.quantity).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="card">
-                <div className="tag">Payment</div>
-                <h3 className="section-title" style={{ fontSize: '24px' }}>
-                  Cash on Delivery
-                </h3>
-                <p className="section-subtitle">Pay upon arrival. We confirm by SMS.</p>
-              </div>
-              <div className="card">
-                <div className="tag">Security</div>
-                <p className="section-subtitle">
-                  Order is protected with address verification and one-time delivery PIN.
-                </p>
-                <div className="pill">Encrypted form data</div>
-              </div>
+              {field('barangay', 'Barangay', { placeholder: 'Barangay', autoComplete: 'shipping address-line2' })}
+              {field('city', 'City / Municipality', { placeholder: 'City / Municipality', autoComplete: 'shipping address-level2' })}
             </div>
-          )}
+            <div className="grid two">
+              {field('province', 'Province / State', { placeholder: 'Province', autoComplete: 'shipping address-level1' })}
+              {field('zip', 'ZIP code', { placeholder: 'ZIP code', autoComplete: 'shipping postal-code' })}
+            </div>
+            {field('country', 'Country', { placeholder: 'Country', autoComplete: 'shipping country-name' })}
+          </div>}
+          {stepIndex === 1 && <div className="form">
+            {field('mobile', 'Mobile number', { type: 'tel', inputMode: 'tel', placeholder: '09XX XXX XXXX or +63 9XX XXX XXXX', autoComplete: 'shipping tel' })}
+            {field('email', 'Email', { type: 'email', placeholder: 'you@email.com', autoComplete: 'shipping email' })}
+            <div className="checkout-field">
+              <label className="label" htmlFor="checkout-notes">Delivery notes (optional)</label>
+              <textarea className="input" id="checkout-notes" name="notes" rows="3" placeholder="Landmark, gate code, etc." disabled={busy} value={form.notes} onChange={(event) => updateField('notes', event.target.value)} />
+            </div>
+          </div>}
+          {stepIndex === 2 && <div className="checkout-review">
+            <section className="checkout-review-block">
+              <h3>Delivery and contact</h3>
+              <p>{form.name.trim()}</p>
+              <p>{[form.addressLine, form.barangay, form.city, form.province, form.zip, form.country].map((value) => value.trim()).filter(Boolean).join(', ')}</p>
+              <p>{form.mobile.trim()}<br />{form.email.trim()}</p>
+            </section>
+            {directPurchase && <section className="checkout-review-block">
+              <h3>{directProduct?.name || 'Selected product'}</h3>
+              <p>Quantity: {directPurchase.quantity}</p>
+              {directProduct && <p>Subtotal: {'\u20b1'}{(directProduct.price * directPurchase.quantity).toLocaleString('en-PH')}</p>}
+            </section>}
+            <section className="checkout-review-block">
+              <h3>Cash on delivery</h3>
+              <p>Pay upon arrival. Check your delivery and contact details before confirming.</p>
+            </section>
+          </div>}
         </div>
 
-        {status.loading && (
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="loader" />
-            Processing order...
-          </div>
-        )}
-        {status.error && <div className="card">Error: {status.error}</div>}
-        {status.success && <div className="card">{status.success}</div>}
-        <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
-          <button
-            className="button secondary"
-            onClick={() => {
-              if (stepIndex === 0) {
-                if (directPurchase) {
-                  localStorage.removeItem(directPurchaseKey)
-                  navigate(`/product/${directPurchase.productId}`)
-                } else {
-                  navigate('/cart')
-                }
-              } else {
-                setStepIndex((prev) => Math.max(0, prev - 1))
-              }
-            }}
-          >
-            Back
-          </button>
-          <button
-            className="button"
-            onClick={() => {
-              if (stepIndex === steps.length - 1) {
-                confirmOrder()
-              } else {
-                setStepIndex((prev) => Math.min(steps.length - 1, prev + 1))
-              }
-            }}
-          >
-            {stepIndex === steps.length - 1 ? 'Confirm Order' : 'Next'}
-          </button>
+        {status.loading && <div className="checkout-notice" role="status"><span className="checkout-processing" aria-hidden="true" />{'Processing your order\u2026'}</div>}
+        {status.error && <div className="checkout-notice is-error" role="alert">{status.error}</div>}
+        {status.success && <div className="checkout-notice" role="status">{status.success}</div>}
+        <div className="checkout-actions">
+          <button className="button secondary" type="button" disabled={busy} onClick={() => {
+            if (stepIndex === 0) {
+              if (directPurchase) {
+                localStorage.removeItem(directPurchaseKey)
+                navigate(`/product/${directPurchase.productId}`)
+              } else navigate('/cart')
+            } else {
+              setStatus({ loading: false, error: '', success: '' })
+              changeStep(stepIndex - 1)
+            }
+          }}>Back</button>
+          <button className="button" type="submit" disabled={busy}>{status.loading ? 'Placing order\u2026' : stepIndex === steps.length - 1 ? 'Confirm Order' : 'Next'}</button>
         </div>
-      </div>
+      </form>
     </section>
   )
 }

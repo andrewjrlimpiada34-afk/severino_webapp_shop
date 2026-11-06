@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { getOrderItemStatus } from '../../server/shared/orderWorkflow.js'
+import Modal from '../components/Modal.jsx'
+
+const emptyCancellation = { open: false, orderId: '', itemKey: '', item: null }
 
 function OrderHistory() {
   const [orders, setOrders] = useState([])
@@ -12,15 +15,39 @@ function OrderHistory() {
   const navigate = useNavigate()
   const { playActionAnimation } = useActionAnimation()
 
-  const [cancelConfirm, setCancelConfirm] = useState({
-    open: false,
-    orderId: '',
-    itemKey: '',
-  })
+  const [cancelConfirm, setCancelConfirm] = useState(emptyCancellation)
+  const [cancelStatus, setCancelStatus] = useState({ loading: false, error: '' })
+  const cancelPending = useRef(false)
+  const closeCancellation = useCallback(() => {
+    if (!cancelPending.current) setCancelConfirm(emptyCancellation)
+  }, [])
 
+  useEffect(() => {
+    if (!cancelConfirm.open) return undefined
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeCancellation() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [cancelConfirm.open, closeCancellation])
 
-
-
+  const confirmCancellation = async () => {
+    if (cancelPending.current) return
+    cancelPending.current = true
+    setCancelStatus({ loading: true, error: '' })
+    try {
+      const updated = await api.cancelOrderItem(cancelConfirm.orderId, cancelConfirm.itemKey)
+      setOrders((prev) => prev.map((entry) => entry.id === cancelConfirm.orderId ? updated : entry))
+      setSuccessMessage('Order item cancelled.')
+      setStatus((prev) => ({ ...prev, error: '' }))
+      setCancelConfirm(emptyCancellation)
+    } catch (error) {
+      setCancelStatus({ loading: false, error: error.message || 'We couldn’t cancel this item. Please try again.' })
+    } finally {
+      cancelPending.current = false
+      setCancelStatus((prev) => ({ ...prev, loading: false }))
+    }
+  }
   useEffect(() => {
     const load = async () => {
       try {
@@ -55,7 +82,7 @@ function OrderHistory() {
     <section className="grid" style={{ gap: '24px' }}>
       <div className="page-hero">
         <div className="tag">Severino Delivery</div>
-        <h1 className="section-title">Order Tacking</h1>
+        <h1 className="section-title">Order Tracking</h1>
         <p className="section-subtitle">
           View COD orders and delivery status with secure confirmations.
         </p>
@@ -63,58 +90,26 @@ function OrderHistory() {
 
       {status.loading && <CardSkeleton lines={5} />}
       {status.error && <div className="card">Error: {status.error}</div>}
-      {successMessage && <div className="card">{successMessage}</div>}
+      {successMessage && <div className="card" role="status">{successMessage}</div>}
 
 
       {cancelConfirm.open && (
-        <div
-          className="card"
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1000,
-            width: 'min(520px, 92vw)',
-            padding: '16px',
-          }}
-        >
-          <div style={{ fontSize: '16px', marginBottom: '12px' }}>
-            Are you sure you want to cancel ordering this item/s?
+        <Modal className="order-cancel-backdrop" onClick={closeCancellation}>
+          <div className="modal-card order-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="order-cancel-title" aria-describedby="order-cancel-description" aria-busy={cancelStatus.loading} onClick={(event) => event.stopPropagation()}>
+            <h2 id="order-cancel-title">Cancel this item?</h2>
+            <p id="order-cancel-description">This will cancel the selected item. Other items in your order will stay unchanged.</p>
+            <div className="order-cancel-summary">
+              <strong>{cancelConfirm.item?.name || 'Selected item'}</strong>
+              <span>Quantity: {cancelConfirm.item?.quantity}{' \u00b7 \u20b1'}{((cancelConfirm.item?.price || 0) * (cancelConfirm.item?.quantity || 0)).toLocaleString('en-PH')}</span>
+              <span>Order #{cancelConfirm.orderId.slice(-8)}</span>
+            </div>
+            {cancelStatus.error && <p className="order-cancel-error" role="alert">{cancelStatus.error}</p>}
+            <div className="order-cancel-actions">
+              <button className="button secondary" type="button" disabled={cancelStatus.loading} onClick={closeCancellation}>Keep item</button>
+              <button className="button order-cancel-confirm" type="button" disabled={cancelStatus.loading} onClick={confirmCancellation}>{cancelStatus.loading ? 'Cancelling\u2026' : 'Cancel item'}</button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button
-              className="button secondary"
-              onClick={() => setCancelConfirm({ open: false, orderId: '', itemKey: '' })}
-            >
-              No
-            </button>
-            <button
-              className="button ghost"
-              onClick={async () => {
-                try {
-                  const updated = await api.cancelOrderItem(
-                    cancelConfirm.orderId,
-                    cancelConfirm.itemKey
-                  )
-                  setOrders((prev) =>
-                    prev.map((entry) =>
-                      entry.id === cancelConfirm.orderId ? updated : entry
-                    )
-                  )
-                  setSuccessMessage('Order Item Cancelled')
-                  setStatus((prev) => ({ ...prev, error: '' }))
-                } catch (error) {
-                  setStatus((prev) => ({ ...prev, error: error.message }))
-                } finally {
-                  setCancelConfirm({ open: false, orderId: '', itemKey: '' })
-                }
-              }}
-            >
-              Yes
-            </button>
-          </div>
-        </div>
+        </Modal>
       )}
 
       <div className="card table-scroll">
@@ -167,10 +162,12 @@ function OrderHistory() {
                         className="button ghost"
                         onClick={() => {
                           const itemKey = item.itemId || `${index}-${item.productId}`
+                          setCancelStatus({ loading: false, error: '' })
                           setCancelConfirm({
                             open: true,
                             orderId: order.id,
                             itemKey,
+                            item,
                           })
                         }}
                       >

@@ -106,7 +106,7 @@ export const policies = {
       {
         number: '3', title: 'Shopping preferences on this device',
         body: 'Local storage remembers your font, theme, grid or list view, saved favorites, notification read or hidden states, and checkout selections. A cached profile is stored while signed in and removed at sign-out.',
-        items: [['Local preferences', 'These remain until you clear site data, change the setting, or the app removes the relevant entry. Checkout selections are removed as purchases are completed.'], ['Tab preferences', 'Session storage remembers Adaptive Scent settings, the floating panel position, sign-in navigation, administrator session status, and whether a welcome offer has been shown during the tab session.']],
+        items: [['Local preferences', 'These remain until you clear site data, change the setting, or the app removes the relevant entry. Checkout selections are removed as purchases are completed.'], ['Tab preferences', 'Session storage remembers Adaptive Scent settings, the floating panel position, dismissed introductory tips, sign-in navigation, administrator session status, and whether a welcome offer has been shown during the tab session.']],
       },
       {
         number: '4', title: 'Optional third-party content',

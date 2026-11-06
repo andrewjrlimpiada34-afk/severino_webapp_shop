@@ -1,4 +1,5 @@
-import Modal from './components/Modal.jsx'
+import WelcomeOfferModal from './components/WelcomeOfferModal.jsx'
+import ShopSearchRedirect from './components/ShopSearchRedirect.jsx'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import NavBar from './components/NavBar.jsx'
@@ -8,7 +9,6 @@ import { useAuth } from './context/AuthContext.jsx'
 import { api } from './lib/api.js'
 import Home from './pages/Home.jsx'
 import Shop from './pages/Shop.jsx'
-import Search from './pages/Search.jsx'
 import Cart from './pages/Cart.jsx'
 import Checkout from './pages/Checkout.jsx'
 import Billing from './pages/Billing.jsx'
@@ -74,25 +74,7 @@ function AppLayout({ children }) {
       <NavBar />
       <main className="page">{children}</main>
       {showFooter && <Footer />}
-      {popup.open && (
-        <Modal>
-          <div className="modal-card modal-card--wide login-popup-modal" role="dialog" aria-modal="true">
-            <button
-              className="modal-close"
-              type="button"
-              aria-label="Close"
-              onClick={() => {
-                setPopup({ open: false, image: '' })
-              }}
-            >
-              X
-            </button>
-            <div className="login-popup">
-              {popup.image && <img src={popup.image} alt="Welcome offer" />}
-            </div>
-          </div>
-        </Modal>
-      )}
+      {popup.open && <WelcomeOfferModal image={popup.image} onClose={() => setPopup({ open: false, image: '' })} />}
     </div>
   )
 }
@@ -242,13 +224,7 @@ function App() {
       />
       <Route
         path="/search"
-        element={
-          <AppLayout>
-            <ProtectedRoute>
-              <Search />
-            </ProtectedRoute>
-          </AppLayout>
-        }
+        element={<ShopSearchRedirect />}
       />
       <Route
         path="/favorites"

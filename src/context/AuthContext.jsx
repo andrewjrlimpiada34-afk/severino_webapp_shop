@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from '../lib/api.js'
 import { clearLocalProfile, setLocalProfile } from '../lib/auth.js'
 import { loginErrors, normalizeLoginIdentifier } from '../../server/shared/loginValidation.js'
+import { applyFontPreference, readFontPreference } from '../lib/fontPreference.js'
 
 const AuthContext = createContext(null)
 
@@ -53,11 +54,13 @@ export function AuthProvider({ children }) {
     let resolved = me
     if (me.role === 'admin') {
       document.documentElement.removeAttribute('data-theme')
+      applyFontPreference('editorial')
     } else {
       const stored = localStorage.getItem(`severino_theme_${me.id}`)
       const theme = me.preferredTheme || stored || 'Default'
       localStorage.setItem(`severino_theme_${me.id}`, theme)
       applyTheme(theme)
+      applyFontPreference(readFontPreference(me.id))
       resolved = { ...me, preferredTheme: theme }
     }
     currentUserId.current = resolved.id
@@ -73,6 +76,7 @@ export function AuthProvider({ children }) {
     clearLocalProfile()
     api.clearCache()
     document.documentElement.removeAttribute('data-theme')
+    applyFontPreference(readFontPreference())
     sessionStorage.removeItem('admin_session')
     Object.keys(sessionStorage)
       .filter((key) => key.startsWith('severino_login_popup_seen_'))

@@ -363,9 +363,14 @@ const bundle = await build({
 const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const logo = await readFile('public/logo.svg')
 const introImage = await readFile('public/logooff.png')
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   // Prevent real third-party players from loading in this isolated test fixture.
   res.setHeader('Content-Security-Policy', "frame-src 'none'")
+  if (/^\/fonts\/[a-z-]+\.woff2$/.test(req.url)) {
+    res.setHeader('Content-Type', 'font/woff2')
+    res.end(await readFile('public' + req.url))
+    return
+  }
   if (req.url === '/logooff.png') {
     res.setHeader('Content-Type', 'image/png')
     res.end(introImage)

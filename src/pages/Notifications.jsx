@@ -5,9 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 
 const tabs = [
-  { id: 'all', label: 'All inboxes' },
-  { id: 'unread', label: 'Unread inboxes' },
-  { id: 'opened', label: 'Opened inboxes' },
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'opened', label: 'Opened' },
 ]
 
 function NotificationFilterIcon({ type }) {
@@ -100,9 +100,10 @@ function Notifications() {
   }
 
   return (
-    <section className="grid" style={{ gap: '24px', maxWidth: '980px', margin: '0 auto' }}>
+    <section className="grid boutique-page boutique-notifications" style={{ gap: '24px', maxWidth: '980px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
         <div>
+          <span className="store-eyebrow">Your inbox</span>
           <h1 className="section-title">Notifications</h1>
           <p className="section-subtitle">View and manage your inbox updates.</p>
         </div>
@@ -113,18 +114,31 @@ function Notifications() {
 
       <div className="card notif-filter-card">
         <div className="notif-tabs" role="tablist" aria-label="Filter notifications">
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <button
               key={tab.id}
               className={`notif-filter-button ${activeTab === tab.id ? 'notif-tab-active' : ''}`}
               type="button"
               role="tab"
+              id={`notif-tab-${tab.id}`}
+              aria-controls="notification-list"
+              tabIndex={activeTab === tab.id ? 0 : -1}
               aria-selected={activeTab === tab.id}
               aria-label={`${tab.label}: ${inboxCounts[tab.id]}`}
               title={tab.label}
               onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                  : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                    : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null
+                if (next === null) return
+                event.preventDefault()
+                setActiveTab(tabs[next].id)
+                document.getElementById(`notif-tab-${tabs[next].id}`)?.focus()
+              }}
             >
               <NotificationFilterIcon type={tab.id} />
+              <span className="notif-filter-label">{tab.label}</span>
               <span className="notif-filter-count" aria-hidden="true">{inboxCounts[tab.id]}</span>
             </button>
           ))}
@@ -134,7 +148,7 @@ function Notifications() {
       {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
       {!status.loading && !status.error && (
-        <div className="card notif-list">
+        <div className="card notif-list" id="notification-list" role="tabpanel" aria-labelledby={`notif-tab-${activeTab}`}>
           {visible.length === 0 && <p className="section-subtitle">No inboxes in this category.</p>}
           {visible.map((item) => (
             <div key={item.id} className={`notif-row ${item.opened ? 'opened' : ''}`}>

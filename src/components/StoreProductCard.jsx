@@ -28,7 +28,7 @@ export default function StoreProductCard({ product, favorite, onFavorite, onAdd,
       <div className="store-product-purchase">
         <strong className="store-product-price">₱{Number(product.price).toLocaleString('en-PH')}</strong>
         <div className="store-product-actions">
-          {onAdd && <button className="button store-add-button" type="button" onClick={onAdd} disabled={product.stock <= 0} aria-label={`Add ${product.name} to cart`}><StoreIcon name="bag" /><span>{product.stock <= 0 ? 'Sold out' : 'Add to bag'}</span></button>}
+          {onAdd && <button className="button store-add-button" type="button" onClick={onAdd} disabled={product.stock <= 0} aria-label={`Add ${product.name} to cart`}><StoreIcon name="cart" /><span>{product.stock <= 0 ? 'Sold out' : 'Add to Cart'}</span></button>}
           <Link className="store-text-link store-product-details" to={path}>View details<StoreIcon name="arrow" /></Link>
         </div>
       </div>

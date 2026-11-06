@@ -38,7 +38,7 @@ function Shop() {
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     const base = normalizedQuery
-      ? items.filter((product) => product.name.toLowerCase().includes(normalizedQuery))
+      ? items.filter((product) => `${product.name} ${product.notes || ''}`.toLowerCase().includes(normalizedQuery))
       : items
 
     const categoryFiltered =
@@ -181,7 +181,7 @@ function Shop() {
         <div className="store-shop-toolbar">
           <label className="store-search-field" htmlFor="shop-search">
             <StoreIcon name="search" />
-            <input className="input" id="shop-search" type="search" placeholder="Search scents..." value={query} onChange={(event) => updateSearchParam('q', event.target.value)} />
+            <input className="input" id="shop-search" type="search" placeholder="Search scents or notes..." aria-label="Search scents or notes" value={query} onChange={(event) => updateSearchParam('q', event.target.value)} />
           </label>
           <button className={`button secondary store-filter-toggle ${filtersOpen ? 'is-active' : ''}`} type="button" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen} aria-controls="shop-filter-options"><StoreIcon name="filter" />Filters{(category !== 'all' || minPrice !== '' || maxPrice !== '') && <span className="store-filter-indicator" />}</button>
           <label className="store-sort-field" htmlFor="shop-sort"><span>Sort:</span><select className="input" id="shop-sort" value={sort} onChange={(event) => setSort(event.target.value)}><option value="default">Featured</option><option value="popularity">Popularity</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></label>

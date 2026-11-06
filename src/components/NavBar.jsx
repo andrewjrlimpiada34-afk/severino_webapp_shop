@@ -3,14 +3,13 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { api } from '../lib/api.js'
-import StoreIcon from './StoreIcon.jsx'
+import HeaderSearch from './HeaderSearch.jsx'
 
 const navAnimations = {
   '/': { type: 'home', message: 'Opening home' },
   '/shop': { type: 'shop', message: 'Opening shop' },
   '/feedback': { type: 'feedback', message: 'Opening feedback' },
   '/orders': { type: 'orders', message: 'Opening orders' },
-  '/search': { type: 'search', message: 'Searching scents' },
   '/favorites': { type: 'favorite', message: 'Opening favorites' },
   '/cart': { type: 'cart', message: 'Opening cart' },
   '/notifications': { type: 'notifications', message: 'Opening notifications' },
@@ -156,23 +155,6 @@ function NavBar() {
             <button
               className="icon-button nav-utility"
               type="button"
-              aria-label="Search"
-              onClick={(event) => goToPage(event, '/search')}
-            >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <path
-                  d="M16.5 16.5L21 21"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            <button
-              className="icon-button nav-utility"
-              type="button"
               aria-label="Favorites"
               onClick={(event) => goToPage(event, '/favorites')}
             >
@@ -241,16 +223,8 @@ function NavBar() {
           </button>
         )}
         </div>
-        <form className="store-nav-search" role="search" onSubmit={(event) => {
-          event.preventDefault()
-          const query = String(new FormData(event.currentTarget).get('q') || '').trim()
-          navigate(query ? `/shop?q=${encodeURIComponent(query)}` : '/shop')
-        }}>
-          <label className="sr-only" htmlFor="nav-product-search">Search the collection</label>
-          <StoreIcon name="search" />
-          <input id="nav-product-search" name="q" type="search" placeholder="Search scents..." />
-        </form>
         <div className="nav-actions">
+        <HeaderSearch />
         {user && (
           <button
             className="avatar-button"
@@ -319,23 +293,6 @@ function NavBar() {
                   stroke="currentColor"
                   strokeWidth="1.6"
                   strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            <button
-              className={`icon-button ${isActivePath('/search') ? 'active' : ''}`}
-              type="button"
-              aria-label="Search"
-              onClick={(event) => goToPage(event, '/search')}
-            >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                <path
-                  d="M16.5 16.5L21 21"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
                 />
               </svg>
             </button>

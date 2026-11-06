@@ -6,6 +6,7 @@ import { compressImageFile } from '../lib/image.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import StoreIcon from '../components/StoreIcon.jsx'
+import { FONT_OPTIONS, applyFontPreference, readFontPreference, saveFontPreference } from '../lib/fontPreference.js'
 
 function Account() {
   const navigate = useNavigate()
@@ -25,6 +26,7 @@ function Account() {
   })
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
   const [theme, setTheme] = useState('Default')
+  const [font, setFont] = useState('editorial')
   const [userId, setUserId] = useState('')
   const [canManageSecurity, setCanManageSecurity] = useState(false)
   const [securityOpen, setSecurityOpen] = useState(false)
@@ -60,6 +62,9 @@ function Account() {
           profileImage: data.profileImage || '',
         })
         setUserId(data.id || '')
+        const savedFont = readFontPreference(data.id)
+        setFont(savedFont)
+        applyFontPreference(savedFont)
         setCanManageSecurity(Boolean(data.hasPassword ?? data.passwordHash))
         const savedTheme =
           data.preferredTheme ||
@@ -165,6 +170,7 @@ function Account() {
     }
   }
   const initials = form.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S'
+  const selectedFont = FONT_OPTIONS.find((option) => option.id === font) || FONT_OPTIONS[0]
 
   return (
     <section className="boutique-page boutique-account">
@@ -187,7 +193,9 @@ function Account() {
             <div className="store-field"><label htmlFor="account-email">Email</label><input className="input" id="account-email" type="email" autoComplete="email" readOnly={canManageSecurity} value={form.email} onChange={(event) => updateField('email', event.target.value)} /></div>
             <div className="store-field"><label htmlFor="account-phone">Mobile number</label><input className="input" id="account-phone" type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => updateField('phone', event.target.value)} /></div>
             <div className="store-account-preferences">
-              <div className="store-preference-row"><StoreIcon name="palette" /><label htmlFor="account-theme">Appearance</label><select className="input" id="account-theme" value={theme} onChange={(event) => handleThemeChange(event.target.value)}>{['Default', 'Daylight', 'Pink Splush', 'Blazing Maroon', 'Forest Brown', 'Beach Blue', 'Luxurious Gold', 'Shadow Dark Mode'].map((option) => <option key={option}>{option}</option>)}</select></div>
+              <div className="store-preference-row"><StoreIcon name="palette" /><label htmlFor="account-theme">Theme</label><select className="input" id="account-theme" value={theme} onChange={(event) => handleThemeChange(event.target.value)}>{['Default', 'Daylight', 'Pink Splush', 'Blazing Maroon', 'Forest Brown', 'Beach Blue', 'Luxurious Gold', 'Shadow Dark Mode'].map((option) => <option key={option}>{option}</option>)}</select></div>
+              <div className="store-preference-row"><StoreIcon name="type" /><label htmlFor="account-font">Font</label><select className="input" id="account-font" aria-describedby="account-font-description" value={font} onChange={(event) => setFont(saveFontPreference(userId, event.target.value))}>{FONT_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></div>
+              <p className="store-font-description" id="account-font-description">{selectedFont.heading} headings · {selectedFont.body} text. Saved on this browser.</p>
               {canManageSecurity && <div className="store-preference-row"><StoreIcon name="shield" /><span>Security</span><button className="store-text-link" type="button" aria-expanded={securityOpen} aria-controls="account-password-form" onClick={() => setSecurityOpen((open) => !open)}>{securityOpen ? 'Close password settings' : 'Change password'}</button></div>}
             </div>
           </section>

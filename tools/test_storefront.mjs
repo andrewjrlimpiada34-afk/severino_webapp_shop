@@ -7,16 +7,20 @@ import path from 'node:path'
 // Isolated frontend QA: all account, inventory and catalog requests use test doubles.
 // No real accounts, orders, database writes or third-party embeds are used.
 const fixture = String.raw`
-import React from 'react'
+import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import Home from './src/pages/Home.jsx'
 import Shop from './src/pages/Shop.jsx'
 import Login from './src/pages/Login.jsx'
 import Account from './src/pages/Account.jsx'
 import NavBar from './src/components/NavBar.jsx'
 import Footer from './src/components/Footer.jsx'
+import Notifications from './src/pages/Notifications.jsx'
+import WelcomeOfferModal from './src/components/WelcomeOfferModal.jsx'
+import ShopSearchRedirect from './src/components/ShopSearchRedirect.jsx'
+import { applyFontPreference, readFontPreference } from './src/lib/fontPreference.js'
 import { ActionAnimationProvider } from './src/context/ActionAnimationContext.jsx'
 import { api } from './src/lib/api.js'
 
@@ -33,7 +37,7 @@ window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, s
 window.EventSource = class { addEventListener() {} close() {} }
 Object.assign(api, {
   products: async () => { if (window.failCatalog) throw new Error('Collection temporarily unavailable'); return products },
-  orders: async () => [], profile: async () => profile,
+  orders: async () => window.qaOrders || [], profile: async () => profile,
   updateProfile: async (data) => { calls.profile.push(data); return { ...profile, ...data } },
   updateTheme: async (theme) => { calls.theme.push(theme) },
   updatePassword: async (data) => { calls.password.push(data) },
@@ -43,6 +47,10 @@ Object.assign(api, {
 })
 let renderNumber = 0
 const root = createRoot(document.getElementById('fixture'))
+function OfferPreview() {
+  const [open, setOpen] = useState(true)
+  return <><Home />{open && <WelcomeOfferModal image={window.qaOfferImage || '/qa-portrait.svg'} onClose={() => setOpen(false)} />}</>
+}
 const settle = () => new Promise(resolve => setTimeout(resolve, 20))
 const assert = (condition, message) => { if (!condition) throw new Error(message) }
 const waitFor = async (predicate) => {
@@ -73,11 +81,10 @@ const noOverflow = () => {
     assert(element.scrollWidth <= element.clientWidth + 2, 'Content does not overflow internally: ' + element.className)
   }
 }
-const render = async (page, route = '/' + page) => {
-  const Component = { home: Home, shop: Shop, login: Login, account: Account }[page]
+const render = async (page, route = page === 'home' ? '/' : '/' + page) => {
   window.qaAuth.user = page === 'login' ? null : profile
-  flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><div className="app-shell storefront-shell"><NavBar /><main className="page"><Component /></main>{page !== 'account' && <Footer />}</div></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
-  await waitFor(() => page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
+  flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><div className="app-shell storefront-shell"><NavBar /><main className="page"><Routes><Route path="/" element={<Home />} /><Route path="/shop" element={<Shop />} /><Route path="/search" element={<ShopSearchRedirect />} /><Route path="/login" element={<Login />} /><Route path="/account" element={<Account />} /><Route path="/notifications" element={<Notifications />} /><Route path="/popup" element={<OfferPreview />} /></Routes></main>{!['account', 'notifications'].includes(page) && <Footer />}</div></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
+  await waitFor(() => page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
   await document.fonts.ready
   await Promise.all(Array.from(document.images).map(async (image) => { image.loading = 'eager'; try { await image.decode() } catch { /* Missing optional media is covered by page fallbacks. */ } }))
   await settle()
@@ -89,8 +96,10 @@ const run = async (name, fn) => { try { await fn(); results.push({ name, passed:
 const preview = new URLSearchParams(location.search).get('preview')
 if (preview) {
   if (preview === 'shop') localStorage.setItem('severino_shop_view', 'grid')
-  await render(preview === 'list' ? 'shop' : preview)
+  await render(['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
+  if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
+  if (preview === 'font-fashion') { await select('account-font', 'fashion'); await document.fonts.ready }
   noOverflow()
   window.qaReady = true
 } else {
@@ -136,6 +145,8 @@ if (preview) {
       assert(favorite.getAttribute('aria-pressed') !== previous, 'Favorite toggles in ' + mode)
       const sold = Array.from(document.querySelectorAll('.store-product')).find(item => item.textContent.includes('Cloudy Scent'))
       assert(sold.querySelector('.store-add-button').disabled, 'Out-of-stock items cannot be added')
+      assert(document.querySelector('.store-add-button:not(:disabled)').textContent === 'Add to Cart', 'Purchase label says Add to Cart')
+      assert(document.querySelector('.store-add-button circle'), 'Purchase action uses the cart with wheels')
       await click(document.querySelector('.store-add-button:not(:disabled)'))
       const quantity = document.querySelector('.store-cart-modal select')
       quantity.value = '2'
@@ -200,6 +211,79 @@ if (preview) {
     await waitFor(() => cardNames().length === 4)
     assert(!document.querySelector('[role="alert"]'), 'Retry recovers the catalog')
   })
+  await run('Font selection is loaded locally, independent of every theme, and remembered', async () => {
+    await render('account')
+    for (const [font, heading, body] of [['editorial', 'Cormorant Garamond', 'Manrope'], ['fashion', 'Bodoni Moda', 'Jost']]) {
+      await select('account-font', font)
+      for (const theme of ['Default', 'Daylight', 'Pink Splush', 'Blazing Maroon', 'Forest Brown', 'Beach Blue', 'Luxurious Gold', 'Shadow Dark Mode']) {
+        await select('account-theme', theme)
+        await document.fonts.ready
+        assert(getComputedStyle(document.querySelector('h1')).fontFamily.includes(heading), 'Heading font survives ' + theme)
+        assert(getComputedStyle(document.getElementById('account-name')).fontFamily.includes(body), 'UI font survives ' + theme)
+        assert(document.fonts.check('16px "' + heading + '"') && document.fonts.check('16px "' + body + '"'), 'Selected font files load')
+        noOverflow()
+      }
+    }
+    await render('account')
+    assert(document.getElementById('account-font').value === 'fashion', 'Font preference survives remount')
+    assert(readFontPreference('another-fixture-user') === 'editorial', 'Preference is scoped per account')
+    await select('account-theme', 'Default')
+    await select('account-font', 'editorial')
+  })
+  await run('One header magnifier expands, focuses, searches the shop and closes with Escape', async () => {
+    await render('home', '/')
+    const trigger = document.querySelector('.header-search-trigger')
+    assert(trigger && !document.querySelector('.header-search-form'), 'Search starts collapsed')
+    assert(!document.querySelector('a[href="/search"], .store-nav-search'), 'Separate search navigation is removed')
+    await click(trigger)
+    const field = document.querySelector('.header-search-form input')
+    assert(document.activeElement === field && trigger.getAttribute('aria-expanded') === 'true', 'Expanding search focuses the field')
+    const rect = document.querySelector('.header-search-form').getBoundingClientRect()
+    assert(rect.left >= 0 && rect.right <= innerWidth, 'Expanded search fits the viewport')
+    await input(field.id, 'saffron')
+    await click(document.querySelector('[aria-label="Find scents"]'))
+    await waitFor(() => document.getElementById('shop-search')?.value === 'saffron')
+    assert(cardNames().join('|') === 'Bacc540', 'Header searches actual product notes in Shop')
+    assert(!document.querySelector('.header-search-form'), 'Submitting collapses the field')
+    await click(document.querySelector('.header-search-trigger'))
+    flushSync(() => document.querySelector('.header-search-form input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    assert(!document.querySelector('.header-search-form') && document.activeElement.classList.contains('header-search-trigger'), 'Escape closes and restores focus')
+    await render('shop', '/search?q=melon')
+    assert(document.getElementById('shop-search').value === 'melon' && cardNames().join('|') === 'Cucumber Melon', 'Old search URLs redirect into Shop')
+  })
+  await run('Notification categories show labels, counts and working filtering', async () => {
+    localStorage.removeItem('severino_notif_opened_' + profile.id)
+    localStorage.removeItem('severino_notif_deleted_' + profile.id)
+    window.qaOrders = [{ id: 'qa-order-1', status: 'Pending' }, { id: 'qa-order-2', status: 'Delivered' }]
+    await render('notifications')
+    assert(Array.from(document.querySelectorAll('.notif-filter-label')).map(item => item.textContent).join('|') === 'All|Unread|Opened', 'Every category has a visible name')
+    await click(document.getElementById('notif-tab-unread'))
+    assert(document.querySelectorAll('.notif-row').length === 2, 'Unread category retains filtering')
+    await click(document.querySelector('.notif-row__content'))
+    await click(document.getElementById('notif-tab-opened'))
+    assert(document.querySelectorAll('.notif-row').length === 1, 'Opened category tracks read items')
+    for (const label of document.querySelectorAll('.notif-filter-label')) assert(label.getBoundingClientRect().width > 0, 'Labels remain visible on phone')
+    noOverflow()
+    window.qaOrders = []
+  })
+  await run('Welcome artwork fits portrait, landscape and square images with unobstructed close', async () => {
+    for (const image of ['/qa-portrait.svg', '/qa-landscape.svg', '/qa-square.svg']) {
+      window.qaOfferImage = image
+      await render('popup')
+      const modal = document.querySelector('.welcome-offer')
+      const artwork = modal.querySelector('img')
+      const frame = modal.getBoundingClientRect()
+      const media = artwork.getBoundingClientRect()
+      const close = modal.querySelector('.welcome-offer-close').getBoundingClientRect()
+      assert(frame.left >= 0 && frame.right <= innerWidth && frame.top >= 0 && frame.bottom <= innerHeight, 'Image dialog fits the viewport')
+      assert(media.left >= frame.left && media.right <= frame.right && media.bottom <= frame.bottom, 'Image is inside its container')
+      assert(Math.abs(media.width / media.height - artwork.naturalWidth / artwork.naturalHeight) < .02, 'Complete image keeps its natural aspect ratio')
+      assert(close.bottom <= media.top + 1, 'Close control does not cover the image')
+      await click(modal.querySelector('.welcome-offer-close'))
+      assert(!document.querySelector('.welcome-offer') && !document.documentElement.style.overflow, 'Close restores page scrolling')
+    }
+    window.qaOfferImage = undefined
+  })
   await run('Home uses actual catalog links and keeps responsive composition', async () => {
     await render('home', '/')
     noOverflow()
@@ -213,6 +297,7 @@ if (preview) {
     }
   })
   document.documentElement.removeAttribute('data-theme')
+  applyFontPreference('editorial')
   const report = document.createElement('pre')
   report.id = 'qa-results'
   report.textContent = JSON.stringify({ width: innerWidth, results })
@@ -231,6 +316,13 @@ const server = createServer(async (req, res) => {
   res.setHeader('Content-Security-Policy', "frame-src 'none'; connect-src 'self'")
   if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle.outputFiles[0].text); return }
   if (req.url === '/logo.svg' || req.url === '/images/severino-editorial.webp') { res.setHeader('Content-Type', req.url.endsWith('webp') ? 'image/webp' : 'image/svg+xml'); res.end(await readFile('public' + req.url)); return }
+  if (/^\/fonts\/[a-z-]+\.woff2$/.test(req.url)) { res.setHeader('Content-Type', 'font/woff2'); res.end(await readFile('public' + req.url)); return }
+  if (/^\/qa-(portrait|landscape|square)\.svg$/.test(req.url)) {
+    const [width, height] = req.url.includes('portrait') ? [700, 1100] : req.url.includes('landscape') ? [1400, 700] : [900, 900]
+    res.setHeader('Content-Type', 'image/svg+xml')
+    res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#2b3422"/><rect x="12" y="12" width="${width - 24}" height="${height - 24}" fill="none" stroke="#d8cdb7" stroke-width="8"/><text x="50%" y="50%" text-anchor="middle" fill="#f6f3ea" font-size="44">SEVERINO</text></svg>`)
+    return
+  }
   res.setHeader('Content-Type', 'text/html')
   res.end('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + css + '</style></head><body><div id="fixture"></div><script type="module" src="/bundle.js"></script></body></html>')
 })
@@ -276,14 +368,18 @@ async function browser(width) {
       const result = await call('Runtime.evaluate', { expression: 'new Promise((resolve, reject) => { const deadline = Date.now() + 25000; const check = () => window.qaReady ? resolve(true) : Date.now() > deadline ? reject(new Error("Fixture timed out")) : setTimeout(check, 50); check() })', awaitPromise: true, returnByValue: true })
       if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || 'Fixture failed')
     }
-    await navigate(baseUrl)
-    const report = JSON.parse((await call('Runtime.evaluate', { expression: 'document.getElementById("qa-results").textContent', returnByValue: true })).result.value)
-    console.log(JSON.stringify(report))
-    await writeFile(path.join(artifactDir, `results-${width}.json`), JSON.stringify({ ...report, errors }, null, 2))
-    if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
-    if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
-    for (const preview of ['login', 'home', 'account', 'shop', 'list']) {
+    if (!process.argv.includes('--previews-only')) {
+      await navigate(baseUrl)
+      const report = JSON.parse((await call('Runtime.evaluate', { expression: 'document.getElementById("qa-results").textContent', returnByValue: true })).result.value)
+      console.log(JSON.stringify(report))
+      await writeFile(path.join(artifactDir, `results-${width}.json`), JSON.stringify({ ...report, errors }, null, 2))
+      if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
+      if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
+    }
+    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
+      // Inspect the settled UI, rather than a partially transparent entrance animation.
+      await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })
       const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
       await writeFile(path.join(artifactDir, `${width}-${preview}.png`), Buffer.from(shot.data, 'base64'))
     }
@@ -294,5 +390,8 @@ async function browser(width) {
     if (child.exitCode === null) child.kill()
   }
 }
-try { for (const width of [1440, 1024, 768, 390, 320]) await browser(width); console.log(`Screenshots and reports: ${artifactDir}`) }
+const requestedWidth = process.argv.find((arg) => arg.startsWith('--width='))?.slice(8)
+const widths = requestedWidth ? [Number(requestedWidth)] : [1440, 1024, 768, 390, 320]
+if (widths.some((width) => !Number.isInteger(width) || width < 280)) throw new Error('Use a valid viewport width of at least 280px')
+try { for (const width of widths) await browser(width); console.log(`Screenshots and reports: ${artifactDir}`) }
 finally { server.closeAllConnections(); server.close() }

@@ -12,21 +12,21 @@
   width: min(100%, 1280px);
   min-width: 0;
   margin-inline: auto;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.55;
   color: var(--olive-900);
 }
 .boutique-page *, .boutique-page *::before, .boutique-page *::after { box-sizing: border-box; }
 .boutique-page h1, .boutique-page h2, .boutique-page h3, .boutique-page .section-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-heading);
   font-weight: 500;
   letter-spacing: -0.8px;
 }
 .boutique-page h1 { margin: 0; font-size: clamp(32px, 3.5vw, 48px); line-height: 1.15; }
 .boutique-page h2 { margin: 0; font-size: clamp(24px, 2.3vw, 32px); line-height: 1.2; }
 .boutique-page .section-subtitle { color: var(--store-muted); font-size: 14px; line-height: 1.7; }
-.boutique-page button, .boutique-page input, .boutique-page select, .boutique-page textarea { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; }
+.boutique-page button, .boutique-page input, .boutique-page select, .boutique-page textarea { font-family: var(--font-body); font-size: 14px; }
 .boutique-page .button {
   min-height: 44px;
   gap: 9px;
@@ -65,11 +65,10 @@
 .store-empty-state > .store-icon { width: 32px; height: 32px; margin-bottom: 4px; }
 
 /* Compact dark desktop header; the mobile menu, scroll behavior and quick actions are retained. */
-.store-nav-search { display: none; }
 @media (min-width: 901px) {
   .storefront-shell > .nav { background: var(--olive-800); border: 0; box-shadow: 0 2px 10px #1a1f1412; padding: 14px clamp(24px, 4vw, 64px); gap: 24px; }
   .storefront-shell .nav-logo-image { width: 160px; filter: brightness(0) invert(1); }
-  .storefront-shell .nav-links { position: static; transform: none; width: auto; gap: 8px; font: 13px 'Segoe UI', Arial, sans-serif; }
+  .storefront-shell .nav-links { position: static; transform: none; width: auto; gap: 8px; font: 13px var(--font-body); }
   .storefront-shell .nav-links a, .storefront-shell .nav-links .icon-button { color: #fffdf6; background: transparent; border-color: transparent; }
   .storefront-shell .nav-links a { padding: 9px 13px; border-radius: 6px; font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; }
   .storefront-shell .nav-links a.active, .storefront-shell .nav-links a:hover, .storefront-shell .nav-links .icon-button:hover { background: #ffffff17; color: white; }
@@ -77,12 +76,6 @@
   .storefront-shell .nav-links .logout-button { background: transparent; color: #fffdf6; border: 1px solid #ffffff45; border-radius: 6px; padding: 9px 12px; box-shadow: none; }
   .storefront-shell .avatar-button { border: 1px solid #ffffff55; background: #ffffff12; color: #fffdf6; }
   .storefront-shell > .page { padding-top: 34px; padding-bottom: 64px; }
-}
-@media (min-width: 1280px) {
-  .storefront-shell .store-nav-search { display: flex; flex: 0 1 190px; align-items: center; gap: 7px; min-width: 140px; padding: 0 10px; border-radius: 6px; background: #fffdf6; color: #2b3422; }
-  .store-nav-search input { min-width: 0; width: 100%; min-height: 36px; border: 0; outline: 0; background: transparent; font: 11px 'Segoe UI', Arial, sans-serif; color: #2b3422; }
-  .store-nav-search .store-icon { width: 15px; height: 15px; flex-basis: 15px; }
-  .store-nav-search:focus-within { outline: 2px solid #c5d3a5; outline-offset: 3px; }
 }
 
 /* Login */
@@ -93,7 +86,7 @@
 .store-login-visual::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(transparent, #292312a8); }
 .store-login-caption { position: absolute; z-index: 1; bottom: 36px; left: 34px; right: 24px; color: #fff8e8; }
 .store-login-caption .store-eyebrow { color: #fff8e8; font-size: 9px; }
-.store-login-caption p { margin: 0; font: italic 34px/1.15 'Playfair Display', Georgia, serif; letter-spacing: -.7px; }
+.store-login-caption p { margin: 0; font: italic 34px/1.15 var(--font-heading); letter-spacing: -.7px; }
 .store-login-content { padding: clamp(28px, 4vw, 54px); align-self: center; min-width: 0; }
 .store-login-content .login-header-row { margin-bottom: 26px; align-items: flex-start; }
 .store-login-content .section-title { font-size: clamp(30px, 3vw, 38px); margin-bottom: 12px; }
@@ -129,7 +122,7 @@
 .store-category-links > span { margin-left: auto; color: var(--store-muted); font-size: 11px; }
 .store-featured-section { width: 100%; }
 .store-brand-story { display: flex; align-items: center; gap: 24px; padding: 24px 28px; border-block: 1px solid var(--store-border); }
-.store-brand-monogram { flex: 0 0 80px; width: 80px; height: 80px; display: grid; place-items: center; background: var(--store-subtle); color: var(--olive-700); font: italic 48px 'Playfair Display', Georgia, serif; border-radius: 10px; }
+.store-brand-monogram { flex: 0 0 80px; width: 80px; height: 80px; display: grid; place-items: center; background: var(--store-subtle); color: var(--olive-700); font: italic 48px var(--font-heading); border-radius: 10px; }
 .store-brand-story .store-eyebrow { margin-bottom: 6px; }
 .store-brand-story h2 { font-size: 26px; }
 .store-brand-story p { font-size: 12px; color: var(--store-muted); margin: 8px 0 0; max-width: 62ch; }
@@ -216,7 +209,7 @@
 /* Account */
 .boutique-account { max-width: 1060px; }
 .store-account-identity { display: flex; align-items: center; gap: 20px; padding: 24px 28px; border: 1px solid var(--store-border); border-radius: 12px; background: var(--store-subtle); margin-bottom: 30px; }
-.store-account-avatar { display: grid; place-items: center; flex: 0 0 72px; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: var(--store-action); color: var(--store-on-action); font: 28px 'Playfair Display', Georgia, serif; }
+.store-account-avatar { display: grid; place-items: center; flex: 0 0 72px; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; background: var(--store-action); color: var(--store-on-action); font: 28px var(--font-heading); }
 .store-account-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .store-account-name { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .store-account-name strong { font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
@@ -244,6 +237,45 @@
 .store-account-save .button { min-width: 160px; }
 .store-password-form { max-width: 540px; margin: 28px 0 0 auto; border-radius: 12px; box-shadow: none; }
 .boutique-account .store-notice { margin-bottom: 20px; }
+.store-font-description { margin: 10px 0 16px; color: var(--store-muted); font-size: 11px; line-height: 1.7; }
+
+/* One expandable search control serves the Shop at every screen size. */
+.header-search { position: relative; flex-shrink: 0; }
+.header-search .header-search-trigger { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid var(--store-border); border-radius: 50%; padding: 0; color: var(--olive-800); background: transparent; }
+.header-search-trigger[aria-expanded='true'] { background: var(--store-subtle); }
+.header-search-form { position: absolute; z-index: 30002; top: calc(100% + 12px); right: 0; display: flex; align-items: center; width: min(390px, calc(100vw - 32px)); padding: 8px; gap: 4px; border: 1px solid var(--store-border); border-radius: 10px; background: color-mix(in srgb, var(--cream) 80%, var(--olive-100)); box-shadow: 0 8px 28px #1a1f1422; }
+.header-search-form input { min-width: 0; flex: 1; width: 100%; min-height: 42px; padding: 8px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--olive-900); font-size: 14px; outline: none; }
+.header-search-form:focus-within { outline: 2px solid var(--olive-600); outline-offset: 2px; }
+.header-search-form .icon-button { display: grid; place-items: center; min-width: 38px; height: 42px; padding: 8px; border-radius: 5px; color: var(--olive-800); }
+.header-search-form .header-search-submit { background: var(--store-action); color: var(--store-on-action); }
+.header-search-form .icon-button:hover { background: var(--store-subtle); color: var(--olive-900); }
+.header-search button:focus-visible { outline: 2px solid var(--olive-600); outline-offset: 2px; }
+@media (min-width: 901px) {
+  .storefront-shell .header-search-trigger { color: #fffdf6; border-color: #ffffff40; }
+  .storefront-shell .header-search-trigger[aria-expanded='true'] { background: #ffffff20; }
+}
+@media (max-width: 640px) {
+  .storefront-shell .nav-actions { gap: 8px; }
+  .header-search-form { position: fixed; top: 68px; left: 14px; right: 14px; width: auto; max-width: calc(100vw - 28px); }
+  .header-search-form input { font-size: 16px; }
+}
+
+/* Fit welcome artwork to the viewport without clipping or an overlaid close button. */
+.modal-card.welcome-offer { width: fit-content; max-width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 0; display: flex; flex-direction: column; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--olive-700) 20%, transparent); background: var(--cream); overflow: hidden; box-shadow: 0 18px 64px #0003; }
+.welcome-offer-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-shrink: 0; padding: 8px 10px 8px 18px; color: var(--olive-900); }
+.welcome-offer-header > span { font-family: var(--font-heading); font-size: 21px; font-weight: 500; }
+.welcome-offer-close { display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border-radius: 50%; color: var(--olive-800); flex-shrink: 0; }
+.welcome-offer-close:hover { background: color-mix(in srgb, var(--olive-200) 50%, transparent); }
+.welcome-offer-media { min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 10px 10px; }
+.welcome-offer-media img { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 110px); object-fit: contain; border-radius: 7px; }
+[data-theme='Shadow Dark Mode'] .modal-card.welcome-offer { background: #221f19; }
+[data-theme='Shadow Dark Mode'] .header-search-form { background: #221f19; }
+
+/* Visible category names accompany the notification icons and counts. */
+.boutique-notifications .notif-filter-button { height: auto; min-height: 88px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
+.boutique-notifications .notif-filter-icon { width: 27px; height: 27px; }
+.boutique-notifications .notif-filter-label { font-size: 12px; font-weight: 500; }
+.boutique-notifications .notif-filter-count { top: 7px; right: 7px; }
 
 /* Tablet and mobile use the existing 900px / 640px navigation breakpoints. */
 @media (max-width: 1023px) {

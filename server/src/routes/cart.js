@@ -1,4 +1,5 @@
 ﻿import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import { createCart, getCartByUserId, updateCart } from '../db/carts.js'
 import { requireAuth } from '../middleware/auth.js'
@@ -16,13 +17,13 @@ const cartSchema = z.object({
   ),
 })
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, asyncRoute(async (req, res) => {
   let cart = await getCartByUserId(req.user.id)
   if (!cart) cart = await createCart(req.user.id)
   res.json(normalizeId(cart))
-})
+}))
 
-router.put('/', requireAuth, async (req, res) => {
+router.put('/', requireAuth, asyncRoute(async (req, res) => {
   const parsed = cartSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid input' })
@@ -36,6 +37,6 @@ router.put('/', requireAuth, async (req, res) => {
   const cart = await updateCart(req.user.id, parsed.data.items)
   if (!cart) return res.status(404).json({ message: 'Cart not found' })
   return res.json(normalizeId(cart))
-})
+}))
 
 export default router

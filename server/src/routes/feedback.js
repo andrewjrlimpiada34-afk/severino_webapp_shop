@@ -1,4 +1,5 @@
 ﻿import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import { createFeedback, getFeedback } from '../db/feedback.js'
 import { getUserById } from '../db/users.js'
@@ -21,12 +22,12 @@ const feedbackSchema = z.object({
     .optional(),
 })
 
-router.get('/', requireAuth, requireAdmin, async (req, res) => {
+router.get('/', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
   const feedback = await getFeedback()
   res.json(normalizeList(feedback))
-})
+}))
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, asyncRoute(async (req, res) => {
   const parsed = feedbackSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid input' })
@@ -41,6 +42,6 @@ router.post('/', requireAuth, async (req, res) => {
   entry.userName = user?.name || 'Customer'
   entry.userEmail = user?.email || ''
   return res.status(201).json(normalizeId(entry))
-})
+}))
 
 export default router

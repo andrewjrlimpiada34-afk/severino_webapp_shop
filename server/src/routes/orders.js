@@ -1,4 +1,5 @@
 import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import {
   cancelOrder,
@@ -17,7 +18,6 @@ import { normalizeId, normalizeList } from '../db/util.js'
 import { orderSteps } from '../../shared/orderWorkflow.js'
 
 const router = express.Router()
-const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 const statusSchema = z.object({ status: z.enum(orderSteps) })
 
 const orderSchema = z.object({

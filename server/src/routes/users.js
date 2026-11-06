@@ -1,4 +1,5 @@
 ﻿import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { getUserById, sanitizeUser, updateUser } from '../db/users.js'
@@ -34,13 +35,13 @@ const passwordSchema = z.object({
     .regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/),
 })
 
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me', requireAuth, asyncRoute(async (req, res) => {
   const user = await getUserById(req.user.id)
   if (!user) return res.status(404).json({ message: 'Not found' })
   return res.json(sanitizeUser(user))
-})
+}))
 
-router.patch('/me', requireAuth, async (req, res) => {
+router.patch('/me', requireAuth, asyncRoute(async (req, res) => {
   const parsed = profileSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
@@ -55,9 +56,9 @@ router.patch('/me', requireAuth, async (req, res) => {
   const user = await updateUser(req.user.id, { ...nextData, address })
   if (!user) return res.status(404).json({ message: 'Not found' })
   return res.json(sanitizeUser(user))
-})
+}))
 
-router.patch('/password', requireAuth, async (req, res) => {
+router.patch('/password', requireAuth, asyncRoute(async (req, res) => {
   const parsed = passwordSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid password format' })
@@ -73,9 +74,9 @@ router.patch('/password', requireAuth, async (req, res) => {
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12)
   await updateUser(req.user.id, { passwordHash })
   return res.json({ success: true })
-})
+}))
 
-router.patch('/theme', requireAuth, async (req, res) => {
+router.patch('/theme', requireAuth, asyncRoute(async (req, res) => {
   const themeSchema = z.object({
     preferredTheme: z.string().min(1),
   })
@@ -86,6 +87,6 @@ router.patch('/theme', requireAuth, async (req, res) => {
   const user = await updateUser(req.user.id, { preferredTheme: parsed.data.preferredTheme })
   if (!user) return res.status(404).json({ message: 'Not found' })
   return res.json({ preferredTheme: user.preferredTheme })
-})
+}))
 
 export default router

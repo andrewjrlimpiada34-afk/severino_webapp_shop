@@ -21,30 +21,16 @@ import uploadRoutes from './routes/uploads.js'
 import { closeDb, testDbConnection } from './db/postgres.js'
 import { errorHandler } from './middleware/error.js'
 import { startInventoryListener, stopInventoryListener } from './lib/inventoryEvents.js'
+import { createCorsOptions, getClientOrigins } from './lib/clientOrigins.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
-const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim().replace(/\/$/, ''))
-  .filter(Boolean)
+const allowedOrigins = getClientOrigins()
 
 app.set('trust proxy', 1)
 app.disable('x-powered-by')
 app.use(helmet())
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
-        return callback(null, true)
-      }
-      const error = new Error('Not allowed by CORS')
-      error.statusCode = 403
-      return callback(error)
-    },
-    credentials: true,
-  })
-)
+app.use(cors(createCorsOptions()))
 app.use(express.json({ limit: '30mb' }))
 app.use(cookieParser())
 app.use(passport.initialize())
@@ -94,6 +80,8 @@ let shuttingDown = false
 const shutdown = (signal, fatalError = null) => {
   if (shuttingDown) return
   shuttingDown = true
+  const fatal = Boolean(fatalError) || ['unhandledRejection', 'uncaughtException'].includes(signal)
+  if (fatal) console.error(`Fatal ${signal}:`, fatalError?.stack || fatalError?.message || String(fatalError))
   stopInventoryListener()
   console.log(`Received ${signal}; shutting down.`)
 
@@ -104,17 +92,20 @@ const shutdown = (signal, fatalError = null) => {
   forceExit.unref()
 
   const finish = async (closeError = null) => {
-    clearTimeout(forceExit)
     try {
       await closeDb()
     } catch (databaseError) {
       console.error('Failed to close PostgreSQL pool:', databaseError.message)
       closeError ||= databaseError
     }
-    process.exit(fatalError || closeError ? 1 : 0)
+    clearTimeout(forceExit)
+    process.exit(fatal || closeError ? 1 : 0)
   }
 
-  if (server) server.close(finish)
+  if (server) {
+    server.close(finish)
+    server.closeIdleConnections?.()
+  }
   else void finish()
 }
 
@@ -128,6 +119,7 @@ try {
   void startInventoryListener()
   server = app.listen(port, '0.0.0.0', () => {
     console.log(`Severino backend listening on 0.0.0.0:${port}`)
+    console.log('Allowed frontend origins:', allowedOrigins.length ? allowedOrigins.join(', ') : '(none configured; set CLIENT_ORIGIN)')
   })
 } catch (error) {
   console.error('Backend startup failed:', error.message)

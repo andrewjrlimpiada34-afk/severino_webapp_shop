@@ -1,4 +1,5 @@
 ﻿import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import { createReview, deleteReview, getReviewById, getReviewsByProductId } from '../db/reviews.js'
 import { getUserById } from '../db/users.js'
@@ -19,12 +20,12 @@ const reviewSchema = z.object({
     .optional(),
 })
 
-router.get('/:productId', async (req, res) => {
+router.get('/:productId', asyncRoute(async (req, res) => {
   const reviews = await getReviewsByProductId(req.params.productId)
   res.json(normalizeList(reviews))
-})
+}))
 
-router.post('/:productId', requireAuth, async (req, res) => {
+router.post('/:productId', requireAuth, asyncRoute(async (req, res) => {
   const parsed = reviewSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid input' })
@@ -40,9 +41,9 @@ router.post('/:productId', requireAuth, async (req, res) => {
     attachment: parsed.data.attachment || null,
   })
   return res.status(201).json(normalizeId(review))
-})
+}))
 
-router.delete('/:reviewId', requireAuth, async (req, res) => {
+router.delete('/:reviewId', requireAuth, asyncRoute(async (req, res) => {
   const review = await getReviewById(req.params.reviewId)
   if (!review) return res.status(404).json({ message: 'Not found' })
   if (review.userId !== req.user.id) {
@@ -50,6 +51,6 @@ router.delete('/:reviewId', requireAuth, async (req, res) => {
   }
   const removed = await deleteReview(req.params.reviewId)
   return res.json(normalizeId(removed))
-})
+}))
 
 export default router

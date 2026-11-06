@@ -1,4 +1,5 @@
 ﻿import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
 import {
   createProduct,
@@ -14,7 +15,6 @@ import { inventoryChange, inventoryEvents, notifyInventoryChange, publishInvento
 import { getDb } from '../db/postgres.js'
 
 const router = express.Router()
-const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 
 const productSchema = z
   .object({

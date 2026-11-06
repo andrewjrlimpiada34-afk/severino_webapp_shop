@@ -1,4 +1,5 @@
 import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import multer from 'multer'
 import { requireAuth } from '../middleware/auth.js'
 import { deleteCloudinaryAsset, uploadBuffer } from '../lib/cloudinary.js'
@@ -37,7 +38,7 @@ const mediaUpload = multer({
   },
 })
 
-router.post('/image', requireAuth, upload.single('image'), async (req, res) => {
+router.post('/image', requireAuth, upload.single('image'), asyncRoute(async (req, res) => {
   try {
     if (!req.file?.buffer) {
       return res.status(400).json({ message: 'Image is required' })
@@ -58,9 +59,9 @@ router.post('/image', requireAuth, upload.single('image'), async (req, res) => {
         : error?.message || 'Upload failed'
     return res.status(400).json({ message })
   }
-})
+}))
 
-router.post('/media', requireAuth, mediaUpload.single('media'), async (req, res) => {
+router.post('/media', requireAuth, mediaUpload.single('media'), asyncRoute(async (req, res) => {
   try {
     if (!req.file?.buffer) {
       return res.status(400).json({ message: 'Media file is required' })
@@ -103,7 +104,7 @@ router.post('/media', requireAuth, mediaUpload.single('media'), async (req, res)
         : error?.message || 'Media upload failed'
     return res.status(400).json({ message })
   }
-})
+}))
 
 router.use((err, req, res, next) => {
   if (!err) return next()

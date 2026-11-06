@@ -8,6 +8,8 @@ export const errorHandler = (error, req, res, next) => {
     path: req.originalUrl,
     status,
     message: error.message,
+    ...(error.code ? { code: error.code } : {}),
+    ...(req.get('origin') ? { origin: req.get('origin') } : {}),
     ...(process.env.NODE_ENV === 'production' ? {} : { stack: error.stack }),
   })
 

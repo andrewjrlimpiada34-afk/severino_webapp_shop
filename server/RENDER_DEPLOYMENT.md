@@ -49,7 +49,33 @@ Use these service settings:
 
 The repository's `render.yaml` selects the paid Starter plan because Render pre-deploy commands are not available on Free. If the existing backend must remain Free, do not sync that plan setting; apply the schema locally before deployment.
 
-Add the existing Google OAuth, email, Cloudinary, JWT, admin, and `CLIENT_ORIGIN` variables unchanged. `GOOGLE_REDIRECT_URL` remains:
+Keep the existing Google OAuth, email, Cloudinary, JWT, and admin variables. Set
+`CLIENT_ORIGIN` to the frontend origin under **Render > Environment**:
+
+```text
+CLIENT_ORIGIN=https://severino-webapp-shop.vercel.app
+```
+
+This is the Vercel frontend URL, including `https://`. A browser's Origin does not
+include a path. Configuration URLs are normalized, including trailing slashes.
+If several frontends are needed, use a comma-separated list of explicitly trusted
+origins. Put the main frontend first; Google sign-in redirects there. Preview
+deployments must be listed individually. Wildcards are not supported with the
+credentialed allowlist. Production has no localhost fallback.
+
+Save the Render environment change and deploy the latest backend commit. Verify
+that startup logs show the expected **Allowed frontend origins**. A CORS 403 log
+includes the rejected Origin so it can be compared with this setting. Vercel's
+`VITE_API_URL` should be `https://severino-webapp-shop.onrender.com`; frontend API
+paths already include `/api`.
+
+Rejected asynchronous route operations are forwarded to Express's error handler,
+which returns a generic HTTP 500 and logs the original message and error code.
+Database failures while checking a session return 500 without invalidating its
+cookie. Unexpected fatal rejections still shut down the process, but now log their
+actual cause before shutdown.
+
+`GOOGLE_REDIRECT_URL` remains:
 
 ```text
 https://YOUR-BACKEND.onrender.com/api/auth/google/callback

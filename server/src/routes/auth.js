@@ -1,4 +1,5 @@
 import express from 'express'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -9,6 +10,7 @@ import rateLimit from 'express-rate-limit'
 import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 import { loginSchema } from '../lib/loginSchema.js'
 import { callOtp, proxyOtp } from '../otp-client.js'
+import { getPrimaryClientOrigin } from '../lib/clientOrigins.js'
 import {
   createUser,
   getUserByEmail,
@@ -64,7 +66,7 @@ const googleConfigReady =
   process.env.GOOGLE_CLIENT_SECRET &&
   process.env.GOOGLE_REDIRECT_URL
 
-const getClientOrigin = () => process.env.CLIENT_ORIGIN || '/'
+const getClientOrigin = () => getPrimaryClientOrigin()
 
 const buildLoginRedirect = (reason) => {
   let root = getClientOrigin()
@@ -106,7 +108,7 @@ if (googleConfigReady) {
 router.post('/otp/send', proxyOtp('/otp/send'))
 router.post('/otp/verify', proxyOtp('/otp/verify'))
 
-router.post('/register', async (req, res) => {
+router.post('/register', asyncRoute(async (req, res) => {
   const parsed = registerSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
@@ -159,9 +161,9 @@ router.post('/register', async (req, res) => {
     phone: user.phone,
     requiresVerification: false,
   })
-})
+}))
 
-router.post('/login', loginLimiter, async (req, res, next) => {
+router.post('/login', loginLimiter, asyncRoute(async (req, res, next) => {
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
@@ -190,7 +192,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
   } catch (error) {
     return next(error)
   }
-})
+}))
 
 router.post('/verify', proxyOtp('/verify'))
 router.post('/verify/resend', proxyOtp('/verify/resend'))
@@ -217,7 +219,7 @@ router.get('/google', (req, res, next) => {
   })(req, res, next)
 })
 
-router.get('/google/callback', async (req, res, next) => {
+router.get('/google/callback', asyncRoute(async (req, res, next) => {
   if (!googleConfigReady) {
     return res.status(500).send('Google OAuth not configured')
   }
@@ -229,7 +231,7 @@ router.get('/google/callback', async (req, res, next) => {
     return res.redirect(buildLoginRedirect('cancelled'))
   }
 
-  return passport.authenticate('google', { session: false }, async (error, profile) => {
+  const completeGoogleLogin = async (error, profile) => {
     clearAuthCookies(res)
     if (error || !profile) {
       return res.redirect(buildLoginRedirect('cancelled'))
@@ -262,8 +264,11 @@ router.get('/google/callback', async (req, res, next) => {
       secure: process.env.NODE_ENV === 'production',
     })
     return res.redirect(getClientOrigin())
+  }
+  return passport.authenticate('google', { session: false }, (error, profile) => {
+    void completeGoogleLogin(error, profile).catch(next)
   })(req, res, next)
-})
+}))
 
 router.post('/logout', (req, res) => {
   res.clearCookie('token', {
@@ -274,21 +279,20 @@ router.post('/logout', (req, res) => {
   return res.json({ message: 'Logged out' })
 })
 
-router.get('/me', async (req, res) => {
+router.get('/me', asyncRoute(async (req, res) => {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '')
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' })
   }
+  let payload
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await getUserById(payload.id)
-    if (!user) {
-      return res.status(401).json({ message: 'Unauthorized' })
-    }
-    return res.json(sanitizeUser(user))
+    payload = jwt.verify(token, process.env.JWT_SECRET)
   } catch {
     return res.status(401).json({ message: 'Invalid token' })
   }
-})
+  const user = await getUserById(payload.id)
+  if (!user) return res.status(401).json({ message: 'Unauthorized' })
+  return res.json(sanitizeUser(user))
+}))
 
 export default router

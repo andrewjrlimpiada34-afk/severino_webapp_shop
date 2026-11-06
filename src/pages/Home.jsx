@@ -209,7 +209,13 @@ function Home() {
         {catalogStatus === 'ready' && (adaptiveProducts.length ? <div className="store-catalog store-grid">{adaptiveProducts.slice(0, 4).map((product) => <StoreProductCard key={product.id} product={product} />)}</div> : <div className="store-empty-state"><p>A new scent story is on its way. Check back soon.</p></div>)}
       </section>
 
-      <div className="store-brand-story"><div className="store-brand-monogram" aria-hidden="true">S.</div><div><span className="store-eyebrow">A little more about us</span><h2>The Severino story</h2><p>Fragrances chosen for everyday elegance. Find your signature, make it part of your day.</p></div><Link className="store-text-link" to="/shop">Find your scent <StoreIcon name="arrow" /></Link></div>
+      <section className="store-brand-story" aria-labelledby="severino-story-title">
+        <div>
+          <span className="store-eyebrow">A little more about us</span>
+          <h2 id="severino-story-title">The Severino story</h2>
+          <p>Fragrances chosen for everyday elegance. Find your signature, make it part of your day.</p>
+        </div>
+      </section>
 
       <AdaptiveScentFloating
         adaptive={adaptive}

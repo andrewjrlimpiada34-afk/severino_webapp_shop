@@ -121,12 +121,10 @@
 .store-category-links a.is-active, .store-category-links a:hover { background: var(--store-action); color: var(--store-on-action); border-color: var(--store-action); }
 .store-category-links > span { margin-left: auto; color: var(--store-muted); font-size: 11px; }
 .store-featured-section { width: 100%; }
-.store-brand-story { display: flex; align-items: center; gap: 24px; padding: 24px 28px; border-block: 1px solid var(--store-border); }
-.store-brand-monogram { flex: 0 0 80px; width: 80px; height: 80px; display: grid; place-items: center; background: var(--store-subtle); color: var(--olive-700); font: italic 48px var(--font-heading); border-radius: 10px; }
+.store-brand-story { display: flex; align-items: center; justify-content: center; padding: 24px 28px; text-align: center; border-block: 1px solid var(--store-border); }
 .store-brand-story .store-eyebrow { margin-bottom: 6px; }
 .store-brand-story h2 { font-size: 26px; }
-.store-brand-story p { font-size: 12px; color: var(--store-muted); margin: 8px 0 0; max-width: 62ch; }
-.store-brand-story > .store-text-link { margin-left: auto; flex-shrink: 0; }
+.store-brand-story p { font-size: 12px; color: var(--store-muted); margin: 8px auto 0; max-width: 62ch; }
 .boutique-home .home-shop-section { gap: 20px; }
 .boutique-home .home-shop-section:empty { display: none; }
 .boutique-home .facebook-follow-section { border-radius: 14px; box-shadow: none; border-color: var(--store-border); }
@@ -369,12 +367,10 @@
   .store-product-details { min-height: 32px; font-size: 10px; }
   .store-favorite { width: 34px; height: 34px; top: 7px; right: 7px; }
   .boutique-home .store-product-purchase { flex-direction: column; align-items: flex-start; gap: 4px; }
-  .store-brand-story { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 16px; padding: 22px 0; }
-  .store-brand-monogram { width: 50px; height: 60px; font-size: 32px; }
+  .store-brand-story { padding: 22px 12px; }
   .store-brand-story h2 { font-size: 24px; }
   .store-brand-story .store-eyebrow { font-size: 8px; }
   .store-brand-story p { font-size: 11px; }
-  .store-brand-story > .store-text-link { grid-column: 2; margin-left: 0; }
   .boutique-home .facebook-follow-copy .section-title { font-size: 28px; }
   .boutique-shop { gap: 22px; }
   .store-shop-toolbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }

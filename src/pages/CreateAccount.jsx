@@ -247,8 +247,6 @@ function CreateAccount() {
     <section className="create-account-page">
       <aside className="create-brand-panel" aria-hidden="true">
         <img className="create-brand-logo" src="/logo.svg" alt="" />
-        <span className="create-brand-watermark">S</span>
-        <span className="create-brand-ornament">— ୨୧ —</span>
       </aside>
 
       <div className="create-form-panel">
@@ -395,7 +393,6 @@ function CreateAccount() {
             </button>
           </div>
           <div className="pill create-status-pill">Data is encrypted at rest</div>
-          <div className="create-bottom-ornament" aria-hidden="true">— ୨୧ —</div>
         </form>
       </div>
 
@@ -403,7 +400,6 @@ function CreateAccount() {
         <Modal onClick={() => navigate('/login')}>
           <div className="modal-card account-success-modal create-success-modal" role="dialog" aria-modal="true" aria-labelledby="create-success-title" onClick={(event) => event.stopPropagation()}>
             <div className="account-success-icon" aria-hidden="true">✓</div>
-            <div className="create-bottom-ornament" aria-hidden="true">— ୨୧ —</div>
             <h2 id="create-success-title" className="section-title" style={{ fontSize: '30px' }}>Account Created Successfully!</h2>
             <p className="section-subtitle">You can now login.</p>
             <button className="button" type="button" onClick={() => navigate('/login')}>OK</button>

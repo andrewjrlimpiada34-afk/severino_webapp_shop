@@ -1,3 +1,4 @@
+import StoreIcon from '../components/StoreIcon.jsx'
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
@@ -79,15 +80,7 @@ function Favorites() {
                     }}
                     aria-label="Remove favorite"
                   >
-                    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                        fill="currentColor"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <StoreIcon name="heart" className="icon" fill="currentColor" />
                   </button>
                   <button
                     className="button secondary"

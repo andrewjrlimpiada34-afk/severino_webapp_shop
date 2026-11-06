@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { facebookPageUrl } from '../lib/social.js'
+import PolicyModal from './PolicyModal.jsx'
 
 function Footer() {
+  const [openPolicy, setOpenPolicy] = useState('')
   return (
     <footer className="footer">
       <div className="footer-main">
@@ -78,9 +81,15 @@ function Footer() {
         </Link>
         <div className="footer-policies">
           <div className="footer-eyebrow">Policies</div>
+          <div className="footer-policy-links" role="group" aria-label="Store policies">
+            <button type="button" onClick={() => setOpenPolicy('terms')}>Terms of Service</button>
+            <button type="button" onClick={() => setOpenPolicy('privacy')}>Privacy Policy</button>
+            <button type="button" onClick={() => setOpenPolicy('cookies')}>Cookie Policy</button>
+          </div>
           <p>COD only. Secure checkout & verified deliveries.</p>
         </div>
       </div>
+      {openPolicy && <PolicyModal initialPolicy={openPolicy} onClose={() => setOpenPolicy('')} />}
     </footer>
   )
 }

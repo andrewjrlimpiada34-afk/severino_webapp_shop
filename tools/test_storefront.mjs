@@ -96,13 +96,79 @@ const run = async (name, fn) => { try { await fn(); results.push({ name, passed:
 const preview = new URLSearchParams(location.search).get('preview')
 if (preview) {
   if (preview === 'shop') localStorage.setItem('severino_shop_view', 'grid')
-  await render(['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
+  const policyPreview = ['terms', 'privacy', 'cookies', 'terms-fashion'].includes(preview)
+  await render(policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
   if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
   if (preview === 'font-fashion') { await select('account-font', 'fashion'); await document.fonts.ready }
+  if (policyPreview) {
+    if (preview === 'terms-fashion') { applyFontPreference('fashion'); await document.fonts.ready }
+    await click(document.querySelector('.terms-link'))
+    if (preview === 'cookies' || preview === 'privacy') await click(Array.from(document.querySelectorAll('.policy-selector button')).find(item => item.textContent === (preview === 'cookies' ? 'Cookie Policy' : 'Privacy Policy')))
+  }
+  if (preview === 'quick-actions' && innerWidth <= 640) await click(document.querySelector('[aria-label="Toggle quick actions"]'))
   noOverflow()
   window.qaReady = true
 } else {
+  await run('Policy documents open independently, inherit fonts, and preserve agreement choice', async () => {
+    await render('login')
+    const originalFont = document.documentElement.dataset.font || 'editorial'
+    await click(document.querySelector('.terms-link'))
+    const dialog = document.querySelector('.terms-modal')
+    assert(document.elementFromPoint(innerWidth / 2, 10)?.closest('.policy-backdrop'), 'Policy backdrop covers the sticky header')
+    const policyButtons = () => Array.from(document.querySelectorAll('.policy-selector button'))
+    assert(policyButtons().length === 3, 'All three policies are reachable')
+    await click(policyButtons().find(item => item.textContent === 'Cookie Policy'))
+    assert(document.getElementById('terms-title').textContent === 'Cookie Policy', 'Cookie policy is selected')
+    assert(dialog.textContent.includes('oauth_state') && dialog.textContent.includes('local storage'), 'Actual cookies and similar storage are disclosed')
+    assert(dialog.scrollHeight > dialog.clientHeight, 'Long cookie policy scrolls inside the dialog')
+    assert(dialog.getBoundingClientRect().left >= 0 && dialog.getBoundingClientRect().right <= innerWidth, 'Policy fits viewport')
+    assert(!document.querySelector('.terms-check input').checked, 'Viewing policies does not accept the agreement')
+    applyFontPreference('fashion')
+    await document.fonts.ready
+    assert(getComputedStyle(document.getElementById('terms-title')).fontFamily.includes('Bodoni Moda') && getComputedStyle(dialog).fontFamily.includes('Jost'), 'Policy headings and body follow the chosen fonts')
+    await click(policyButtons().find(item => item.textContent === 'Privacy Policy'))
+    assert(document.getElementById('terms-title').textContent === 'Privacy Policy', 'Privacy policy is separate')
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle()
+    assert(!document.querySelector('.terms-modal') && !document.documentElement.style.overflow, 'Escape closes and restores scrolling')
+    const footerCookieLink = Array.from(document.querySelectorAll('.footer-policy-links button')).find(item => item.textContent === 'Cookie Policy')
+    footerCookieLink.focus()
+    await click(footerCookieLink)
+    assert(document.getElementById('terms-title').textContent === 'Cookie Policy', 'Footer opens the requested policy directly')
+    await click(document.querySelector('.terms-modal .modal-close'))
+    assert(document.activeElement === footerCookieLink, 'Closing restores focus to the policy link')
+    applyFontPreference(originalFont)
+  })
+  await run('Desktop navigation is centered; mobile quick actions open smoothly and hide accessibly', async () => {
+    for (const page of ['login', 'shop']) {
+      await render(page)
+      if (innerWidth > 900) {
+        const nav = document.querySelector('.nav').getBoundingClientRect()
+        const links = document.querySelector('.nav-links').getBoundingClientRect()
+        const logo = document.querySelector('.nav-logo-link').getBoundingClientRect()
+        const actions = document.querySelector('.nav-actions').getBoundingClientRect()
+        assert(Math.abs((links.left + links.right) / 2 - (nav.left + nav.right) / 2) <= 1, 'Navigation is centered for ' + page)
+        assert(logo.right <= links.left && links.right <= actions.left, 'Logo and actions do not overlap centered links')
+      }
+    }
+    if (innerWidth <= 640) {
+      const toggle = document.querySelector('[aria-label="Toggle quick actions"]')
+      const panel = document.getElementById('mobile-quick-actions')
+      const favorite = panel.querySelector('[aria-label="Favorites"]')
+      assert(panel.hasAttribute('inert') && toggle.getAttribute('aria-expanded') === 'false', 'Collapsed quick actions are inaccessible')
+      await click(toggle)
+      assert(toggle.getAttribute('aria-expanded') === 'true' && !panel.hasAttribute('inert'), 'Opening exposes quick actions')
+      assert(panel.getAnimations().length > 0 || matchMedia('(prefers-reduced-motion: reduce)').matches, 'Quick actions animate when motion is allowed')
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) assert(panel.getAnimations({ subtree: true }).length === 0, 'Reduced motion disables panel and button transitions')
+      await Promise.all(panel.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {})))
+      assert(getComputedStyle(favorite).opacity === '1' && panel.getBoundingClientRect().height > 40, 'Expanded actions settle visibly')
+      await click(toggle)
+      assert(panel.hasAttribute('inert') && panel.getAttribute('aria-hidden') === 'true', 'Closing immediately prevents keyboard access')
+      await Promise.all(panel.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {})))
+      assert(getComputedStyle(panel).visibility === 'hidden', 'Closed actions are hidden after the exit transition')
+    }
+  })
   await run('Grid/list keeps products, sorting and filters; preference survives remount', async () => {
     localStorage.removeItem('severino_shop_view')
     await render('shop')
@@ -361,6 +427,7 @@ async function browser(width) {
     })
     const call = (method, params = {}) => new Promise((resolve, reject) => { const id = ++nextId; pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params })) })
     await call('Runtime.enable')
+    if (process.argv.includes('--reduced-motion')) await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
     await call('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width <= 640 })
     await call('Emulation.setFocusEmulationEnabled', { enabled: true })
     const navigate = async url => {
@@ -376,7 +443,7 @@ async function browser(width) {
       if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
       if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
     }
-    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion']) {
+    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
       // Inspect the settled UI, rather than a partially transparent entrance animation.
       await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { api } from '../lib/api.js'
 import HeaderSearch from './HeaderSearch.jsx'
+import StoreIcon from './StoreIcon.jsx'
 
 const navAnimations = {
   '/': { type: 'home', message: 'Opening home' },
@@ -28,6 +29,7 @@ function NavBar() {
   const profileImage = user?.profileImage || ''
   const navigate = useNavigate()
   const location = useLocation()
+  const quickActionsOpen = mobileQuickOpen || mobileNavHidden
   const { playActionAnimation } = useActionAnimation()
 
   const isActivePath = (path) => location.pathname === path
@@ -158,15 +160,7 @@ function NavBar() {
               aria-label="Favorites"
               onClick={(event) => goToPage(event, '/favorites')}
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <StoreIcon name="heart" className="icon" />
             </button>
             <button
               className="icon-button nav-utility"
@@ -264,6 +258,8 @@ function NavBar() {
               className="icon-button nav-mobile-toggle"
               type="button"
               aria-label="Toggle quick actions"
+              aria-expanded={quickActionsOpen}
+              aria-controls="mobile-quick-actions"
               onClick={() => setMobileQuickOpen((prev) => !prev)}
             >
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -278,7 +274,7 @@ function NavBar() {
               </svg>
             </button>
           </div>
-          <div className={`nav-mobile-float ${mobileQuickOpen || mobileNavHidden ? 'open' : ''} ${mobileNavHidden ? 'auto-open' : ''}`}>
+          <div id="mobile-quick-actions" className={`nav-mobile-float ${quickActionsOpen ? 'open' : ''} ${mobileNavHidden ? 'auto-open' : ''}`} aria-hidden={!quickActionsOpen} inert={quickActionsOpen ? undefined : ''}>
             <div className="nav-mobile-actions">
             <button
               className={`icon-button ${isActivePath('/favorites') ? 'active' : ''}`}
@@ -286,15 +282,7 @@ function NavBar() {
               aria-label="Favorites"
               onClick={(event) => goToPage(event, '/favorites')}
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <StoreIcon name="heart" className="icon" />
             </button>
             <button
               className={`icon-button ${isActivePath('/cart') ? 'active' : ''}`}

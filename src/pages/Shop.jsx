@@ -192,15 +192,15 @@ function Shop() {
         </div>
         {filtersOpen && <div className="store-filter-options" id="shop-filter-options">
           <div className="store-field"><label htmlFor="shop-category">Category</label><select className="input" id="shop-category" value={category} onChange={(event) => updateSearchParam('category', event.target.value)}><option value="all">All scents</option><option value="Men">Men</option><option value="Women">Women</option><option value="Unisex">Unisex</option></select></div>
-          <div className="store-field"><label htmlFor="shop-min-price">Minimum price</label><input className="input" id="shop-min-price" type="number" min="0" placeholder="? 0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /></div>
+          <div className="store-field"><label htmlFor="shop-min-price">Minimum price</label><input className="input" id="shop-min-price" type="number" min="0" placeholder="₱ 0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} /></div>
           <div className="store-field"><label htmlFor="shop-max-price">Maximum price</label><input className="input" id="shop-max-price" type="number" min="0" placeholder="No maximum" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /></div>
         </div>}
         <div className="store-results-row">
           <span role="status" aria-live="polite">{status.loading ? 'Discovering scents...' : `${filtered.length} ${filtered.length === 1 ? 'fragrance' : 'fragrances'}`}</span>
           {category !== 'all' && <button className="store-filter-chip" type="button" onClick={() => updateSearchParam('category', '')} aria-label={`Remove ${category} category filter`}>{category}<StoreIcon name="close" /></button>}
-          {query && <button className="store-filter-chip" type="button" onClick={() => updateSearchParam('q', '')} aria-label="Clear search">?{query}?<StoreIcon name="close" /></button>}
-          {minPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMinPrice('')} aria-label="Remove minimum price">From ?{Number(minPrice).toLocaleString()}<StoreIcon name="close" /></button>}
-          {maxPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMaxPrice('')} aria-label="Remove maximum price">Up to ?{Number(maxPrice).toLocaleString()}<StoreIcon name="close" /></button>}
+          {query && <button className="store-filter-chip" type="button" onClick={() => updateSearchParam('q', '')} aria-label="Clear search">{query}<StoreIcon name="close" /></button>}
+          {minPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMinPrice('')} aria-label="Remove minimum price">From ₱{Number(minPrice).toLocaleString('en-PH')}<StoreIcon name="close" /></button>}
+          {maxPrice !== '' && <button className="store-filter-chip" type="button" onClick={() => setMaxPrice('')} aria-label="Remove maximum price">Up to ₱{Number(maxPrice).toLocaleString('en-PH')}<StoreIcon name="close" /></button>}
           {hasFilters && <button className="store-clear-filters" type="button" onClick={clearFilters}>Clear all</button>}
         </div>
       </div>
@@ -208,7 +208,7 @@ function Shop() {
       {status.loading && <StoreCatalogSkeleton view={view} count={8} />}
       {status.error && <div className="store-notice" role="alert"><span>{status.error}</span><button className="store-text-link" type="button" onClick={loadProducts}>Try again</button></div>}
       {!status.loading && filtered.length > 0 && <div className={`store-catalog store-${view}`}>
-        {filtered.map((product) => <StoreProductCard key={product.id} product={product} favorite={favorites.includes(product.id)} adaptivePick={adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)} onAdd={() => openAddToCartModal(product.id)} onFavorite={() => {
+        {filtered.map((product) => <StoreProductCard key={product.id} product={product} view={view} favorite={favorites.includes(product.id)} adaptivePick={adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)} onAdd={() => openAddToCartModal(product.id)} onFavorite={() => {
           if (!user) { navigate('/login'); return }
           const wasFavorite = favorites.includes(product.id)
           const next = toggleFavorite(product.id, user.id)

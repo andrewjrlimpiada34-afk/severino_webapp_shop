@@ -43,3 +43,20 @@ dist-ssr
 *.pfx
 *credentials*.json
 *service-account*.json
+
+# Private presentation build, browser capture profiles and visual review
+tmp/severino_deck/
+
+# Local school submissions, generated documents, and browser QA artifacts
+/deliverables/
+/tmp/
+/tools/manual_qa/
+/tools/documentation_qa/
+
+# Document, diagram, brochure, and presentation generators (keep app tests tracked)
+/tools/create_*.py
+/tools/build_testing_pptx.py
+/tools/compact_severino_erd.py
+/tools/fill_final_paper.py
+/tools/redesign_severino_olive.py
+/tools/create_testing_presentation.ps1

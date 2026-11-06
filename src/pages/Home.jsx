@@ -7,6 +7,8 @@ import HomeScrollVideo from '../components/HomeScrollVideo.jsx'
 import useAdaptiveScent from '../hooks/useAdaptiveScent.js'
 import StoreProductCard, { StoreCatalogSkeleton } from '../components/StoreProductCard.jsx'
 import StoreIcon from '../components/StoreIcon.jsx'
+import FacebookPageCard from '../components/FacebookPageCard.jsx'
+import { facebookPageUrl } from '../lib/social.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
 import { defaultBannerStories, normalizeBannerStories } from '../../server/shared/bannerContent.js'
@@ -14,18 +16,6 @@ import { defaultBannerStories, normalizeBannerStories } from '../../server/share
 
 
 const SHOW_HOME_SCROLL_VIDEO = false
-const facebookDesktopHeight = 620
-const facebookMobileHeight = 620
-const facebookPageUrl = import.meta.env.VITE_FACEBOOK_PAGE_URL || 'https://www.facebook.com/uver.guevara.9'
-const facebookPluginUrlDesktop = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
-  facebookPageUrl
-)}&tabs=timeline&width=500&height=${facebookDesktopHeight}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
-
-function getFacebookPluginUrl(width) {
-  return `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
-    facebookPageUrl
-  )}&tabs=timeline&width=${width}&height=${facebookMobileHeight}&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true`
-}
 
 function Home() {
   const { user } = useAuth()
@@ -37,7 +27,6 @@ function Home() {
   const [bannerAspectRatios, setBannerAspectRatios] = useState({})
   const bannerRailRef = useRef(null)
   const featuredRailRef = useRef(null)
-  const facebookEmbedFrameRef = useRef(null)
   const [activeBannerIndex, setActiveBannerIndex] = useState(0)
   const [heroImage, setHeroImage] = useState('')
   const [bannerStories, setBannerStories] = useState(() => normalizeBannerStories())
@@ -48,7 +37,6 @@ function Home() {
   const [catalogStatus, setCatalogStatus] = useState('loading')
   const [catalogAttempt, setCatalogAttempt] = useState(0)
   const [openBannerStory, setOpenBannerStory] = useState(null)
-  const [facebookMobileWidth, setFacebookMobileWidth] = useState(320)
   const adaptive = useAdaptiveScent(adaptiveProducts)
 
 
@@ -128,29 +116,6 @@ function Home() {
     })
     return () => { active = false }
   }, [catalogAttempt])
-
-  useEffect(() => {
-    const frame = facebookEmbedFrameRef.current
-    if (!frame) return undefined
-
-    const updateFacebookWidth = () => {
-      if (window.innerWidth > 768) return
-      const rect = frame.getBoundingClientRect()
-      const nextWidth = Math.max(180, Math.min(500, Math.floor(rect.width)))
-      setFacebookMobileWidth((prev) => (prev === nextWidth ? prev : nextWidth))
-      window.FB?.XFBML?.parse?.()
-    }
-
-    updateFacebookWidth()
-    const observer = new ResizeObserver(updateFacebookWidth)
-    observer.observe(frame)
-    window.addEventListener('resize', updateFacebookWidth)
-
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', updateFacebookWidth)
-    }
-  }, [])
 
   const handleBannerRailScroll = () => {
     const track = bannerRailRef.current
@@ -499,37 +464,7 @@ function Home() {
             Visit Facebook Page
           </a>
         </div>
-        <div className="facebook-page-card">
-          <div>
-            <div className="tag">Follow us on Facebook</div>
-            <h3>Latest Posts</h3>
-          </div>
-          <div className="facebook-embed-frame" ref={facebookEmbedFrameRef}>
-            <iframe
-              className="facebook-embed-desktop"
-              title="Severino Facebook Page"
-              src={facebookPluginUrlDesktop}
-              width="500"
-              height={facebookDesktopHeight}
-              style={{ border: 'none', overflow: 'hidden' }}
-              scrolling="no"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            />
-            <iframe
-              key={`facebook-mobile-${facebookMobileWidth}`}
-              className="facebook-embed-mobile"
-              title="Severino Facebook Page Mobile"
-              src={getFacebookPluginUrl(facebookMobileWidth)}
-              width={facebookMobileWidth}
-              height={facebookMobileHeight}
-              style={{ border: 'none', overflow: 'hidden' }}
-              scrolling="no"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            />
-          </div>
-        </div>
+        <FacebookPageCard />
       </section>
 
       {openBannerStory && (

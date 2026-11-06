@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { facebookPageUrl } from '../lib/social.js'
 
 function Footer() {
   return (
@@ -61,11 +62,11 @@ function Footer() {
             </div>
             <a
               className="footer-contact__value"
-              href="https://www.facebook.com/uver.guevara.9"
+              href={facebookPageUrl}
               target="_blank"
               rel="noreferrer"
             >
-              www.facebook.com/uver.guevara.9
+              {facebookPageUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
             </a>
           </div>
         </div>

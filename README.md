@@ -1,5 +1,23 @@
 # React + Vite
 
+## Deployment output
+
+Vercel runs `npm run build` and publishes only `dist/`, as configured in
+`vercel.json`. Public assets are copied by `build/publicAssets.js` so disabled
+features do not add unused media to every deployment.
+
+The homepage scroll video is controlled by `SHOW_HOME_SCROLL_VIDEO` in
+`src/config/storefrontFeatures.js`. While it is `false`, production builds omit
+`public/desktop_homevideo/` and `public/mobile_homevideo/` (4,800 JPEG frames).
+The original files remain in the repository and stay available to the local dev
+server. Setting the shared flag to `true` includes both folders again.
+
+This reduces the current build output from approximately 574 MiB to 2.36 MiB.
+It affects new deployments; existing Vercel deployment history still requires
+cleanup or a shorter [deployment retention policy](https://vercel.com/docs/deployment-retention).
+
+Validate the asset-copy rules with `node --test build/publicAssets.test.js`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

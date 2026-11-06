@@ -9,13 +9,12 @@ import StoreProductCard, { StoreCatalogSkeleton } from '../components/StoreProdu
 import StoreIcon from '../components/StoreIcon.jsx'
 import FacebookPageCard from '../components/FacebookPageCard.jsx'
 import { facebookPageUrl } from '../lib/social.js'
+import { SHOW_HOME_SCROLL_VIDEO } from '../config/storefrontFeatures.js'
 
 import { useAuth } from '../context/AuthContext.jsx'
 import { defaultBannerStories, normalizeBannerStories } from '../../server/shared/bannerContent.js'
 
 
-
-const SHOW_HOME_SCROLL_VIDEO = false
 
 function Home() {
   const { user } = useAuth()

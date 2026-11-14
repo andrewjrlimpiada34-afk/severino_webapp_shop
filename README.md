@@ -1,39 +1,179 @@
-# React + Vite
+# Severino Perfume Web App
 
-## Deployment output
+A perfume shopping and store management application with a React storefront,
+an Express API, PostgreSQL storage, and a separate Python email OTP service.
 
-Vercel runs `npm run build` and publishes only `dist/`, as configured in
-`vercel.json`. Public assets are copied by `build/publicAssets.js` so disabled
-features do not add unused media to every deployment.
+[Test commands](TESTCMD.md) | [Documentation index](docs/README.md) |
+[Repository map](docs/REPOSITORY_MAP.md) | [Contributing](CONTRIBUTING.md)
 
-The homepage scroll video is controlled by `SHOW_HOME_SCROLL_VIDEO` in
-`src/config/storefrontFeatures.js`. While it is `false`, production builds omit
-`public/desktop_homevideo/` and `public/mobile_homevideo/` (4,800 JPEG frames).
-The original files remain in the repository and stay available to the local dev
-server. Setting the shared flag to `true` includes both folders again.
+## Features
 
-This reduces the current build output from approximately 574 MiB to 2.36 MiB.
-It affects new deployments; existing Vercel deployment history still requires
-cleanup or a shorter [deployment retention policy](https://vercel.com/docs/deployment-retention).
+- **Customers:** browse and search perfumes, save favorites, manage a cart,
+  check out with cash on delivery, track orders, manage account details, and
+  submit reviews and feedback.
+- **Store administrators:** manage products and inventory, advance order
+  fulfillment, view customers and feedback, customize storefront content, and
+  inspect sales reports.
+- **Account access:** email/mobile login, Google sign-in when configured, and
+  email OTP verification during registration.
+- **Storefront tools:** shared live inventory updates, scent suggestions, and
+  weather-based scent information.
 
-Validate the asset-copy rules with `node --test build/publicAssets.test.js`.
+## Technology
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+| Area | Technology |
+| --- | --- |
+| Frontend | React 18, React Router, Vite, CSS |
+| Backend API | Node.js, Express |
+| Database | PostgreSQL; hosted deployment uses Supabase PostgreSQL |
+| OTP service | Python, FastAPI, Gmail API |
+| Media uploads | Cloudinary |
+| Deployment configuration | Vercel frontend; Render Node and Python services |
+| Tests | Node.js test runner, Python unittest, browser QA scripts |
 
-Currently, two official plugins are available:
+## Local setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Commands below use PowerShell and start in the repository root. Use separate
+terminals for the frontend, API, and OTP service.
 
-## React Compiler
+### 1. Install dependencies
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use Node.js **24.x** and npm **11.x**, matching the backend's declared engines,
+plus Python **3.12** for the OTP service. A PostgreSQL database is required to
+run the API.
 
-## Expanding the ESLint configuration
+```powershell
+npm ci
+npm --prefix server ci
+python -m venv .venv-otp
+.\.venv-otp\Scripts\python.exe -m pip install -r server/otp_service/requirements.txt
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-# Python OTP service
+### 2. Configure local environment values
 
-OTP delivery and verification use a separate Python service with Gmail API.
-Follow [the OTP setup guide](server/otp_service/README.md) before deploying the
-backend changes. The existing frontend routes and layout remain unchanged.
+Create a root `.env` file for the frontend:
+
+```dotenv
+VITE_API_URL=http://localhost:4000
+```
+
+Use the API origin without `/api`; request paths already include that prefix.
+Frontend `VITE_` values are visible in the browser, so keep private credentials
+in the backend or OTP process environment.
+
+Create `server/.env` for the API. This example assumes a **local development
+PostgreSQL database**; replace the placeholders with your own local values:
+
+```dotenv
+NODE_ENV=development
+PORT=4000
+CLIENT_ORIGIN=http://localhost:5173
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=replace-with-your-local-database-password
+DB_NAME=severino
+DB_SSL=false
+JWT_SECRET=replace-with-a-long-random-private-secret
+OTP_SERVICE_URL=http://127.0.0.1:8000
+OTP_SERVICE_KEY=replace-with-a-random-shared-secret-at-least-32-characters
+```
+
+For hosted PostgreSQL, use the connection and certificate settings in the
+[backend deployment guide](server/RENDER_DEPLOYMENT.md) instead of the local
+database example. Google sign-in requires `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URL`. Media uploads and other
+application emails require their corresponding Cloudinary and mail settings.
+
+The Python process needs the same PostgreSQL connection values and
+`OTP_SERVICE_KEY`, plus `GMAIL_API_CLIENT_ID`, `GMAIL_API_CLIENT_SECRET`,
+`GMAIL_API_REFRESH_TOKEN`, and `GMAIL_API_SENDER`. Follow the
+[OTP setup guide](server/otp_service/README.md) to authorize the sender and set
+those environment variables. **Python does not automatically load `.env`.**
+
+### 3. Initialize the development database
+
+Create the PostgreSQL database first, then run:
+
+```powershell
+npm --prefix server run db:check
+npm --prefix server run db:schema
+```
+
+`db:schema` writes tables, indexes, and database policies to the configured
+database. Use your development database for local setup. The legacy
+`db:migrate` command is for the documented MongoDB-to-PostgreSQL migration;
+it is not part of a fresh installation or a test run.
+
+### 4. Start the services
+
+**Terminal 1 - Python OTP:** after configuring its process environment, run:
+
+```powershell
+.\.venv-otp\Scripts\python.exe -m uvicorn app:app --app-dir server/otp_service --host 127.0.0.1 --port 8000
+```
+
+**Terminal 2 - Node API:**
+
+```powershell
+npm --prefix server start
+```
+
+**Terminal 3 - React frontend:**
+
+```powershell
+npm run dev
+```
+
+| Service | Default local address |
+| --- | --- |
+| Storefront | `http://localhost:5173` |
+| Admin sign-in | `http://localhost:5173/admin/login` |
+| API health | `http://localhost:4000/health` |
+| OTP health | `http://127.0.0.1:8000/health` |
+
+Open the frontend URL printed by Vite. If its port changes, update
+`CLIENT_ORIGIN` to match. Initial admin provisioning requires both
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` in the API environment; there is no default
+admin password. Updating those values does not reset an existing account.
+
+## Testing
+
+See [TESTCMD.md](TESTCMD.md) for security regression tests, frontend and backend
+tests, Python OTP tests, browser QA, linting, dependency audits, and build checks.
+It explains prerequisites, working directories, and expected results.
+
+## Build and deployment
+
+```powershell
+npm run build
+npm run preview
+```
+
+The frontend build is written to `dist/`. Preview serves that build locally;
+the Node API and Python OTP service run separately.
+
+- [Vercel configuration](vercel.json): builds the frontend, publishes `dist/`,
+  and rewrites client-side routes to `index.html`.
+- [Render configuration](render.yaml): describes the Node API and Python OTP
+  services. Review its service plans before applying it.
+- [Backend deployment guide](server/RENDER_DEPLOYMENT.md): PostgreSQL setup,
+  environment configuration, order workflow, and deployment verification.
+- [OTP service guide](server/otp_service/README.md): Gmail authorization,
+  service configuration, and verification.
+
+Public assets are copied by `build/publicAssets.js`. The
+`SHOW_HOME_SCROLL_VIDEO` flag in `src/config/storefrontFeatures.js` is currently
+`false`, so production builds exclude the `desktop_homevideo` and
+`mobile_homevideo` frame directories. Enabling that feature requires its frame
+assets to be present. The asset-copy behavior has its own regression tests.
+
+## Repository and contributions
+
+Start with the [repository map](docs/REPOSITORY_MAP.md) to locate frontend,
+backend, shared helpers, database scripts, and test files. The
+[documentation index](docs/README.md) links all project guides.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Use the
+bug report and feature request templates for new GitHub issues. Keep local
+credentials, generated documents, and browser QA output out of commits.

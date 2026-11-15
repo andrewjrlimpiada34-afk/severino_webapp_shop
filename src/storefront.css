@@ -79,8 +79,6 @@
 .faq-support { display: grid; gap: 14px; padding: 26px; border: 1px solid var(--store-border); border-radius: 12px; background: var(--store-surface); }
 .faq-support p { margin: 0 0 6px; color: var(--store-muted); line-height: 1.7; }
 .faq-support a { color: var(--olive-800); text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
-.footer-faq-link { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-decoration: underline; text-underline-offset: 4px; }
-.footer-faq-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 @media (max-width: 760px) {
   .faq-layout { grid-template-columns: minmax(0, 1fr); }
   .faq-support { padding: 22px; }

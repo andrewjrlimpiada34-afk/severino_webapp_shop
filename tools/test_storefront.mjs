@@ -185,12 +185,12 @@ if (preview) {
   noOverflow()
   window.qaReady = true
 } else {
-  await run('FAQs open through public routes, navigation and footer, and support guest and customer access', async () => {
+  await run('FAQs open through public routes and navigation, and support guest and customer access', async () => {
     window.qaFaqs = structuredClone(defaultFaqs)
     await renderFaqs()
     assert(document.querySelectorAll('.faq-item').length === 10, 'Guest reads the FAQ list')
     assert(document.querySelector('.nav a[href="/faqs"]'), 'Customer navigation includes FAQs')
-    assert(document.querySelector('.footer a[href="/faqs"]'), 'Footer includes FAQs on the FAQ route')
+    assert(!document.querySelector('.footer a[href="/faqs"]'), 'Footer omits the FAQ link')
     const summary = document.querySelector('.faq-item summary')
     summary.focus()
     assert(document.activeElement === summary, 'Accordion summary accepts keyboard focus')

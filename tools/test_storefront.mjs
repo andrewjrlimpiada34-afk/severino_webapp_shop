@@ -22,6 +22,8 @@ import Footer from './src/components/Footer.jsx'
 import Notifications from './src/pages/Notifications.jsx'
 import WelcomeOfferModal from './src/components/WelcomeOfferModal.jsx'
 import ShopSearchRedirect from './src/components/ShopSearchRedirect.jsx'
+import App from './src/App.jsx'
+import { defaultFaqs } from './server/shared/faqContent.js'
 import { applyFontPreference, readFontPreference } from './src/lib/fontPreference.js'
 import { ActionAnimationProvider } from './src/context/ActionAnimationContext.jsx'
 import { api } from './src/lib/api.js'
@@ -34,7 +36,7 @@ const products = [
   { id: 'weekend', name: 'Burberry Weekend Eau de Parfum', notes: 'Peach, nectarine blossom, honeyed musk with a particularly long scent description', size: '90 mL', price: 2490, category: 'Unisex', stock: 4, imageUrl },
 ]
 const profile = { id: 'storefront-fixture-user', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', addressLine: 'Example Street', backupAddress: 'Example backup address', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', profileImage: '', hasPassword: true, preferredTheme: 'Default' }
-const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [], phones: [] }
+const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [], phones: [], faqWrites: [] }
 window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, startLogin: async (...args) => { calls.login.push(args); return { role: 'customer' } } }
 window.EventSource = class { addEventListener() {} close() {} }
 Object.assign(api, {
@@ -60,6 +62,30 @@ Object.assign(api, {
   cart: async () => window.qaCart || { items: [] }, updateCart: async (items) => { calls.cart.push(items) },
   banners: async () => [], bannerStories: async () => [], heroImage: async () => ({ image: '' }), featuredBanners: async () => [],
   loginAnnouncement: async () => [],
+  loginPopup: async () => ({ image: '' }),
+  faqs: async () => { if (window.failFaqLoad) throw new Error('Unable to load FAQs.'); return structuredClone(window.qaFaqs ?? defaultFaqs) },
+  adminFaqs: async () => { if (window.failFaqLoad) throw new Error('Unable to load FAQs.'); return structuredClone(window.qaFaqs ?? defaultFaqs) },
+  createFaq: async (data) => {
+    calls.faqWrites.push({ action: 'create', data })
+    if (window.holdFaqWrite) await new Promise(resolve => { window.finishFaqWrite = resolve })
+    if (window.failFaqWrite) throw new Error('Unable to save FAQ. Please try again.')
+    const item = { id: 'faq-created-' + calls.faqWrites.length, ...data }
+    window.qaFaqs = [...(window.qaFaqs ?? defaultFaqs), item]
+    return structuredClone(item)
+  },
+  updateFaq: async (id, data) => {
+    calls.faqWrites.push({ action: 'update', id, data })
+    if (window.failFaqWrite) throw new Error('Unable to save FAQ. Please try again.')
+    const item = { id, ...data }
+    window.qaFaqs = (window.qaFaqs ?? defaultFaqs).map(current => current.id === id ? item : current)
+    return structuredClone(item)
+  },
+  deleteFaq: async (id) => {
+    calls.faqWrites.push({ action: 'delete', id })
+    if (window.failFaqWrite) throw new Error('Unable to delete FAQ. Please try again.')
+    window.qaFaqs = (window.qaFaqs ?? defaultFaqs).filter(item => item.id !== id)
+    return { success: true }
+  },
 })
 let renderNumber = 0
 const root = createRoot(document.getElementById('fixture'))
@@ -77,7 +103,8 @@ const click = async (element) => { assert(element, 'Control exists'); flushSync(
 const input = async (id, value) => {
   const element = document.getElementById(id)
   assert(element, 'Field exists: ' + id)
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(element, value)
+  const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+  Object.getOwnPropertyDescriptor(prototype, 'value').set.call(element, value)
   flushSync(() => element.dispatchEvent(new Event('input', { bubbles: true })))
   await settle()
 }
@@ -91,7 +118,7 @@ const button = text => Array.from(document.querySelectorAll('button')).find(item
 const cardNames = () => Array.from(document.querySelectorAll('.store-product-info h3')).map(item => item.textContent)
 const noOverflow = () => {
   assert(document.documentElement.scrollWidth <= innerWidth + 1, 'Document fits viewport')
-  for (const element of document.querySelectorAll('.store-catalog, .store-shop-toolbar, .store-account-identity, .store-account-fields, .store-login-panel, .store-home-hero, .store-product, .store-product-actions')) {
+  for (const element of document.querySelectorAll('.store-catalog, .store-shop-toolbar, .store-account-identity, .store-account-fields, .store-login-panel, .store-home-hero, .store-product, .store-product-actions, .faq-list, .faq-support, .admin-faq-form, .admin-faq-card')) {
     const rect = element.getBoundingClientRect()
     assert(rect.left >= -1 && rect.right <= innerWidth + 1, 'Visible content fits viewport: ' + element.className)
     assert(element.scrollWidth <= element.clientWidth + 2, 'Content does not overflow internally: ' + element.className)
@@ -103,6 +130,15 @@ const render = async (page, route = page === 'home' ? '/' : '/' + page) => {
   await waitFor(() => page === 'checkout' ? document.getElementById('checkout-name') : page === 'orders' ? document.querySelector('.orders-empty-state, .table tbody .badge') : page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
   await document.fonts.ready
   await Promise.all(Array.from(document.images).map(async (image) => { image.loading = 'eager'; try { await image.decode() } catch { /* Missing optional media is covered by page fallbacks. */ } }))
+  await settle()
+  window.scrollTo(0, 0)
+}
+const renderFaqs = async (admin = false, route = admin ? '/admin/faqs' : '/faqs', customer = false) => {
+  window.qaAuth.user = admin ? { ...profile, role: 'admin' } : customer ? { ...profile, role: 'customer' } : null
+  sessionStorage.setItem('admin_session', 'faq-qa-session')
+  flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><App /></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
+  await waitFor(() => document.querySelector('.admin-faq-layout, .admin-faq-page [role="alert"], .faq-list:not([aria-busy="true"]), .admin-login-form'))
+  await document.fonts.ready
   await settle()
   window.scrollTo(0, 0)
 }
@@ -126,7 +162,13 @@ if (preview) {
   }
   if (preview === 'cancel-order') window.qaOrders = [sampleOrder]
   if (preview === 'adaptive-intro') sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
-  await render(preview.startsWith('checkout') ? 'checkout' : preview === 'cancel-order' ? 'orders' : preview === 'adaptive-intro' ? 'home' : policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
+  if (preview === 'faqs' || preview === 'admin-faqs') {
+    window.qaFaqs = structuredClone(defaultFaqs)
+    await renderFaqs(preview === 'admin-faqs')
+    if (preview === 'faqs') document.querySelector('.faq-item').open = true
+  } else {
+    await render(preview.startsWith('checkout') ? 'checkout' : preview === 'cancel-order' ? 'orders' : preview === 'adaptive-intro' ? 'home' : policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
+  }
   if (preview === 'checkout-errors') await click(button('Next'))
   if (preview === 'checkout-contact') { await fillShipping(); await click(button('Next')) }
   if (preview === 'checkout-phone') { await click(button('Next')); await click(button('Next')); await click(button('Confirm Order')) }
@@ -143,6 +185,94 @@ if (preview) {
   noOverflow()
   window.qaReady = true
 } else {
+  await run('FAQs open through public routes, navigation and footer, and support guest and customer access', async () => {
+    window.qaFaqs = structuredClone(defaultFaqs)
+    await renderFaqs()
+    assert(document.querySelectorAll('.faq-item').length === 10, 'Guest reads the FAQ list')
+    assert(document.querySelector('.nav a[href="/faqs"]'), 'Customer navigation includes FAQs')
+    assert(document.querySelector('.footer a[href="/faqs"]'), 'Footer includes FAQs on the FAQ route')
+    const summary = document.querySelector('.faq-item summary')
+    summary.focus()
+    assert(document.activeElement === summary, 'Accordion summary accepts keyboard focus')
+    await click(summary)
+    assert(summary.parentElement.open, 'Accordion opens')
+    assert(document.querySelector('.faq-answer').textContent === defaultFaqs[0].answer, 'Saved answer is rendered')
+    await click(summary)
+    assert(!summary.parentElement.open, 'Accordion closes')
+    assert(document.querySelector('.faq-support a[href^="mailto:"]'), 'Support email is actionable')
+    noOverflow()
+    for (const theme of ['Shadow Dark Mode', 'Rose Blush']) {
+      document.documentElement.setAttribute('data-theme', theme)
+      noOverflow()
+    }
+    document.documentElement.removeAttribute('data-theme')
+    await renderFaqs(false, '/faqs', true)
+    assert(document.querySelectorAll('.faq-item').length === 10, 'Signed-in customer reads FAQs')
+    await renderFaqs(false, '/admin/faqs', true)
+    assert(document.querySelector('.admin-login-form'), 'Customer cannot open FAQ management')
+  })
+  await run('FAQ load failures retry and empty lists retain working support', async () => {
+    window.failFaqLoad = true
+    await renderFaqs()
+    assert(document.querySelector('.faq-list [role="alert"]'), 'Load error is visible')
+    window.failFaqLoad = false
+    window.qaFaqs = []
+    await click(button('Try again'))
+    await waitFor(() => document.querySelector('.faq-list').textContent.includes('appear here soon'))
+    assert(document.querySelectorAll('.faq-item').length === 0, 'Empty saved list remains empty')
+    assert(document.querySelector('.faq-support a'), 'Support remains available')
+    await renderFaqs(true)
+    assert(document.querySelector('.admin-faq-list').textContent.includes('first question'), 'Admin empty state offers creation')
+    noOverflow()
+  })
+  await run('Admin menu opens FAQ management and create, edit, delete publish to customer FAQs', async () => {
+    window.qaFaqs = structuredClone(defaultFaqs)
+    await renderFaqs(true)
+    assert(document.querySelector('.admin-links a[href="/admin/faqs"].active'), 'FAQ management has its own active admin menu entry')
+    assert(!document.querySelector('.admin-dashboard'), 'Dedicated FAQ management page loads')
+    noOverflow()
+    await input('faq-question', '  A new question?  ')
+    await input('faq-answer', '  A helpful answer.\nSecond line.  ')
+    window.holdFaqWrite = true
+    const before = calls.faqWrites.length
+    await click(button('Save FAQ'))
+    document.querySelector('.admin-faq-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    assert(calls.faqWrites.length === before + 1, 'Repeated submit produces one write')
+    assert(document.getElementById('faq-answer').matches(':disabled'), 'Editor is disabled while saving')
+    window.holdFaqWrite = false
+    window.finishFaqWrite()
+    await waitFor(() => document.querySelectorAll('.admin-faq-card').length === 11)
+    assert(calls.faqWrites.at(-1).data.question === 'A new question?', 'Input is trimmed')
+    assert(document.querySelector('[role="status"]').textContent.includes('FAQ saved'), 'Publication is confirmed')
+    await click(document.querySelectorAll('.admin-faq-card')[10].querySelector('[aria-label^="Edit"]'))
+    assert(document.activeElement.id === 'faq-question', 'Editing focuses the question')
+    await input('faq-answer', 'Edited answer with <strong>literal text</strong>.')
+    window.failFaqWrite = true
+    await click(button('Save FAQ'))
+    assert(document.querySelector('[role="alert"]'), 'Save failure is reported')
+    assert(document.getElementById('faq-answer').value.includes('Edited answer'), 'Failed save preserves the draft')
+    window.failFaqWrite = false
+    await click(button('Save FAQ'))
+    await waitFor(() => document.querySelectorAll('.admin-faq-card')[10].textContent.includes('Edited answer'))
+    await renderFaqs()
+    assert(document.querySelectorAll('.faq-answer')[10].textContent.includes('<strong>literal text</strong>'), 'Saved text is escaped on the public page')
+    assert(!document.querySelector('.faq-answer strong'), 'FAQ content cannot inject HTML')
+    await renderFaqs(true)
+    const card = document.querySelectorAll('.admin-faq-card')[10]
+    await click(card.querySelector('[aria-label^="Delete"]'))
+    assert(calls.faqWrites.at(-1).action === 'update', 'Delete waits for confirmation')
+    await click(button('Keep FAQ'))
+    assert(document.querySelectorAll('.admin-faq-card').length === 11, 'Keeping a FAQ preserves it')
+    await click(card.querySelector('[aria-label^="Delete"]'))
+    window.failFaqWrite = true
+    await click(button('Confirm delete'))
+    assert(document.querySelectorAll('.admin-faq-card').length === 11, 'Failed deletion preserves the entry')
+    window.failFaqWrite = false
+    await click(button('Confirm delete'))
+    await waitFor(() => document.querySelectorAll('.admin-faq-card').length === 10)
+    await renderFaqs()
+    assert(document.querySelectorAll('.faq-item').length === 10, 'Deleted entry disappears from customer FAQs')
+  })
   await run('Adaptive Scent introduction stays on screen, dismisses per tab, and opens from keyboard', async () => {
     sessionStorage.removeItem('severino_adaptive_scent_intro_seen')
     sessionStorage.removeItem('severino_adaptive_scent_enabled')
@@ -610,7 +740,7 @@ const artifactDir = path.resolve('tmp/storefront-qa')
 await mkdir(artifactDir, { recursive: true })
 await mkdir('node_modules/.cache/storefront-qa', { recursive: true })
 const profileDir = await mkdtemp(path.resolve('node_modules/.cache/storefront-qa/run-'))
-const bundle = await build({ stdin: { contents: fixture, resolveDir: process.cwd(), sourcefile: 'storefront-qa.jsx', loader: 'jsx' }, bundle: true, write: false, format: 'esm', jsx: 'automatic', define: { 'import.meta.env': '{}' }, plugins: [{ name: 'fixture-auth', setup(build) { build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' })) } }] })
+const bundle = await build({ stdin: { contents: fixture, resolveDir: process.cwd(), sourcefile: 'storefront-qa.jsx', loader: 'jsx' }, loader: { '.css': 'empty' }, bundle: true, write: false, format: 'esm', jsx: 'automatic', define: { 'import.meta.env': '{}' }, plugins: [{ name: 'fixture-auth', setup(build) { build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' })) } }] })
 const css = (await Promise.all(['src/index.css', 'src/admin.css', 'src/customer-desktop.css', 'src/storefront.css'].map(file => readFile(file, 'utf8')))).join('\n').replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const server = createServer(async (req, res) => {
   res.setHeader('Content-Security-Policy', "frame-src 'none'; connect-src 'self'")
@@ -677,7 +807,7 @@ async function browser(width) {
       if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
       if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
     }
-    for (const preview of ['login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'checkout-phone', 'cancel-order']) {
+    for (const preview of ['faqs', 'admin-faqs', 'login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'checkout-phone', 'cancel-order']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
       // Inspect the settled UI, rather than a partially transparent entrance animation.
       await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })

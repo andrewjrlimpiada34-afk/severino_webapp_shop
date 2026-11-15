@@ -65,7 +65,8 @@ node --test "server/shared/*.test.js" "server/src/**/*.test.js"
 
 Checks shared validation and banner helpers, authentication and account routes,
 order workflow and stock transactions, inventory notifications, CORS handling,
-OTP forwarding, and resilience to simulated database failures.
+OTP forwarding, FAQ publishing and admin authorization, and resilience to
+simulated database failures.
 
 **Expected:** no failed tests and exit code `0`. Some tests deliberately trigger
 errors; use the final test summary and exit code to determine the result.
@@ -134,8 +135,9 @@ requests with test data. No running API or OTP service is required.
 
 - `test_frontend.mjs` checks frontend interactions at desktop and mobile widths;
   artifacts are written under `node_modules/.cache/frontend-qa/`.
-- `test_storefront.mjs` checks storefront flows at 1440, 1024, 768, 390, and 320
-  pixels; reports and screenshots are written to `tmp/storefront-qa/`.
+- `test_storefront.mjs` checks storefront flows, public FAQ access, and FAQ
+  management through the admin menu at 1440, 1024, 768, 390, and 320 pixels;
+  reports and screenshots are written to `tmp/storefront-qa/`.
 
 To check one storefront width, or exercise reduced-motion preferences:
 

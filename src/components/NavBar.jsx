@@ -9,6 +9,7 @@ import StoreIcon from './StoreIcon.jsx'
 const navAnimations = {
   '/': { type: 'home', message: 'Opening home' },
   '/shop': { type: 'shop', message: 'Opening shop' },
+  '/faqs': { type: 'feedback', message: 'Opening FAQs' },
   '/feedback': { type: 'feedback', message: 'Opening feedback' },
   '/orders': { type: 'orders', message: 'Opening orders' },
   '/favorites': { type: 'favorite', message: 'Opening favorites' },
@@ -146,6 +147,7 @@ function NavBar() {
         <div className={`nav-links ${open ? 'open' : ''}`}>
         <NavLink to="/" onClick={(event) => goToPage(event, '/')}>Home</NavLink>
         <NavLink to="/shop" onClick={(event) => goToPage(event, '/shop')}>Shop</NavLink>
+        <NavLink to="/faqs" onClick={(event) => goToPage(event, '/faqs')}>FAQs</NavLink>
         {user && (
           <>
             <NavLink to="/feedback" onClick={(event) => goToPage(event, '/feedback')}>Feedback</NavLink>

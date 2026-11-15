@@ -49,6 +49,12 @@ export const api = {
   submitFeedback: (data) =>
     request('/api/feedback', { method: 'POST', body: JSON.stringify(data) }),
   adminSales: () => request('/api/admin/sales'),
+  faqs: () => request('/api/public/faqs'),
+  adminFaqs: () => request('/api/admin/faqs'),
+  createFaq: (data) => request('/api/admin/faqs', { method: 'POST', body: JSON.stringify(data) }),
+  updateFaq: (id, data) =>
+    request(`/api/admin/faqs/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteFaq: (id) => request(`/api/admin/faqs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   adminUsers: () => request('/api/admin/users'),
   deleteUser: (id) => request(`/api/admin/users/${id}`, { method: 'DELETE' }),
   adminInventory: () => request('/api/admin/inventory'),

@@ -1,4 +1,83 @@
 /* Admin presentation stays scoped to the login and admin workspace. */
+.admin-faq-page {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 1200px);
+  margin-inline: auto;
+}
+
+.admin-faq-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.admin-faq-list,
+.admin-faq-form,
+.admin-faq-form fieldset {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.admin-faq-page h2,
+.admin-faq-page h3 {
+  margin: 0;
+}
+
+.admin-faq-page h2 {
+  font-size: 24px;
+}
+
+.admin-faq-page h3 {
+  font-size: 21px;
+  overflow-wrap: anywhere;
+}
+
+.admin-faq-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-faq-form textarea {
+  resize: vertical;
+  min-height: 160px;
+}
+
+.admin-faq-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.admin-faq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-faq-actions .button {
+  min-height: 44px;
+}
+
+.admin-faq-confirm {
+  padding-top: 12px;
+  border-top: 1px solid #d8dccf;
+}
+
+@media (max-width: 1050px) {
+  .admin-faq-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-faq-form {
+    grid-row: 1;
+  }
+}
+
 .admin-order-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(110px, 1fr));

@@ -11,6 +11,11 @@ an Express API, PostgreSQL storage, and a separate Python email OTP service.
 - **Customers:** browse and search perfumes, save favorites, manage a cart,
   check out with cash on delivery, track orders, manage account details, and
   submit reviews and feedback.
+- **FAQs:** guests and customers can read expandable answers at `/faqs`.
+  Administrators manage questions and answers from the **FAQs** menu at
+  `/admin/faqs`. Saved changes publish immediately. FAQ content uses the existing
+  PostgreSQL `app_settings` table, starting with ten editable answers about
+  existing app features.
 - **Store administrators:** manage products and inventory, advance order
   fulfillment, view customers and feedback, customize storefront content, and
   inspect sales reports.

@@ -30,6 +30,8 @@ import AdminAddProduct from './pages/AdminAddProduct.jsx'
 import AdminViewUsers from './pages/AdminViewUsers.jsx'
 import AdminViewOrders from './pages/AdminViewOrders.jsx'
 import AdminProducts from './pages/AdminProducts.jsx'
+import FAQs from './pages/FAQs.jsx'
+import AdminFAQs from './pages/AdminFAQs.jsx'
 
 function AppLayout({ children }) {
   const { user, loading } = useAuth()
@@ -38,7 +40,7 @@ function AppLayout({ children }) {
   const publicPaths = ['/login', '/create-account']
   const shouldRedirectAdmin =
     !loading && user?.role === 'admin' && !publicPaths.includes(location.pathname)
-  const showFooter = ['/', '/shop', '/login'].includes(location.pathname)
+  const showFooter = ['/', '/shop', '/login', '/faqs'].includes(location.pathname)
 
   useEffect(() => {
     if (!user || user.role === 'admin') return
@@ -215,6 +217,14 @@ function App() {
         }
       />
       <Route
+        path="/faqs"
+        element={
+          <AppLayout>
+            <FAQs />
+          </AppLayout>
+        }
+      />
+      <Route
         path="/product/:id"
         element={
           <AppLayout>
@@ -372,6 +382,16 @@ function App() {
           <AdminRoute>
             <AdminLayout>
               <AdminFeedback />
+            </AdminLayout>
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/faqs"
+        element={
+          <AdminRoute>
+            <AdminLayout>
+              <AdminFAQs />
             </AdminLayout>
           </AdminRoute>
         }

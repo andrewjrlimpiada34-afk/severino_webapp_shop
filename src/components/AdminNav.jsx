@@ -7,6 +7,7 @@ const links = [
   { to: '/admin', label: 'Dashboard', icon: 'overview' },
   { to: '/admin/sales', label: 'Sales Report', icon: 'sales' },
   { to: '/admin/feedback', label: 'Feedback', icon: 'feedback' },
+  { to: '/admin/faqs', label: 'FAQs', icon: 'faqs' },
   { to: '/admin/add-product', label: 'Add Product', icon: 'add' },
   { to: '/admin/products', label: 'Modify Products', icon: 'products' },
   { to: '/admin/users', label: 'View Users', icon: 'users' },

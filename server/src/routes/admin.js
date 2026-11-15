@@ -27,11 +27,46 @@ import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
 import { inventoryCache } from '../lib/inventoryEvents.js'
 import { bannerStoriesSchema } from '../lib/bannerStorySchema.js'
+import { createFaq, deleteFaq, getFaqs, updateFaq } from '../db/faqs.js'
 
 const router = express.Router()
 const bannersCache = createCache(20000)
 
 router.use(requireAuth, requireAdmin)
+
+const faqSchema = z.object({
+  question: z.string().trim().min(1, 'Enter a question.').max(200, 'Questions can have up to 200 characters.'),
+  answer: z.string().trim().min(1, 'Enter an answer.').max(3000, 'Answers can have up to 3000 characters.'),
+})
+
+router.get('/faqs', asyncRoute(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(await getFaqs())
+}))
+
+router.post('/faqs', asyncRoute(async (req, res) => {
+  const parsed = faqSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.errors[0].message })
+  }
+  return res.status(201).json(await createFaq(parsed.data))
+}))
+
+router.put('/faqs/:id', asyncRoute(async (req, res) => {
+  const parsed = faqSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.errors[0].message })
+  }
+  const updated = await updateFaq(req.params.id, parsed.data)
+  if (!updated) return res.status(404).json({ message: 'FAQ no longer exists. Refresh the list.' })
+  return res.json(updated)
+}))
+
+router.delete('/faqs/:id', asyncRoute(async (req, res) => {
+  const removed = await deleteFaq(req.params.id)
+  if (!removed) return res.status(404).json({ message: 'FAQ no longer exists. Refresh the list.' })
+  return res.json({ success: true })
+}))
 
 router.get('/sales', asyncRoute(async (req, res) => {
   res.json(await getSalesSummary())

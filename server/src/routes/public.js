@@ -10,9 +10,15 @@ import {
 } from '../db/banners.js'
 
 import { createCache } from '../lib/cache.js'
+import { getFaqs } from '../db/faqs.js'
 
 const router = express.Router()
 const bannersCache = createCache(300000)
+
+router.get('/faqs', asyncRoute(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  res.json(await getFaqs())
+}))
 
 router.get('/login-popup', asyncRoute(async (req, res) => {
   const image = await getLoginPopup()

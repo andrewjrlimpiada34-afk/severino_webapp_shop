@@ -11,6 +11,7 @@ function Footer() {
         <div className="footer-heading">
           <div className="footer-eyebrow">Support</div>
           <h2>Severino</h2>
+          <Link className="footer-faq-link" to="/faqs">Frequently asked questions</Link>
           <p className="footer-description">
             Premium scent studio blending elegance with modern craftsmanship.
           </p>

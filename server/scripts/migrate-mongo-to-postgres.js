@@ -2,6 +2,7 @@ import 'dotenv/config'
 import dns from 'node:dns'
 import { MongoClient } from 'mongodb'
 import { closeDb, getDb } from '../src/db/postgres.js'
+import { logError } from '../src/lib/logging.js'
 
 if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not set')
 
@@ -233,7 +234,7 @@ const migrate = async () => {
 try {
   await migrate()
 } catch (error) {
-  console.error('Migration failed:', error)
+  logError('database_migration_failed', error)
   process.exitCode = 1
 } finally {
   await mongoClient.close()

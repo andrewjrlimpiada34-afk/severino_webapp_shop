@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { config } from 'dotenv'
+import { logError } from './lib/logging.js'
 
 config()
 
@@ -79,11 +80,7 @@ const sendWithPromailer = async ({ to, subject, text, pdfBuffer }) => {
       body.error ||
       body.errors?.[0]?.message ||
       `Promailer send failed (${response.status})`
-    console.error('Promailer send failed:', {
-      status: response.status,
-      statusText: response.statusText,
-      response: body,
-    })
+    logError('email_provider_failed', null, { status: response.status })
     throw new Error(message)
   }
 
@@ -121,7 +118,7 @@ export async function send_mail({ to, subject, text, pdfBuffer }) {
 
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error('Email failed:', error)
+    logError('email_send_failed', error)
     return { success: false, error }
   }
 }
@@ -145,7 +142,7 @@ export async function send_otp({ to, subject, text }) {
 
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error('Email failed:', error)
+    logError('otp_email_send_failed', error)
     return { success: false, error }
   }
 }

@@ -22,6 +22,7 @@ import { closeDb, testDbConnection } from './db/postgres.js'
 import { errorHandler } from './middleware/error.js'
 import { startInventoryListener, stopInventoryListener } from './lib/inventoryEvents.js'
 import { createCorsOptions, getClientOrigins } from './lib/clientOrigins.js'
+import { accessLogFormat, logError } from './lib/logging.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4000)
@@ -34,7 +35,7 @@ app.use(cors(createCorsOptions()))
 app.use(express.json({ limit: '30mb' }))
 app.use(cookieParser())
 app.use(passport.initialize())
-if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
+if (process.env.NODE_ENV !== 'production') app.use(morgan(accessLogFormat))
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -81,7 +82,7 @@ const shutdown = (signal, fatalError = null) => {
   if (shuttingDown) return
   shuttingDown = true
   const fatal = Boolean(fatalError) || ['unhandledRejection', 'uncaughtException'].includes(signal)
-  if (fatal) console.error(`Fatal ${signal}:`, fatalError?.stack || fatalError?.message || String(fatalError))
+  if (fatal) logError('server_fatal', fatalError)
   stopInventoryListener()
   console.log(`Received ${signal}; shutting down.`)
 
@@ -95,7 +96,7 @@ const shutdown = (signal, fatalError = null) => {
     try {
       await closeDb()
     } catch (databaseError) {
-      console.error('Failed to close PostgreSQL pool:', databaseError.message)
+      logError('database_shutdown_failed', databaseError)
       closeError ||= databaseError
     }
     clearTimeout(forceExit)
@@ -122,7 +123,7 @@ try {
     console.log('Allowed frontend origins:', allowedOrigins.length ? allowedOrigins.join(', ') : '(none configured; set CLIENT_ORIGIN)')
   })
 } catch (error) {
-  console.error('Backend startup failed:', error.message)
+  logError('server_startup_failed', error)
   await closeDb().catch(() => null)
   process.exit(1)
 }

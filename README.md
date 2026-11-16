@@ -151,6 +151,12 @@ because these endpoints require encrypted bodies. The browser needs HTTPS or
 localhost for Web Crypto. HTTPS remains required in production, and anyone
 controlling the browser can inspect values entered into it.
 
+Development access logs contain only the HTTP method, status, and timing.
+Error logs contain a fixed event name, status/method when available, and a known
+error code. Request bodies, headers, URLs, query strings, raw error messages,
+stack traces, and email-provider responses are omitted in every environment.
+Browser DevTools can inspect requests independently of application logging.
+
 ## Testing
 
 See [TESTCMD.md](TESTCMD.md) for security regression tests, frontend and backend

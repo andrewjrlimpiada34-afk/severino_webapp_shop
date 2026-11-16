@@ -1,4 +1,5 @@
 import pg from 'pg'
+import { logError } from '../lib/logging.js'
 
 const { Pool } = pg
 
@@ -49,7 +50,7 @@ const pool = new Pool({
 })
 
 pool.on('error', (error) => {
-  console.error('Unexpected PostgreSQL pool error:', error.message)
+  logError('database_pool_failed', error)
 })
 
 export const getDb = () => pool

@@ -6,6 +6,7 @@ import { getUserById, isPhoneRegisteredToAnotherUser, sanitizeUser, updateUser }
 import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 import { requireAuth } from '../middleware/auth.js'
 import { isDataUrl } from '../lib/images.js'
+import { decryptAuthPayload } from '../lib/encryptedAuth.js'
 
 const router = express.Router()
 
@@ -83,7 +84,7 @@ router.patch('/me', requireAuth, asyncRoute(async (req, res) => {
   return res.json(sanitizeUser(user))
 }))
 
-router.patch('/password', requireAuth, asyncRoute(async (req, res) => {
+router.patch('/password', requireAuth, decryptAuthPayload, asyncRoute(async (req, res) => {
   const parsed = passwordSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid password format' })

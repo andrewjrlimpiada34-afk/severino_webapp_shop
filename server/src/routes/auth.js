@@ -9,6 +9,7 @@ import { z } from 'zod'
 import rateLimit from 'express-rate-limit'
 import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 import { loginSchema } from '../lib/loginSchema.js'
+import { createAuthEncryptionKey, decryptAuthPayload } from '../lib/encryptedAuth.js'
 import { callOtp, proxyOtp } from '../otp-client.js'
 import { getPrimaryClientOrigin } from '../lib/clientOrigins.js'
 import {
@@ -108,7 +109,11 @@ if (googleConfigReady) {
 router.post('/otp/send', proxyOtp('/otp/send'))
 router.post('/otp/verify', proxyOtp('/otp/verify'))
 
-router.post('/register', asyncRoute(async (req, res) => {
+router.get('/encryption-key', asyncRoute(async (req, res) => {
+  return res.json(await createAuthEncryptionKey())
+}))
+
+router.post('/register', decryptAuthPayload, asyncRoute(async (req, res) => {
   const parsed = registerSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })
@@ -163,7 +168,7 @@ router.post('/register', asyncRoute(async (req, res) => {
   })
 }))
 
-router.post('/login', loginLimiter, asyncRoute(async (req, res, next) => {
+router.post('/login', loginLimiter, decryptAuthPayload, asyncRoute(async (req, res, next) => {
   const parsed = loginSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ message: getZodErrorMessage(parsed) })

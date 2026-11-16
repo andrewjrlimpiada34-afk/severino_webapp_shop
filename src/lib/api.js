@@ -1,5 +1,6 @@
 import { createApiClient } from './apiClient.js'
 import { advanceOrderItem } from './orderProgress.js'
+import { requestEncryptedAuth } from './encryptedAuth.js'
 
 export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/+$/, '')
 const { request, upload, clearCache } = createApiClient({ baseUrl: API_URL })
@@ -7,7 +8,7 @@ const publicCache = { cacheTtl: 60000 }
 
 export const api = {
   clearCache,
-  login: (data) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  login: (data) => requestEncryptedAuth(request, '/api/auth/login', data),
   sendRegisterOtp: (email) =>
     request('/api/auth/otp/send', { method: 'POST', body: JSON.stringify({ email }) }),
   verifyRegisterOtp: (data) =>
@@ -15,7 +16,7 @@ export const api = {
   verify2fa: (data) => request('/api/auth/verify', { method: 'POST', body: JSON.stringify(data) }),
   resendVerifyOtp: (data) =>
     request('/api/auth/verify/resend', { method: 'POST', body: JSON.stringify(data) }),
-  register: (data) => request('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  register: (data) => requestEncryptedAuth(request, '/api/auth/register', data),
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   me: () => request('/api/auth/me'),
   profile: () => request('/api/users/me'),
@@ -24,7 +25,7 @@ export const api = {
   updateTheme: (preferredTheme) =>
     request('/api/users/theme', { method: 'PATCH', body: JSON.stringify({ preferredTheme }) }),
   updatePassword: (data) =>
-    request('/api/users/password', { method: 'PATCH', body: JSON.stringify(data) }),
+    requestEncryptedAuth(request, '/api/users/password', data, 'PATCH'),
   products: (options = {}) => request('/api/products', options),
   product: (id) => request(`/api/products/${id}`),
   createProduct: (data) =>

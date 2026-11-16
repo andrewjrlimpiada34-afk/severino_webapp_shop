@@ -3,6 +3,9 @@ import assert from 'node:assert/strict'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import { encryptAuthPayload, requestEncryptedAuth } from '../../../src/lib/encryptedAuth.js'
+import { createApiClient } from '../../../src/lib/apiClient.js'
 
 test('authentication routes validate input, protect credentials, and preserve the Python OTP contract', async (context) => {
   // Use an intercepted pool; never connect to a real database or send an email.
@@ -17,6 +20,7 @@ test('authentication routes validate input, protect credentials, and preserve th
 
   const { getDb, closeDb } = await import('../db/postgres.js')
   const { default: authRoutes } = await import('./auth.js')
+  const { default: userRoutes } = await import('./users.js')
   const password = 'test-password'
   const users = [{ id: 'customer-one', name: 'Ana Cruz', email: 'ana@example.com', phone: '+639164352483',
     password_hash: await bcrypt.hash(password, 4), role: 'customer', verified: true, preferred_theme: 'Olive' }]
@@ -25,6 +29,10 @@ test('authentication routes validate input, protect credentials, and preserve th
     queries.push(sql)
     const column = sql.match(/WHERE (email|phone|id) = \$1/)
     if (column) return { rows: users.filter((user) => user[column[1]] === values[0]) }
+    if (sql.startsWith('UPDATE users SET password_hash')) {
+      users.find((user) => user.id === values[1]).password_hash = values[0]
+      return { rows: [], rowCount: 1 }
+    }
     if (sql.includes('INSERT INTO users')) {
       const columns = ['id', 'name', 'email', 'phone', 'password_hash', 'role', 'verified', 'address', 'address_line',
         'barangay', 'city', 'province', 'zip', 'country', 'backup_address', 'profile_image', 'preferred_theme', 'created_at']
@@ -38,12 +46,29 @@ test('authentication routes validate input, protect credentials, and preserve th
   app.use(express.json())
   app.use(cookieParser())
   app.use('/api/auth', authRoutes)
+  app.use('/api/users', userRoutes)
   const server = await new Promise((resolve) => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)) })
   const base = `http://127.0.0.1:${server.address().port}/api/auth`
   const httpFetch = globalThis.fetch
-  const post = (path, body) => httpFetch(`${base}${path}`, {
+  const rawPost = (path, body) => httpFetch(`${base}${path}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
+  const getEncryptionKey = async () => {
+    const response = await httpFetch(`${base}/encryption-key`)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('Cache-Control'), 'no-store')
+    const encryption = await response.json()
+    assert.equal(encryption.publicKey.kty, 'RSA')
+    assert.equal(encryption.publicKey.d, undefined, 'the private key stays encrypted')
+    return encryption
+  }
+  const post = async (path, body) => {
+    if (path === '/login' || path === '/register') {
+      const envelope = await encryptAuthPayload(body, await getEncryptionKey(), `POST /api/auth${path}`)
+      return rawPost(path, envelope)
+    }
+    return rawPost(path, body)
+  }
   context.after(async () => {
     server.closeAllConnections()
     await new Promise((resolve) => server.close(resolve))
@@ -76,6 +101,26 @@ test('authentication routes validate input, protect credentials, and preserve th
       assert.equal(data.token, undefined)
     }
     assert.equal(queries.length, 3, 'existing users do not trigger default admin provisioning')
+  })
+
+  await context.test('plaintext and tampered login bodies cannot create a session or query accounts', async () => {
+    const before = queries.length
+    const envelope = await encryptAuthPayload({ identifier: 'ana@example.com', password }, await getEncryptionKey(), 'POST /api/auth/login')
+    for (const body of [
+      { identifier: 'ana@example.com', password },
+      { ...envelope, password },
+      { ...envelope, ciphertext: `AAAA${envelope.ciphertext.slice(4)}` },
+      { ...envelope, keyToken: `AAAA${envelope.keyToken.slice(4)}` },
+    ]) {
+      const response = await rawPost('/login', body)
+      assert.equal(response.status, 400)
+      assert.equal(response.headers.get('Set-Cookie'), null)
+      const data = await response.json()
+      assert.match(data.message, /Secure request/)
+      assert.equal(JSON.stringify(data).includes(password), false)
+    }
+    assert.equal(queries.length, before)
+    assert.equal((await rawPost('/register', { email: 'new@example.com', password })).status, 400)
   })
 
   await context.test('unknown accounts, wrong passwords, and unverified accounts use the same failure', async () => {
@@ -137,6 +182,50 @@ test('authentication routes validate input, protect credentials, and preserve th
     assert.notEqual(users[1].password_hash, password)
     assert.equal(await bcrypt.compare(password, users[1].password_hash), true)
     assert.deepEqual(calls.at(-1), { url: 'https://otp.example.com/otp/consume', body: { challengeId: 'test-challenge' } })
+  })
+
+  await context.test('the shared frontend request flow encrypts both admin and customer logins', async () => {
+    users.push({ id: 'admin-one', name: 'Admin', email: 'admin@example.com',
+      password_hash: await bcrypt.hash(password, 4), role: 'admin', verified: true })
+    const sent = []
+    const { request } = createApiClient({ baseUrl: base.replace('/api/auth', ''), fetchImpl: (url, options) => {
+      sent.push({ url, options })
+      if (options.body) {
+        const body = JSON.parse(options.body)
+        assert.deepEqual(Object.keys(body).sort(), ['ciphertext', 'iv', 'keyToken', 'wrappedKey'])
+        assert.equal(options.body.includes(password), false)
+        assert.equal(options.body.includes('@example.com'), false)
+      }
+      return httpFetch(url, options)
+    } })
+    for (const [identifier, role] of [['ana@example.com', 'customer'], ['admin@example.com', 'admin']]) {
+      const result = await requestEncryptedAuth(request, '/api/auth/login', { identifier, password })
+      assert.equal(result.user.role, role)
+    }
+    assert.deepEqual(sent.map(({ url }) => new URL(url).pathname), [
+      '/api/auth/encryption-key', '/api/auth/login', '/api/auth/encryption-key', '/api/auth/login',
+    ])
+  })
+
+  await context.test('password changes authenticate the user and decrypt both password fields before bcrypt checks', async () => {
+    const url = base.replace('/api/auth', '/api/users/password')
+    const token = jwt.sign({ id: 'customer-one', role: 'customer' }, process.env.JWT_SECRET)
+    const patchPassword = (body, authenticated = true) => httpFetch(url, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(authenticated ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+    })
+    const form = { currentPassword: password, newPassword: 'Updated-test-password-2!' }
+    const envelope = await encryptAuthPayload(form, await getEncryptionKey(), 'PATCH /api/users/password')
+    assert.equal((await patchPassword(envelope, false)).status, 401)
+    assert.equal((await patchPassword(form)).status, 400)
+    const wrong = await encryptAuthPayload({ ...form, currentPassword: 'wrong-password' }, await getEncryptionKey(), 'PATCH /api/users/password')
+    assert.equal((await patchPassword(wrong)).status, 401)
+    const response = await patchPassword(envelope)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('Cache-Control'), 'no-store')
+    assert.equal(await bcrypt.compare(form.newPassword, users[0].password_hash), true)
+    assert.equal(await bcrypt.compare(password, users[0].password_hash), false)
+    assert.equal((await post('/login', { identifier: users[0].email, password: form.newPassword })).status, 200)
   })
 
   await context.test('repeated failed logins are rate limited with a readable response', async () => {

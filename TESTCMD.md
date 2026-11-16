@@ -30,12 +30,13 @@ Backend route tests start temporary servers on the local loopback interface.
 Run this command in your terminal:
 
 ```powershell
-node --test server/shared/loginValidation.test.js server/src/lib/clientOrigins.test.js server/src/routes/auth.test.js server/src/routes/users.test.js server/src/otp-client.test.js src/lib/registration.test.js
+node --test server/shared/loginValidation.test.js server/src/lib/clientOrigins.test.js server/src/lib/encryptedAuth.test.js server/src/routes/auth.test.js server/src/routes/users.test.js server/src/otp-client.test.js src/lib/registration.test.js
 ```
 
 Checks login validation, trusted frontend origins, secure login cookies,
-credential redaction, failed-login rate limiting, verified registration proof,
-authenticated account lookups, and the Node-to-Python OTP contract.
+encrypted credential requests, credential redaction, failed-login rate limiting,
+verified registration proof, authenticated account lookups, and the
+Node-to-Python OTP contract.
 
 **Expected:** all selected tests pass and Node exits with code `0`. These are
 focused security regression checks, not a complete penetration test or security

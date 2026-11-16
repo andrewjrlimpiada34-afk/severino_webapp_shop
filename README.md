@@ -142,6 +142,15 @@ Open the frontend URL printed by Vite. If its port changes, update
 `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the API environment; there is no default
 admin password. Updating those values does not reset an existing account.
 
+Login, registration, and password changes encrypt their complete request bodies
+with Web Crypto before sending them. Both admin and customer login use this
+flow. The API issues a public RSA key and an encrypted key token valid for two
+minutes, then decrypts requests before the existing validation and bcrypt checks.
+Replicas must share the same `JWT_SECRET`. Deploy the API and frontend together
+because these endpoints require encrypted bodies. The browser needs HTTPS or
+localhost for Web Crypto. HTTPS remains required in production, and anyone
+controlling the browser can inspect values entered into it.
+
 ## Testing
 
 See [TESTCMD.md](TESTCMD.md) for security regression tests, frontend and backend

@@ -1,3 +1,4 @@
+import StoreIcon from '../components/StoreIcon.jsx'
 import Modal from '../components/Modal.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import QuantityControl from '../components/QuantityControl.jsx'
@@ -280,7 +281,7 @@ function ProductDetail() {
           )}
           <div className="product-detail-actions">
             <button className="button" disabled={product.stock <= 0} onClick={openBuyNowModal}>
-              Buy Now
+              <StoreIcon name="bag" /> Buy Now
             </button>
             <button
               className="button secondary product-detail-actions__add"
@@ -290,9 +291,7 @@ function ProductDetail() {
               aria-label="Add to Cart"
               title="Add to Cart"
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
+              <StoreIcon name="cart" />
               <span>Add to Cart</span>
             </button>
             <button
@@ -313,18 +312,10 @@ function ProductDetail() {
               aria-pressed={isFav}
               title="Favorite"
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12 20s-7-4.4-9-8.6C1.5 8 3.4 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.6 5 20.5 8 21 11.4 19 15.6 12 20 12 20Z"
-                  fill={isFav ? 'currentColor' : 'none'}
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <StoreIcon name="heart" fill={isFav ? "currentColor" : "none"} />
             </button>
             <button className="button secondary product-detail-actions__back" onClick={() => navigate('/shop')}>
-              Back to Shop
+              <StoreIcon name="arrow" className="back-arrow" /> Back to Shop
             </button>
           </div>
           <p className="product-desktop-only product-detail-payment-note">Cash on delivery available</p>

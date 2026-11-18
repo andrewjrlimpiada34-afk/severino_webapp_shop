@@ -35,7 +35,7 @@ const products = [
   { id: 'bacc540', name: 'Bacc540', notes: 'Amber resin, saffron, cedar', size: '70 mL', price: 2990, category: 'Men', stock: 10, imageUrl },
   { id: 'weekend', name: 'Burberry Weekend Eau de Parfum', notes: 'Peach, nectarine blossom, honeyed musk with a particularly long scent description', size: '90 mL', price: 2490, category: 'Unisex', stock: 4, imageUrl },
 ]
-const profile = { id: 'storefront-fixture-user', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', addressLine: 'Example Street', backupAddress: 'Example backup address', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', profileImage: '', hasPassword: true, preferredTheme: 'Default' }
+const profile = { id: 'storefront-fixture-user', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', addressLine: 'Example Street', backupAddress: 'Example backup address', barangay: 'Agot', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', profileImage: '', hasPassword: true, preferredTheme: 'Default' }
 const calls = { login: [], cart: [], profile: [], theme: [], password: [], orders: [], cancellations: [], phones: [], faqWrites: [] }
 window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, startLogin: async (...args) => { calls.login.push(args); return { role: 'customer' } } }
 window.EventSource = class { addEventListener() {} close() {} }
@@ -149,7 +149,12 @@ const run = async (name, fn) => { try { await fn(); results.push({ name, passed:
 const preview = new URLSearchParams(location.search).get('preview')
 const sampleOrder = { id: 'order-fixture-12345678', userId: profile.id, status: 'Pending COD', createdAt: '2026-11-06T04:00:00Z', items: [{ itemId: 'first-item', productId: 'cucumber-melon', name: 'Cucumber Melon', quantity: 2, price: 1690, trackingStatus: 'Pending COD' }, { itemId: 'second-item', productId: 'weekend', name: 'Burberry Weekend', quantity: 1, price: 2490, trackingStatus: 'Pending COD' }] }
 const fillShipping = async () => {
-  for (const [field, value] of Object.entries({ name: ' Ana Cruz ', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines' })) await input('checkout-' + field, value)
+  await input('checkout-name', ' Ana Cruz ')
+  await select('checkout-province', 'Marinduque')
+  await waitFor(() => document.querySelector('#checkout-city option[value="Boac"]'))
+  await select('checkout-city', 'Boac')
+  await select('checkout-barangay', 'Agot')
+  await input('checkout-zip', '4900')
 }
 
 if (preview) {
@@ -179,7 +184,7 @@ if (preview) {
   if (preview === 'font-fashion') { await select('account-font', 'fashion'); await document.fonts.ready }
   if (policyPreview) {
     if (preview === 'terms-fashion') { applyFontPreference('fashion'); await document.fonts.ready }
-    await click(document.querySelector('.terms-link'))
+    await click(document.querySelector('.footer-policy-links button'))
     if (preview === 'cookies' || preview === 'privacy') await click(Array.from(document.querySelectorAll('.policy-selector button')).find(item => item.textContent === (preview === 'cookies' ? 'Cookie Policy' : 'Privacy Policy')))
   }
   if (preview === 'quick-actions' && innerWidth <= 640) await click(document.querySelector('[aria-label="Toggle quick actions"]'))
@@ -322,7 +327,7 @@ if (preview) {
     await click(button('Next'))
     assert(document.getElementById('checkout-step-title').textContent === 'Shipping details', 'Missing shipping details cannot advance')
     await waitFor(() => document.activeElement.id === 'checkout-name')
-    assert(document.querySelectorAll('.checkout-field-error').length === 6 && calls.orders.length === initialOrderCount, 'Required fields are identified before any order request')
+    assert(['name', 'province', 'city', 'barangay', 'zip'].every(field => document.getElementById('checkout-' + field)?.getAttribute('aria-invalid') === 'true') && calls.orders.length === initialOrderCount, 'Required fields are identified before any order request')
     await fillShipping()
     await click(button('Next'))
     assert(document.getElementById('checkout-step-title').textContent === 'Contact details', 'Valid shipping advances without an optional street address')
@@ -479,7 +484,7 @@ if (preview) {
   await run('Policy documents open independently, inherit fonts, and preserve agreement choice', async () => {
     await render('login')
     const originalFont = document.documentElement.dataset.font || 'editorial'
-    await click(document.querySelector('.terms-link'))
+    await click(document.querySelector('.footer-policy-links button'))
     const dialog = document.querySelector('.terms-modal')
     assert(document.elementFromPoint(innerWidth / 2, 10)?.closest('.policy-backdrop'), 'Policy backdrop covers the sticky header')
     const policyButtons = () => Array.from(document.querySelectorAll('.policy-selector button'))
@@ -590,7 +595,8 @@ if (preview) {
   await run('Login keeps validation and password visibility without repeating registration consent', async () => {
     await render('login')
     noOverflow()
-    await click(document.querySelector('.terms-link'))
+    assert(!document.querySelector('.auth-login-form .terms-link, .auth-login-form .store-login-policy-link'), 'Policy links appear only in the footer')
+    await click(document.querySelector('.footer-policy-links button'))
     assert(document.querySelectorAll('.terms-law-card').length === 5, 'Full terms remain available')
     await click(document.querySelector('.terms-modal .modal-close'))
     await input('login-identifier', 'invalid')
@@ -739,7 +745,7 @@ await mkdir(artifactDir, { recursive: true })
 await mkdir('node_modules/.cache/storefront-qa', { recursive: true })
 const profileDir = await mkdtemp(path.resolve('node_modules/.cache/storefront-qa/run-'))
 const bundle = await build({ stdin: { contents: fixture, resolveDir: process.cwd(), sourcefile: 'storefront-qa.jsx', loader: 'jsx' }, loader: { '.css': 'empty' }, bundle: true, write: false, format: 'esm', jsx: 'automatic', define: { 'import.meta.env': '{}' }, plugins: [{ name: 'fixture-auth', setup(build) { build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' })) } }] })
-const css = (await Promise.all(['src/index.css', 'src/admin.css', 'src/customer-desktop.css', 'src/storefront.css', 'src/enhancements.css'].map(file => readFile(file, 'utf8')))).join('\n').replace(/^@import[^\r\n]*[\r\n]*/gm, '')
+const css = (await Promise.all(['src/index.css', 'src/admin.css', 'src/customer-desktop.css', 'src/storefront.css', 'src/enhancements.css', 'src/accessibility-layout.css'].map(file => readFile(file, 'utf8')))).join('\n').replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const server = createServer(async (req, res) => {
   res.setHeader('Content-Security-Policy', "frame-src 'none'; connect-src 'self'")
   if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle.outputFiles[0].text); return }

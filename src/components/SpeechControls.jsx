@@ -1,3 +1,4 @@
+import StoreIcon from './StoreIcon.jsx'
 import { useEffect, useRef, useState } from 'react'
 
 let activeSpeech = null
@@ -72,22 +73,21 @@ export default function SpeechControls({ text, label = 'this content' }) {
       role="group"
       aria-label={`Read aloud ${label}`}
     >
-      <span>Read aloud</span>
+      <span className="speech-title"><StoreIcon name="volume" />Read aloud</span>
       <button
         className="button secondary"
         type="button"
         onClick={play}
         disabled={!text?.trim()}
       >
-        {state === 'idle' ? 'Play' : 'Replay'}
+        <StoreIcon name={state === 'idle' ? 'play' : 'reset'} />{state === 'idle' ? 'Play' : 'Replay'}
       </button>
-      <button
+      {state !== 'idle' && <><button
         className="button secondary"
         type="button"
-        disabled={state === 'idle'}
         onClick={pause}
       >
-        {state === 'paused' ? 'Resume' : 'Pause'}
+        <StoreIcon name={state === 'paused' ? 'play' : 'pause'} />{state === 'paused' ? 'Resume' : 'Pause'}
       </button>
       <button
         className="button secondary"
@@ -95,8 +95,8 @@ export default function SpeechControls({ text, label = 'this content' }) {
         disabled={state === 'idle'}
         onClick={() => activeSpeech?.stop()}
       >
-        Stop
-      </button>
+        <StoreIcon name="stop" />Stop
+      </button></>}
       <span role="status" className="speech-status">
         {error ||
           (state === 'playing'

@@ -26,7 +26,7 @@ The screenshots show the implemented application components with synthetic demon
 
 ### 2. Continue with Google
 
-1. Select **Continue with Google** on Sign In or Create Account.
+1. Open **Sign In** and select **Continue with Google**.
 2. Choose your Google account and follow Google's authorization prompts.
 3. On your first visit, review the displayed account, open the policy links, and select the acceptance checkbox.
 4. Select **Complete account**.
@@ -60,7 +60,7 @@ If older cart entries exceed current limits or refer to unavailable products, se
 
 1. Open **Me** to reach **My account**.
 2. Find **Shipping addresses** and select **Add New Address**.
-3. Enter a label such as Home or Work, the recipient, mobile number, and delivery components.
+3. Enter a label such as Home or Work, the recipient, and their mobile number. Choose the Philippine province or area, then select a city or municipality and one of its barangays. Enter the four-digit ZIP code and any street or house details.
 4. Select **Use as default address** when appropriate, then **Save address**.
 5. Select **Edit address** to update a saved address or choose another default.
 6. Select **Delete address** and confirm to remove an address. Deleting the default promotes another saved address when available.
@@ -70,6 +70,10 @@ The personal-information form updates your name, mobile number, and profile phot
 ![Saved shipping addresses](images/1440-saved-addresses.png)
 
 *Figure 6. Customers manage labeled addresses through their account page.*
+
+![Choosing Marinduque, Boac and Agot in the shipping address form](images/1440-address-editor.png)
+
+*Figure 6a. Changing the province clears the city and barangay so customers can choose a valid combination.*
 
 ### 5. Complete checkout
 
@@ -98,13 +102,19 @@ If a connection interruption leaves a request awaiting confirmation, use **Retry
 4. Select **Cancel item** for an eligible pending item, or **Cancel order** when all active items remain pending. Confirm the cancellation in its dialog.
 5. After delivery, use **Buy Again** or **Rate this Product** where available.
 
-The delivery stages are Awaiting approval, Approved, Preparing shipment, In transit, and Delivered. The payment badge changes when an administrator verifies collection or a refund.
+Follow the connected stages from left to right on desktop or top to bottom on mobile. The timeline marks the current stage and shows a check beside each completed stage. The delivery stages are Awaiting approval, Approved, Preparing shipment, In transit, and Delivered. The payment badge changes when an administrator verifies collection or a refund.
 
 ![Order tracking](images/1440-order-tracking.png)
 
 *Figure 9. One order contains its purchased products, tracking timeline, and payment status.*
 
 ### 7. Use accessibility and weather controls
+
+Open the round **Accessibility settings** button near the bottom left to adjust keyboard focus, underline links, enlarge text, increase contrast, or reduce motion. The browser remembers your choices. **Reset settings** restores the defaults. Choose **Play** under **Read this page** to hear visible headings and paragraphs. Select a passage before opening the panel to read just that passage. Closing the panel ends that reading.
+
+![Mobile accessibility settings](images/390-accessibility.png)
+
+*Figure 9a. The accessibility panel groups reading, display, and navigation controls on mobile.*
 
 1. On a product, FAQ answer, or policy, find **Read aloud** and select **Play**.
 2. Select **Pause** and **Resume** to control the current reading. **Replay** restarts it and **Stop** ends it.

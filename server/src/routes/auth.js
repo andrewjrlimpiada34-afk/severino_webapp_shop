@@ -1,3 +1,4 @@
+import { isDeliveryLocality, localityMessage } from '../lib/deliveryLocality.js'
 import express from 'express'
 import { asyncRoute } from '../lib/asyncRoute.js'
 import crypto from 'crypto'
@@ -61,7 +62,7 @@ const registerSchema = z.object({
   zip: z.string().trim().min(3, 'ZIP is required'),
   country: z.string().trim().min(2, 'Country is required'),
   verificationId: z.string().min(8),
-})
+}).refine(isDeliveryLocality, { message: localityMessage })
 
 const getZodErrorMessage = (parsed, fallback = 'Invalid input') => {
   if (parsed.success) return ''

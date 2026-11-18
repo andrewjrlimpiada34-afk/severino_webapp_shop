@@ -9,6 +9,7 @@ import './index.css'
 import './admin.css'
 import './customer-desktop.css'
 import './storefront.css'
+import './accessibility-layout.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

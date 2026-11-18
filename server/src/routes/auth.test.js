@@ -167,7 +167,7 @@ test('authentication routes validate input, protect credentials, and preserve th
 
   await context.test('registration requires verified, matching, unexpired Python proof before creating an account', async (subtest) => {
     const form = { name: 'New Customer', email: 'new@example.com', password, phone: '09171234567',
-      barangay: 'Poblacion', city: 'Manila', province: 'Metro Manila', zip: '1000', country: 'Philippines',
+      barangay: 'Barangay 1', city: 'City of Manila', province: 'Metro Manila', zip: '1000', country: 'Philippines',
       verificationId: 'test-challenge', termsAccepted: true, termsVersion: '2026-11-19' }
     let proof = { id: 'test-challenge', email: form.email, type: 'register', verifiedAt: new Date().toISOString(), expiresAt: Date.now() + 300000 }
     const calls = []

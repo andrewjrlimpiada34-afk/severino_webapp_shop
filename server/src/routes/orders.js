@@ -31,6 +31,11 @@ const orderSchema = z.object({
     )
     .min(1)
     .max(100),
+  shippingAddress: z.object({
+    addressLine: z.string().trim().max(255), barangay: z.string().trim().max(150),
+    city: z.string().trim().max(150), province: z.string().trim().max(150),
+    zip: z.string().trim().max(20), country: z.string().trim().max(100)
+  }).optional(),
   addressId: z.string().max(24).optional(),
   address: z.string().trim().min(5).max(1500),
   contactName: z.string().trim().min(2).max(150),

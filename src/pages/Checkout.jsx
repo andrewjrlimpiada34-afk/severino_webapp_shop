@@ -1,3 +1,4 @@
+import LocationFields from '../components/LocationFields.jsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
@@ -35,6 +36,7 @@ function Checkout() {
       return null
     }
   }, [directPurchaseKey])
+  const [validPlace, setValidPlace] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [initialAttempt] = useState(() => {
@@ -64,7 +66,7 @@ function Checkout() {
     city: '',
     province: '',
     zip: '',
-    country: '',
+    country: 'Philippines',
     mobile: '',
     email: '',
     notes: '',
@@ -76,7 +78,7 @@ function Checkout() {
     setStatus((prev) => ({ ...prev, error: '' }))
   }
 
-  const errors = checkoutErrors(form)
+  const errors = checkoutErrors(form, Boolean(selectedAddress))
   const busy = status.loading || Boolean(status.success) || Boolean(phoneConfirmation)
   const declinePhoneConfirmation = useCallback(() => {
     setPhoneConfirmation('')
@@ -105,6 +107,11 @@ function Checkout() {
     })
   }
   const validateStep = (index) => {
+    if (index === 0 && !selectedAddress && form.barangay && !validPlace) {
+      setStatus({ loading: false, error: 'Choose a matching delivery locality from the lists.', success: '' })
+      changeStep(0, 'province')
+      return false
+    }
     const fields = checkoutStepFields[index]
     setTouched((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, true])) }))
     const invalidField = fields.find((field) => errors[field])
@@ -130,7 +137,7 @@ function Checkout() {
         const profile = await api.profile()
         if (!active) return
         setForm((prev) => {
-          const saved = { ...profile, mobile: profile.phone }
+          const saved = { ...profile, mobile: profile.phone, country: 'Philippines' }
           return Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, editedFields.current.has(key) ? value : saved[key] || value]))
         })
       } catch {
@@ -187,7 +194,7 @@ function Checkout() {
       } finally { submittingRef.current = false }
       return
     }
-    const invalidStep = firstInvalidCheckoutStep(form)
+    const invalidStep = firstInvalidCheckoutStep(form, Boolean(selectedAddress))
     if (invalidStep !== -1) {
       validateStep(invalidStep)
       return
@@ -274,6 +281,9 @@ function Checkout() {
         email: clean.email,
         paymentMethod: 'COD',
         addressId: selectedAddress?.id,
+        shippingAddress: selectedAddress ? undefined : Object.fromEntries(
+          ['addressLine', 'barangay', 'city', 'province', 'zip', 'country'].map(key => [key, clean[key]])
+        ),
         checkoutKey: checkoutKey.current,
         fromCart: !directPurchase,
         notes: clean.notes || '',
@@ -350,15 +360,13 @@ function Checkout() {
           {stepIndex === 0 && !selectedAddress && <div className="form">
             {field('name', 'Full name', { placeholder: 'Juan Dela Cruz', autoComplete: 'shipping name' })}
             {field('addressLine', 'Street address (optional)', { required: false, placeholder: 'House no., street', autoComplete: 'shipping street-address' })}
-            <div className="grid two">
-              {field('barangay', 'Barangay', { placeholder: 'Barangay', autoComplete: 'shipping address-line2' })}
-              {field('city', 'City / Municipality', { placeholder: 'City / Municipality', autoComplete: 'shipping address-level2' })}
-            </div>
-            <div className="grid two">
-              {field('province', 'Province / State', { placeholder: 'Province', autoComplete: 'shipping address-level1' })}
-              {field('zip', 'ZIP code', { placeholder: 'ZIP code', autoComplete: 'shipping postal-code' })}
-            </div>
-            {field('country', 'Country', { placeholder: 'Country', autoComplete: 'shipping country-name' })}
+            <LocationFields prefix="checkout" value={form} disabled={busy} onValidity={setValidPlace} errors={errors} touched={touched}
+              onChange={patch => {
+                Object.keys(patch).forEach(key => editedFields.current.add(key))
+                setForm(previous => ({ ...previous, ...patch }))
+              }} />
+            {field('zip', 'ZIP code', { inputMode: 'numeric', maxLength: 4, autoComplete: 'shipping postal-code' })}
+            <p className="location-country">Country · Philippines</p>
           </div>}
           {stepIndex === 1 && <div className="form">
             {field('mobile', 'Mobile number', { type: 'tel', inputMode: 'tel', placeholder: '09XX XXX XXXX or +63 9XX XXX XXXX', autoComplete: 'shipping tel' })}

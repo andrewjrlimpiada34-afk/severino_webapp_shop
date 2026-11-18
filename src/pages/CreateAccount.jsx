@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Modal from '../components/Modal.jsx'
 import TermsAcceptance from '../components/TermsAcceptance.jsx'
 import { TERMS_VERSION } from '../../server/shared/policyVersions.js'
-import { API_URL } from '../lib/api.js'
+import LocationFields from '../components/LocationFields.jsx'
 import { normalizePhilippineMobile, registrationProgress, registrationSteps, registrationStepFields } from '../lib/registration.js'
 
 const OTP_LENGTH = 6
@@ -261,7 +261,6 @@ function CreateAccount() {
         <div className="create-heading">
           <h1 className="section-title">Create <span>Severino</span> Account</h1>
           <p className="section-subtitle">Join us and begin your premium scented experience.</p>
-          <a className="button secondary" href={`${API_URL}/api/auth/google`}>Continue with Google</a>
         </div>
 
         <nav aria-label="Registration progress">
@@ -362,15 +361,9 @@ function CreateAccount() {
             {activeStep === 4 && (
               <>
                 {field('addressLine', 'Street Address (Optional)', { placeholder: 'House number, street, building, etc.', autoComplete: 'address-line1' })}
-                <div className="grid two create-two">
-                  {field('barangay', 'Barangay', { placeholder: 'Enter barangay', autoComplete: 'address-line2' })}
-                  {field('city', 'City / Municipality', { placeholder: 'Enter city or municipality', autoComplete: 'address-level2' })}
-                </div>
-                <div className="grid two create-two">
-                  {field('province', 'Province / State', { placeholder: 'Enter province or state', autoComplete: 'address-level1' })}
-                  {field('zip', 'ZIP Code', { placeholder: 'Enter ZIP code', autoComplete: 'postal-code' })}
-                </div>
-                {field('country', 'Country', { autoComplete: 'country-name' })}
+                <LocationFields prefix="create" value={form} disabled={busy} onChange={patch => setForm(prev => ({ ...prev, ...patch }))} />
+                {field('zip', 'ZIP code', { inputMode: 'numeric', maxLength: 4, autoComplete: 'postal-code' })}
+                <p className="location-country">Country · Philippines</p>
               </>
             )}
 

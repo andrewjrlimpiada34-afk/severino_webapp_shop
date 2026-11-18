@@ -17,9 +17,9 @@ import { api } from './src/lib/api.js'
 const profile = { id: 'demo-customer', name: 'Alex Cruz', email: 'alex@example.test', phone: '+639171234567', verified: true, role: 'customer', preferredTheme: 'Default', hasPassword: true }
 const products = [{ id: 'demo-fragrance', name: 'Cucumber Melon', description: 'A fresh green fragrance with melon, soft florals, and clean musk.', notes: 'Melon, soft florals, clean musk', price: 300, stock: 5, physicalStock: 8, reservedStock: 3, availableStock: 5, size: '100 mL', category: 'Unisex', active: true, imageUrl: '/images/severino-editorial.webp' }]
 products.push({...products[0],id:'demo-weekend',name:'Burberry Weekend',description:'A soft floral fragrance with mandarin and warm woods.',notes:'Mandarin, white florals, warm woods',stock:4,physicalStock:4,reservedStock:0,availableStock:4})
-const home = { id: 'home-address', label: 'Home', name: profile.name, phone: profile.phone, addressLine: '14 Sample Street', barangay: 'Poblacion', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', isDefault: true }
+const home = { id: 'home-address', label: 'Home', name: profile.name, phone: profile.phone, addressLine: '14 Sample Street', barangay: 'Agot', city: 'Boac', province: 'Marinduque', zip: '4900', country: 'Philippines', isDefault: true }
 const work = { ...home, id: 'work-address', label: 'Work', addressLine: '8 Market Road', isDefault: false }
-const order = { id: 'internal-order-primary', reference: 'SV-BA72C590A104E68C247D', contactName: profile.name, phone: profile.phone, email: profile.email, address: '14 Sample Street, Poblacion, Boac, Marinduque, 4900, Philippines', addressSnapshot: { notes: 'Please call on arrival.' }, status: 'Pending COD', paymentStatus: 'Unpaid', grossCollected: 0, refundedTotal: 0, total: 900, createdAt: new Date().toISOString(), paymentMethod: 'COD', items: [{ itemId: 'first-item', productId: 'demo-fragrance', name: 'Cucumber Melon', quantity: 2, price: 300, trackingStatus: 'Pending COD', trackingEvents: [{ status: 'Pending COD', at: new Date().toISOString() }] }, { itemId: 'second-item', productId: 'demo-weekend', name: 'Burberry Weekend', quantity: 1, price: 300, trackingStatus: 'Pending COD', trackingEvents: [] }] }
+const order = { id: 'internal-order-primary', reference: 'SV-BA72C590A104E68C247D', contactName: profile.name, phone: profile.phone, email: profile.email, address: '14 Sample Street, Agot, Boac, Marinduque, 4900, Philippines', addressSnapshot: { notes: 'Please call on arrival.' }, status: 'Pending COD', paymentStatus: 'Unpaid', grossCollected: 0, refundedTotal: 0, total: 900, createdAt: new Date().toISOString(), paymentMethod: 'COD', items: [{ itemId: 'first-item', productId: 'demo-fragrance', name: 'Cucumber Melon', quantity: 2, price: 300, trackingStatus: 'Pending COD', trackingEvents: [{ status: 'Pending COD', at: new Date().toISOString() }] }, { itemId: 'second-item', productId: 'demo-weekend', name: 'Burberry Weekend', quantity: 1, price: 300, trackingStatus: 'Pending COD', trackingEvents: [] }] }
 let addresses = [home, work]
 let currentOrder = structuredClone(order)
 let cart = { items: [{ productId: 'demo-fragrance', quantity: 3 }] }
@@ -64,6 +64,15 @@ const render = async (route) => {
   await settle()
 }
 const fits = () => { assert(document.documentElement.scrollWidth <= innerWidth + 1, 'Page fits viewport'); for (const element of document.querySelectorAll('.order-card,.address-option,.google-onboarding,.speech-controls')) { const box = element.getBoundingClientRect(); assert(box.left >= -1 && box.right <= innerWidth+1, 'Content fits viewport ' + element.className) } }
+const selectPlace = async (prefix, values) => {
+  for (const [field, value] of Object.entries(values)) {
+    const select = document.getElementById(prefix + '-' + field)
+    await waitFor(() => [...select.options].some(option => option.value === value))
+    select.value = value
+    flushSync(() => select.dispatchEvent(new Event('change', { bubbles: true })))
+  }
+}
+const demoLocality = { province: 'Marinduque', city: 'Boac', barangay: 'Agot' }
 const fillRegistration = async () => {
   await render('/create-account')
   for (const [field,value] of Object.entries({ firstName:'Alex',lastName:'Cruz',email:'alex@example.test',mobile:'09171234567' })) await input('create-'+field,value)
@@ -71,7 +80,8 @@ const fillRegistration = async () => {
   for (const element of document.querySelectorAll('.create-otp-input')) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(element,'1'); flushSync(() => element.dispatchEvent(new Event('input',{bubbles:true}))) }
   await click(button('Verify OTP')); await new Promise(resolve => setTimeout(resolve,1200)); await click(button('Continue'))
   await input('create-password','Demo-password-1!'); await input('create-confirmPassword','Demo-password-1!'); await click(button('Continue'))
-  for (const [field,value] of Object.entries({ barangay:'Poblacion',city:'Boac',province:'Marinduque',zip:'4900' })) await input('create-'+field,value)
+  await selectPlace('create', demoLocality)
+  await input('create-zip','4900')
   await click(button('Continue'))
 }
 const openPayment = async () => { currentOrder = structuredClone(order); await render('/admin/orders'); await click(button('Verify payment')) }
@@ -88,10 +98,16 @@ if (preview) {
   if (preview === 'product-detail') await render('/product/demo-fragrance')
   if (preview === 'quantity') { await render('/shop'); await click(document.querySelector('.store-add-button')); await waitFor(() => !document.querySelector('.quantity-stepper input').disabled); await click(document.querySelector('[aria-label="Increase quantity"]')) }
   if (preview === 'saved-addresses') { await render('/account'); document.querySelector('.address-book').scrollIntoView({block:'start'}) }
+  if (preview === 'address-editor') {
+    await render('/account'); await click(button('Add New Address'))
+    await input('saved-name', profile.name); await input('saved-phone', profile.phone)
+    await selectPlace('saved', demoLocality); await input('saved-zip', '4900')
+  }
   if (preview === 'checkout-saved') await render('/checkout')
   if (preview === 'checkout-review') { await render('/checkout'); await click(button('Next')); await click(button('Next')); document.querySelector('.checkout-card').scrollIntoView({block:'start'}) }
   if (preview === 'order-tracking') { await render('/orders'); await click(document.querySelector('.order-details > summary')) }
-  if (preview === 'admin-orders') await render('/admin/orders')
+  if (preview === 'admin-orders') { await render('/admin/orders'); await click(document.querySelector('.address-groups summary')) }
+  if (preview === 'accessibility') { await render('/product/demo-fragrance'); await click(document.querySelector('.access-launcher')) }
   if (preview === 'payment-confirmation') { await openPayment(); await preparePayment() }
   if (preview === 'payment-review') { await openPayment(); await preparePayment(); await click(button('Review payment action')); document.querySelector('.payment-dialog').scrollTop=document.querySelector('.payment-dialog').scrollHeight }
   if (preview === 'inventory') { await render('/admin/products'); await click(document.querySelector('.inventory-log > summary')) }
@@ -100,6 +116,7 @@ if (preview) {
 } else {
   await run('Registration requires explicit consent and Google onboarding provides password-free account creation', async () => {
     await fillRegistration()
+    assert(!document.querySelector('a[href*="/api/auth/google"]'), 'Email signup has no duplicate Google action')
     assert(button('Create Account').disabled, 'Registration stays blocked before acceptance')
     assert(!document.querySelector('.registration-acceptance input').checked, 'Consent starts unchecked')
     await click(document.querySelector('.registration-acceptance input'))
@@ -127,6 +144,13 @@ if (preview) {
   })
   await run('Saved addresses persist, support editing, and preselect the checkout default without showing its form', async () => {
     await render('/account'); await click(button('Edit address'))
+    await waitFor(() => document.getElementById('saved-barangay').value === 'Agot')
+    await selectPlace('saved', { province: 'Cebu' })
+    assert(!document.getElementById('saved-city').value, 'Changing province clears the city')
+    assert(!document.getElementById('saved-barangay').value, 'Changing province clears the barangay')
+    assert(button('Save address').disabled, 'The cleared address cannot be submitted')
+    await selectPlace('saved', demoLocality)
+    await waitFor(() => !button('Save address').disabled)
     await input('saved-addressLine','22 Updated Street'); await click(button('Save address'))
     await waitFor(() => !document.querySelector('.address-editor'))
     assert(addresses.some(item => item.addressLine === '22 Updated Street'), 'Edited address is persisted')
@@ -181,6 +205,37 @@ if (preview) {
     assert(document.querySelector('table').textContent.includes('Reserved') && document.querySelector('.inventory-log'), 'Inventory balances and audit history are available')
     await render('/admin/sales')
     assert(document.querySelector('.sales-metrics').textContent.includes('Gross collected') && document.querySelector('.sales-metrics').textContent.includes('Verified refunds'), 'Sales metrics use verified collections and refunds')
+  })
+  await run('Expanded orders, their address groups and product actions fit the viewport', async () => {
+    await render('/admin/orders')
+    await click(document.querySelector('.address-groups summary'))
+    await click(document.querySelector('.order-details summary'))
+    fits()
+    const list=document.querySelector(innerWidth<=720 ? '.address-group-list' : '.address-groups table')
+    assert(list.getClientRects().length && list.textContent.includes('Boac'), 'Active address groups remain readable')
+    for (const el of document.querySelectorAll('.admin-orders details[open], .order-card, .order-admin-actions button')) {
+      const rect=el.getBoundingClientRect()
+      assert(rect.right<=innerWidth+1 && rect.left>=0 && el.scrollWidth<=el.clientWidth+2, 'Expanded control fits '+el.className)
+    }
+    await render('/product/demo-fragrance')
+    const add=document.querySelector('.product-detail-actions__add')
+    const label=add.querySelector('span')
+    assert(label.getBoundingClientRect().height < 32 && label.getBoundingClientRect().width > 50, 'Add to Cart label fits on one line')
+  })
+  await run('Accessibility settings persist, reset and restore keyboard focus', async () => {
+    await render('/product/demo-fragrance')
+    const trigger=document.querySelector('.access-launcher'); trigger.focus(); await click(trigger)
+    const panel=document.querySelector('.access-panel')
+    for (const label of ['Keyboard focus','Larger text','Underline links','High contrast','Reduce motion']) await click(button(label,panel))
+    assert(document.documentElement.hasAttribute('data-access-focus') && document.documentElement.hasAttribute('data-access-large'), 'Preferences take effect')
+    assert(panel.getBoundingClientRect().right<=innerWidth+1 && panel.scrollWidth<=panel.clientWidth+1, 'Settings fit the viewport')
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); await settle()
+    assert(document.activeElement===trigger, 'Closing settings restores launcher focus')
+    await render('/shop'); await click(document.querySelector('.access-launcher'))
+    assert(button('High contrast').getAttribute('aria-pressed')==='true','Preferences survive remount')
+    await click(button('Reset settings'))
+    assert(!document.documentElement.hasAttribute('data-access-contrast'), 'Reset restores store display')
+    await click(document.querySelector('.access-close'))
   })
   await run('Read-aloud controls pause, replay, stop overlapping content, and handle unsupported browsers', async () => {
     const synthesis = { speak: utterance => calls.speech.push(utterance), cancel: () => calls.speech.push('stop'), pause: () => calls.speech.push('pause'), resume: () => calls.speech.push('resume') }
@@ -238,6 +293,7 @@ const styles = (
       "src/customer-desktop.css",
       "src/storefront.css",
       "src/enhancements.css",
+      "src/accessibility-layout.css",
       "src/sales-report.css",
     ].map((file) => readFile(file, "utf8")),
   )
@@ -283,10 +339,12 @@ const previews = [
   "product-detail",
   "quantity",
   "saved-addresses",
+  "address-editor",
   "checkout-saved",
   "checkout-review",
   "order-tracking",
   "admin-orders",
+  "accessibility",
   "payment-confirmation",
   "payment-review",
   "inventory",

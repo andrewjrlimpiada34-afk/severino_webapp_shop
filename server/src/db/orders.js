@@ -1,3 +1,4 @@
+import { isDeliveryLocality, localityMessage } from '../lib/deliveryLocality.js'
 import { createHash, randomBytes } from 'node:crypto'
 import { getDb, withTransaction } from './postgres.js'
 import { createId, parseJson } from './util.js'
@@ -103,6 +104,7 @@ export const createOrder = (data) =>
             .map(({ productId, quantity }) => ({ productId, quantity }))
             .sort((a, b) => a.productId.localeCompare(b.productId)),
           addressId: data.addressId,
+          shippingAddress: data.shippingAddress,
           address: data.address,
           contactName: data.contactName,
           phone: data.phone,
@@ -165,6 +167,15 @@ export const createOrder = (data) =>
           .join(', '),
         notes: data.notes || ''
       }
+    }
+    if (!data.addressId) {
+      // Older clients sent a single formatted address. Read their locality from the end.
+      const parts = data.address.split(',').map(part => part.trim())
+      const [barangay, city, province, zip, country] = parts.slice(-5)
+      const shipping = data.shippingAddress || { addressLine: parts.slice(0, -5).join(', '), barangay, city, province, zip, country }
+      if (!isDeliveryLocality(shipping)) throw workflowError(localityMessage, 400)
+      snapshot = { ...snapshot, ...shipping, formatted: [shipping.addressLine, shipping.barangay, shipping.city,
+        shipping.province, shipping.zip, shipping.country].filter(Boolean).join(', ') }
     }
     const requestedIds = data.items.map((item) => item.productId)
     const { rows: products } = await connection.query(

@@ -24,7 +24,7 @@ export function registrationProgress(form, verification) {
     barangay: form.barangay.trim() ? '' : 'Enter your barangay.',
     city: form.city.trim() ? '' : 'Enter your city or municipality.',
     province: form.province.trim() ? '' : 'Enter your province or state.',
-    zip: form.zip.trim() ? '' : 'Enter your ZIP code.',
+    zip: /^\d{4}$/.test(form.zip.trim()) ? '' : 'Enter a four-digit ZIP code.',
     country: form.country.trim() ? '' : 'Enter your country.',
   }
   const verified = Boolean(verification.verified && verification.challengeId && verification.email === email)

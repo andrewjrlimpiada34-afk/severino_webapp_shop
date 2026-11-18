@@ -1,9 +1,11 @@
+import StoreIcon from '../components/StoreIcon.jsx';
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { CardSkeleton } from "../components/Skeleton.jsx";
 import {
+  getOrderStatusLabel,
   getOrderItemStatus,
   orderSteps,
 } from "../../server/shared/orderWorkflow.js";
@@ -184,7 +186,8 @@ export default function OrderHistory() {
                           : ""
                       }
                     >
-                      <StatusBadge status={step} />
+                      <span className="tracking-node" aria-hidden="true">{index < trackingSteps.indexOf(order.status) && <StoreIcon name="check" />}</span>
+                      <strong className="tracking-name">{getOrderStatusLabel(step)}</strong>
                       <span className="order-timeline-label">
                         {step === order.status
                           ? "Current stage"

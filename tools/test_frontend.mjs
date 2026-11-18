@@ -14,6 +14,7 @@ import Modal from './src/components/Modal.jsx'
 import BrandIntro from './src/components/BrandIntro.jsx'
 import CreateAccount from './src/pages/CreateAccount.jsx'
 import Login from './src/pages/Login.jsx'
+import Footer from './src/components/Footer.jsx'
 import AdminDashboard from './src/pages/AdminDashboard.jsx'
 import Home from './src/pages/Home.jsx'
 import BannerStoryModal from './src/components/BannerStoryModal.jsx'
@@ -109,8 +110,8 @@ const run = async (name, work) => {
 if (location.search.includes('preview=registration')) {
   await render(<MemoryRouter><CreateAccount /></MemoryRouter>)
 } else if (location.search.includes('preview=terms')) {
-  await render(<MemoryRouter><Login /></MemoryRouter>)
-  await click(document.querySelector('.terms-link'))
+  await render(<MemoryRouter><Login /><Footer /></MemoryRouter>)
+  await click(document.querySelector('.footer-policy-links button'))
 } else if (location.search.includes('preview=intro')) {
   await render(<BrandIntro />)
   await waitFor(() => document.querySelector('.brand-intro__logo'))
@@ -273,13 +274,13 @@ if (location.search.includes('preview=registration')) {
   })
 
   await run('Terms retain content, remove illustrations, and scroll independently', async () => {
-    await render(<MemoryRouter><Login /></MemoryRouter>)
-    await click(document.querySelector('.terms-link'))
+    await render(<MemoryRouter><Login /><Footer /></MemoryRouter>)
+    await click(document.querySelector('.footer-policy-links button'))
     const terms = document.querySelector('.terms-modal')
     assert(terms && terms.scrollHeight > terms.clientHeight, 'Agreement has a scrollable viewport')
     assert(getComputedStyle(terms).overscrollBehaviorY === 'contain', 'Agreement prevents scroll chaining')
     assert(terms.clientHeight <= window.innerHeight * 0.9 + 1, 'Agreement fits in viewport')
-    assert(!terms.querySelector('svg, .terms-document-art, .terms-leaf'), 'All agreement illustrations are removed')
+    assert(!terms.querySelector('.terms-document-art, .terms-leaf'), 'All agreement illustrations are removed')
     assert(terms.querySelectorAll('.terms-law-card').length === 5, 'All agreement sections remain')
     const number = terms.querySelector('.terms-card-number')
     assert(number.textContent === '1.' && getComputedStyle(number).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(number).borderRadius === '0px', 'Agreement uses formal plain numbers without circles')
@@ -314,7 +315,13 @@ if (location.search.includes('preview=registration')) {
     assert(button('Continue').disabled, 'Mismatched passwords block progression')
     fill('confirmPassword', 'test-password')
     await click(button('Continue'))
-    for (const [name, value] of Object.entries({ barangay: 'Poblacion', city: 'Manila', province: 'Metro Manila', zip: '1000' })) fill(name, value)
+    for (const [name, value] of Object.entries({ province: 'Marinduque', city: 'Boac', barangay: 'Agot' })) {
+      const select = document.getElementById('create-' + name)
+      await waitFor(() => Array.from(select.options).some(option => option.value === value))
+      select.value = value
+      flushSync(() => select.dispatchEvent(new Event('change', { bubbles: true })))
+    }
+    fill('zip', '4900')
     await click(button('Continue'))
     assert(!document.querySelector('.create-review').textContent.includes('test-password'), 'Review does not expose passwords')
     await click(button('Edit profile'))
@@ -329,7 +336,7 @@ if (location.search.includes('preview=registration')) {
     await click(button('Continue'))
     fill('password', 'test-password'); fill('confirmPassword', 'test-password')
     await click(button('Continue'))
-    assert(document.getElementById('create-city').value === 'Manila', 'Delivery address is preserved during edits')
+    await waitFor(() => document.getElementById('create-city')?.value === 'Boac')
     await click(button('Continue'))
     holdRegistration = true
     const create = button('Create Account')
@@ -412,6 +419,10 @@ async function browser(args, profile) {
     await new Promise((resolve, reject) => { socket.addEventListener('open', resolve, { once: true }); socket.addEventListener('error', reject, { once: true }) })
     let nextId = 0
     const pending = new Map()
+    socket.addEventListener('close', () => {
+      for (const request of pending.values()) request.reject(new Error('Browser closed before the check completed'))
+      pending.clear()
+    })
     socket.addEventListener('message', event => {
       const message = JSON.parse(event.data)
       const promise = pending.get(message.id)

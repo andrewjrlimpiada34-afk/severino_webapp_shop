@@ -1,3 +1,4 @@
+import AccessibilityPanel from './components/AccessibilityPanel.jsx'
 import WelcomeOfferModal from './components/WelcomeOfferModal.jsx'
 import ShopSearchRedirect from './components/ShopSearchRedirect.jsx'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
@@ -200,6 +201,8 @@ function App() {
   }, [location.pathname])
 
   return (
+    <>
+    <AccessibilityPanel key={location.pathname} />
     <Routes>
       <Route path="/google-onboarding" element={<MinimalLayout><GoogleOnboarding /></MinimalLayout>} />
       <Route
@@ -440,6 +443,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
 

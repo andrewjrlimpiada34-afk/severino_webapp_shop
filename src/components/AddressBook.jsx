@@ -1,3 +1,4 @@
+import LocationFields from './LocationFields.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import Modal from './Modal.jsx'
@@ -18,12 +19,7 @@ const addressFields = [
   ['label', 'Label'],
   ['name', 'Recipient name'],
   ['phone', 'Mobile number'],
-  ['addressLine', 'Street address (optional)'],
-  ['barangay', 'Barangay'],
-  ['city', 'City / Municipality'],
-  ['province', 'Province / State'],
-  ['zip', 'ZIP code'],
-  ['country', 'Country']
+  ['addressLine', 'Street address (optional)']
 ]
 export default function AddressBook({
   selectedId,
@@ -32,6 +28,7 @@ export default function AddressBook({
   disabled = false
 }) {
   const [addresses, setAddresses] = useState([])
+  const [validPlace, setValidPlace] = useState(false)
   const [editing, setEditing] = useState(null)
   const [status, setStatus] = useState({
     loading: true,
@@ -66,7 +63,7 @@ export default function AddressBook({
   const save = async (event) => {
     event.preventDefault()
     event.stopPropagation()
-    if (savingRef.current) return
+    if (savingRef.current || !validPlace) return
     savingRef.current = true
     setStatus((previous) => ({ ...previous, saving: true, error: '' }))
     try {
@@ -185,6 +182,7 @@ export default function AddressBook({
       )}
       {editing && (
         <Modal
+          className="address-editor-backdrop"
           onClick={() => {
             if (!savingRef.current) setEditing(null)
           }}
@@ -230,6 +228,14 @@ export default function AddressBook({
                     </div>
                   ))}
                 </div>
+                <LocationFields prefix="saved" value={editing} onValidity={setValidPlace}
+                  onChange={patch => setEditing(previous => ({ ...previous, ...patch }))} />
+                <div className="locality-field">
+                  <label className="label" htmlFor="saved-zip">ZIP code</label>
+                  <input className="input" id="saved-zip" required pattern="[0-9]{4}" maxLength={4} inputMode="numeric"
+                    autoComplete="postal-code" value={editing.zip} onChange={event => setEditing(previous => ({ ...previous, zip: event.target.value }))} />
+                </div>
+                <p className="location-country">Country · Philippines</p>
                 <label className="terms-check">
                   <input
                     type="checkbox"
@@ -246,7 +252,7 @@ export default function AddressBook({
               </fieldset>
               {status.error && <p role="alert">{status.error}</p>}
               <div className="address-actions">
-                <button className="button" disabled={status.saving}>
+                <button className="button" disabled={status.saving || !validPlace}>
                   {status.saving ? 'Saving…' : 'Save address'}
                 </button>
                 <button

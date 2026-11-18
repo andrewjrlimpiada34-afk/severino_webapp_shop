@@ -47,7 +47,7 @@ test(
       userId,
       checkoutKey,
       items: [{ productId, quantity: 1, price: 0.01, name: 'Tampered name' }],
-      address: 'Poblacion, Marinduque, Philippines',
+      address: 'Agot, Boac, Marinduque, 4900, Philippines',
       contactName: 'Customer',
       phone: '+639171234567',
       email: 'delivery@example.com',

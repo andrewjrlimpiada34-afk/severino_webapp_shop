@@ -1,5 +1,4 @@
 import Modal from '../components/Modal.jsx'
-import PolicyModal from '../components/PolicyModal.jsx'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -24,7 +23,6 @@ function Login() {
   })
   const [announcements, setAnnouncements] = useState([])
   const [announcementOpen, setAnnouncementOpen] = useState(false)
-  const [termsOpen, setTermsOpen] = useState('')
   const { startLogin } = useAuth()
   const navigate = useNavigate()
   const googleUrl = `${API_URL}/api/auth/google`
@@ -188,12 +186,9 @@ function Login() {
             Continue with Google
           </a>
           <p className="store-signup-prompt">New to Severino? <Link to="/create-account" className="store-text-link">Create an account</Link></p>
-          <div className="address-actions"><button className="terms-link" type="button" onClick={() => setTermsOpen('terms')}>Terms and Conditions</button><button className="terms-link" type="button" onClick={() => setTermsOpen('privacy')}>Privacy Notice</button></div>
-          <button className="store-text-link store-login-policy-link" type="button" onClick={() => setTermsOpen('cookies')}>Cookie Policy</button>
         </form>
         </div>
       </div>
-      {termsOpen && <PolicyModal initialPolicy={termsOpen} onClose={() => setTermsOpen('')} />}
       {announcementOpen && hasAnnouncement && (
         <Modal
           role="presentation"

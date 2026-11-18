@@ -20,7 +20,10 @@ function parseAddress(address) {
 export function groupActiveOrdersByAddress(orders) {
   const groups = new Map()
   orders.filter(hasActiveOrderItems).forEach((order) => {
-    const address = parseAddress(order.address)
+    const saved = order.addressSnapshot
+    const address = saved?.barangay && saved.city && saved.province && saved.country
+      ? { barangay: saved.barangay, city: saved.city, province: saved.province, country: saved.country }
+      : parseAddress(order.address)
     const key = JSON.stringify([address.country, address.province, address.city, address.barangay])
     const current = groups.get(key) || { ...address, count: 0 }
     groups.set(key, { ...current, count: current.count + 1 })

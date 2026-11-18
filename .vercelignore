@@ -7,6 +7,8 @@ server/shared/*
 !server/shared/loginValidation.js
 !server/shared/orderWorkflow.js
 !server/shared/policyVersions.js
+!server/shared/places/
+!server/shared/places/**
 
 # Local submissions, QA output, and dependency caches are not deployment inputs.
 /deliverables/

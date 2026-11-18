@@ -115,7 +115,7 @@ export default function AdminViewOrders() {
           {status.error}
         </p>
       )}
-      <details className="card">
+      <details className="card address-groups">
         <summary>Orders by Address</summary>
         <div className="table-scroll">
           <table className="table">
@@ -148,6 +148,13 @@ export default function AdminViewOrders() {
             </tbody>
           </table>
         </div>
+        <ul className="address-group-list">
+          {byAddress.map(address => <li key={JSON.stringify([address.country, address.province, address.city, address.barangay])}>
+            <div><strong>{address.barangay}</strong><span>{[address.city, address.province, address.country].filter(Boolean).join(', ')}</span></div>
+            <span className="address-count">{address.count} {address.count === 1 ? 'order' : 'orders'}</span>
+          </li>)}
+        </ul>
+        {!byAddress.length && <p>No active orders by address.</p>}
       </details>
       {!status.loading && !orders.length && (
         <p className="card">No orders to display.</p>

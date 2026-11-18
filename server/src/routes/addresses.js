@@ -1,3 +1,4 @@
+import { isDeliveryLocality, localityMessage } from '../lib/deliveryLocality.js'
 import express from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
@@ -20,7 +21,7 @@ export const addressSchema = z.object({
   zip: z.string().trim().min(3).max(20),
   country: z.string().trim().min(2).max(100),
   isDefault: z.boolean().default(false)
-})
+}).refine(isDeliveryLocality, { message: localityMessage })
 router.use(requireAuth)
 router.use((req, res, next) => {
   res.set('Cache-Control', 'no-store')

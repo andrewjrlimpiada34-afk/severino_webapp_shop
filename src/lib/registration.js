@@ -32,5 +32,5 @@ export function registrationProgress(form, verification) {
     index === 1 ? verified : index === 4 ? false : fields.every((field) => !errors[field])
   )
   const firstIncomplete = complete.findIndex((value) => !value)
-  return { errors, complete, verified, furthestStep: firstIncomplete + 1, canCreate: complete.slice(0, 4).every(Boolean) }
+  return { errors, complete, verified, furthestStep: firstIncomplete + 1, canCreate: complete.slice(0, 4).every(Boolean) && form.termsAccepted === true }
 }

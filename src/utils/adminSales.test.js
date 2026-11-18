@@ -4,7 +4,7 @@ import { addSalesDays, buildSalesAnalytics, rankSalesProducts, salesCalendarDays
 
 const item = (productId, quantity, price, extra = {}) => ({ productId, name: `Scent ${productId}`, quantity, price, ...extra })
 const order = (id, createdAt, items, extra = {}) => ({
-  id, createdAt, items, status: 'To Ship', total: items.reduce((total, product) => total + product.quantity * product.price, 0), ...extra,
+  id, orderId: id, kind: 'collection', paymentVerified: true, createdAt, items, status: 'To Ship', total: items.filter((product) => !['Cancelled','Removed'].includes(product.trackingStatus)).reduce((total, product) => total + product.quantity * product.price, 0), ...extra,
 })
 
 test('sales dates use Philippine midnight boundaries regardless of the browser timezone', () => {
@@ -38,12 +38,12 @@ test('sales history preserves order totals, excludes cancelled orders, and separ
   ]
   const before = structuredClone(original)
   const data = buildSalesAnalytics(original, '2026-11-03')
-  assert.deepEqual(data.summary, { count: 4, revenue: 2150, units: 5 })
+  assert.deepEqual(data.summary, { count: 4, revenue: 2150, units: 5, gross: 2150, refunds: 0 })
   assert.equal(data.week.length, 7)
   assert.equal(data.weeklyTotal, 1250)
   assert.equal(data.week.at(-1).total, 1000)
   assert.equal(data.daily.get('2026-11-03').count, 1)
-  assert.deepEqual(summarizeSales(data.orders.filter((entry) => entry.dateKey.startsWith('2026-11'))), { count: 2, revenue: 1250, units: 3 })
+  assert.deepEqual(summarizeSales(data.orders.filter((entry) => entry.dateKey.startsWith('2026-11'))), { count: 2, revenue: 1250, units: 3, gross: 1250, refunds: 0 })
   assert.equal(rankSalesProducts(data.orders.filter((entry) => entry.dateKey.startsWith('2026')))[0].id, 'A')
   assert.deepEqual(original, before)
 })
@@ -64,15 +64,25 @@ test('yearly product rankings group product IDs, exclude cancelled items, and br
 test('empty history, legacy items, invalid dates, and non-finite totals do not create false daily sales', () => {
   const empty = buildSalesAnalytics([], '2026-11-03')
   assert.equal(empty.week.every((day) => day.total === 0), true)
-  assert.deepEqual(empty.summary, { count: 0, revenue: 0, units: 0 })
+  assert.deepEqual(empty.summary, { count: 0, revenue: 0, units: 0, gross: 0, refunds: 0 })
   assert.equal(empty.mostSoldProduct, undefined)
   const data = buildSalesAnalytics([
     { id: 'legacy', total: 100, createdAt: '2026-11-01T00:00:00Z' },
     { id: 'undated', total: 300 },
     { id: 'invalid-total', total: Infinity, createdAt: '2026-11-01T00:00:00Z' },
   ], '2026-11-03')
-  assert.equal(data.weeklyTotal, 100)
+  assert.equal(data.weeklyTotal, 0)
   assert.equal(data.daily.has('2026-11-03'), false)
   assert.equal(data.daily.has(''), false)
   assert.deepEqual(rankSalesProducts(data.orders), [])
+})
+
+test('verified refunds use their own dates, reduce net revenue, and preserve gross collections', () => {
+  const collection = order('paid', '2026-11-01T00:00:00Z', [item('A', 2, 100)])
+  const refund = { ...collection, id: 'refund', kind: 'refund', total: -50, createdAt: '2026-11-03T00:00:00Z' }
+  const unpaid = { ...collection, id: 'unpaid', paymentVerified: false }
+  const data = buildSalesAnalytics([collection, refund, unpaid], '2026-11-03')
+  assert.deepEqual(data.summary, { count: 1, revenue: 150, units: 2, gross: 200, refunds: 50 })
+  assert.equal(data.daily.get('2026-11-03').revenue, -50)
+  assert.equal(rankSalesProducts(data.orders)[0].revenue, 150)
 })

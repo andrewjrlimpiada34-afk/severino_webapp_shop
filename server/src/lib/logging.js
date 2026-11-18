@@ -6,6 +6,7 @@ const knownErrorCodes = new Set([
   'EAI_AGAIN', 'EPIPE', 'EAUTH', 'ESOCKET', 'ECONNECTION', 'ETLS',
   '23502', '23503', '23505', '23514', '22P02', '28P01', '42P01',
   '42703', '42501', '53300', '57P01', '57P02', '57P03',
+  'SCHEMA_NOT_READY',
 ])
 const httpMethods = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'CONNECT', 'TRACE'])
 

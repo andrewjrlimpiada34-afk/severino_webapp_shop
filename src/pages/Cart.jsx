@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -12,9 +12,12 @@ function Cart() {
   const items = useMemo(() => cartItems.map((item) => withInventoryStock(item, stocks)), [cartItems, stocks])
   const [status, setStatus] = useState({ loading: true, error: '' })
   const [selected, setSelected] = useState({})
+  const [updating, setUpdating] = useState(false)
+  const updatePending = useRef(false)
   const navigate = useNavigate()
   const { user } = useAuth()
-  const invalidSelection = items.some((item) => selected[item.id] && (item.stock <= 0 || item.quantity > item.stock))
+  const needsAvailabilityUpdate = items.some((item) => item.stock <= 0 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > Math.min(100, item.stock))
+  const invalidSelection = items.some((item) => selected[item.id] && (item.stock <= 0 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > Math.min(100, item.stock)))
   const selectionKey = user ? `checkout_selection_${user.id}` : 'checkout_selection_guest'
   const directPurchaseKey = user
     ? `severino_direct_checkout_${user.id}`
@@ -30,6 +33,7 @@ function Cart() {
   )
 
   const updateQuantity = async (id, delta) => {
+    if (updatePending.current) return
     if (items.find((item) => item.id === id)?.stock <= 0) {
       setStatus((current) => ({ ...current, error: 'This item is out of stock.' }))
       return
@@ -39,12 +43,37 @@ function Cart() {
       const maxQty = Math.min(100, item.stock ?? 100)
       return { ...item, quantity: Math.min(maxQty, Math.max(1, item.quantity + delta)) }
     })
+    const previousItems = cartItems
+    updatePending.current = true
+    setUpdating(true)
     setItems(next)
     try {
       await api.updateCart(next.map(({ id: productId, quantity }) => ({ productId, quantity })))
     } catch (error) {
+      setItems(previousItems)
       setStatus((prev) => ({ ...prev, error: error.message }))
-    }
+    } finally { updatePending.current = false; setUpdating(false) }
+  }
+
+  const updateAvailability = async () => {
+    if (updatePending.current) return
+    updatePending.current = true
+    setUpdating(true)
+    try {
+      const products = await api.products({ fresh: true })
+      const next = items.flatMap((item) => {
+        const product = products.find((entry) => entry.id === item.id)
+        if (!product || product.active === false || product.stock <= 0) return []
+        return [{ ...product, quantity: Math.min(100, product.stock, Math.max(1, Math.floor(Number(item.quantity)) || 1)) }]
+      })
+      await api.updateCart(next.map(({ id: productId, quantity }) => ({ productId, quantity })))
+      const nextSelected = Object.fromEntries(next.map((item) => [item.id, Boolean(selected[item.id])]))
+      setItems(next)
+      setSelected(nextSelected)
+      localStorage.setItem(selectionKey, JSON.stringify(Object.keys(nextSelected).filter((id) => nextSelected[id])))
+      setStatus({ loading: false, error: '' })
+    } catch (error) { setStatus((previous) => ({ ...previous, error: error.message })) }
+    finally { updatePending.current = false; setUpdating(false) }
   }
 
   useEffect(() => {
@@ -53,7 +82,7 @@ function Cart() {
         setStatus({ loading: true, error: '' })
         const [products, cart] = await Promise.all([api.products(), api.cart()])
         const merged = cart.items.map((item) => {
-          const product = products.find((entry) => entry.id === item.productId)
+          const product = products.find((entry) => entry.id === item.productId) || { id: item.productId, name: 'Unavailable product', price: 0, stock: 0, active: false }
           return {
             ...product,
             quantity: item.quantity,
@@ -76,7 +105,7 @@ function Cart() {
   }, [selectionKey])
 
   return (
-    <section className="grid" style={{ gap: '24px' }}>
+    <section className="grid cart-page" style={{ gap: '24px' }}>
       <div>
         <h1 className="section-title">Cart Page</h1>
         <p className="section-subtitle">Review your selections. Secure COD checkout only.</p>
@@ -84,6 +113,7 @@ function Cart() {
 
       {status.loading && <CardSkeleton lines={4} />}
       {status.error && <div className="card">Error: {status.error}</div>}
+      {!status.loading && needsAvailabilityUpdate && <div className="card"><p role="status">Stock has changed. Update your cart to reduce quantities to current limits and remove unavailable products.</p><button className="button secondary" type="button" disabled={updating} onClick={updateAvailability}>{updating ? 'Updating…' : 'Update cart availability'}</button></div>}
       {!status.loading && <div className="grid two">
         <div className="card table-scroll">
           <table className="table">
@@ -110,6 +140,7 @@ function Cart() {
                   <td>
                     <input
                       type="checkbox"
+                      disabled={updating}
                       checked={Boolean(selected[item.id])}
                       onChange={() => {
                         setSelected((prev) => {
@@ -130,20 +161,27 @@ function Cart() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <button className="button ghost" disabled={item.stock <= 0 || item.quantity <= 1} onClick={() => updateQuantity(item.id, -1)}>
+                      <button className="button ghost" aria-label={`Decrease quantity of ${item.name}`} disabled={updating || item.stock <= 0 || item.quantity <= 1} onClick={() => updateQuantity(item.id, -1)}>
                         -
                       </button>
                       <span>{item.quantity}</span>
-                      <button className="button ghost" disabled={item.stock <= 0 || item.quantity >= item.stock} onClick={() => updateQuantity(item.id, 1)}>
+                      <button className="button ghost" aria-label={`Increase quantity of ${item.name}`} disabled={updating || item.stock <= 0 || item.quantity >= Math.min(100, item.stock)} onClick={() => updateQuantity(item.id, 1)}>
                         +
                       </button>
                     </div>
+                    {item.quantity >= Math.min(100, item.stock) && <p className="quantity-limit">Maximum available quantity reached.</p>}
                   </td>
                   <td>₱{(item.price * item.quantity).toLocaleString()}</td>
                   <td>
                     <button
                       className="button ghost"
+                      disabled={updating}
                       onClick={async () => {
+                        if (updatePending.current) return
+                        const previousItems = cartItems
+                        const previousSelected = selected
+                        updatePending.current = true
+                        setUpdating(true)
                         const next = items.filter((entry) => entry.id !== item.id)
                         setItems(next)
                         setSelected((prev) => {
@@ -160,8 +198,11 @@ function Cart() {
                             next.map(({ id: productId, quantity }) => ({ productId, quantity }))
                           )
                         } catch (error) {
+                          setItems(previousItems)
+                          setSelected(previousSelected)
+                          localStorage.setItem(selectionKey, JSON.stringify(Object.keys(previousSelected).filter((id) => previousSelected[id])))
                           setStatus((prev) => ({ ...prev, error: error.message }))
-                        }
+                        } finally { updatePending.current = false; setUpdating(false) }
                       }}
                     >
                       Remove
@@ -187,7 +228,7 @@ function Cart() {
             <button
               className="button"
               type="button"
-              disabled={invalidSelection}
+              disabled={updating || invalidSelection}
               onClick={() => {
                 const selectedIds = Object.entries(selected)
                   .filter(([, value]) => value)

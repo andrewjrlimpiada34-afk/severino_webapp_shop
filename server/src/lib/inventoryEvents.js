@@ -22,7 +22,9 @@ export function publishInventoryChange(event) {
 }
 
 export async function notifyInventoryChange(connection, event) {
-  await connection.query("SELECT pg_notify('severino_inventory', $1)", [JSON.stringify(event)])
+  const serialized = JSON.stringify(event)
+  const payload = Buffer.byteLength(serialized) < 7500 ? serialized : JSON.stringify({ id: event.id, products: [] })
+  await connection.query("SELECT pg_notify('severino_inventory', $1)", [payload])
 }
 
 export async function startInventoryListener() {

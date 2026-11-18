@@ -15,10 +15,12 @@ import orderRoutes from './routes/orders.js'
 import feedbackRoutes from './routes/feedback.js'
 import adminRoutes from './routes/admin.js'
 import userRoutes from './routes/users.js'
+import addressRoutes from './routes/addresses.js'
+import { protectCookieMutations } from './middleware/csrf.js'
 import reviewRoutes from './routes/reviews.js'
 import publicRoutes from './routes/public.js'
 import uploadRoutes from './routes/uploads.js'
-import { closeDb, testDbConnection } from './db/postgres.js'
+import { closeDb, getDb, testDbConnection } from './db/postgres.js'
 import { errorHandler } from './middleware/error.js'
 import { startInventoryListener, stopInventoryListener } from './lib/inventoryEvents.js'
 import { createCorsOptions, getClientOrigins } from './lib/clientOrigins.js'
@@ -34,6 +36,7 @@ app.use(helmet())
 app.use(cors(createCorsOptions()))
 app.use(express.json({ limit: '30mb' }))
 app.use(cookieParser())
+app.use(protectCookieMutations)
 app.use(passport.initialize())
 if (process.env.NODE_ENV !== 'production') app.use(morgan(accessLogFormat))
 app.use(
@@ -70,6 +73,7 @@ app.use('/api/orders', orderRoutes)
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/addresses', addressRoutes)
 app.use('/api/reviews', reviewRoutes)
 app.use('/api/public', publicRoutes)
 app.use('/api/uploads', uploadRoutes)
@@ -117,12 +121,15 @@ process.on('uncaughtException', (error) => shutdown('uncaughtException', error))
 
 try {
   await testDbConnection()
+  const migration = await getDb().query("SELECT version FROM schema_migrations WHERE version='001_system_enhancements'")
+  if (!migration.rows.length) throw Object.assign(new Error('Enhancement schema required'), { code: 'SCHEMA_NOT_READY' })
   void startInventoryListener()
   server = app.listen(port, '0.0.0.0', () => {
     console.log(`Severino backend listening on 0.0.0.0:${port}`)
     console.log('Allowed frontend origins:', allowedOrigins.length ? allowedOrigins.join(', ') : '(none configured; set CLIENT_ORIGIN)')
   })
 } catch (error) {
+  if (['42P01', 'SCHEMA_NOT_READY'].includes(error.code)) console.error('Apply database enhancement migration 001 before starting this release.')
   logError('server_startup_failed', error)
   await closeDb().catch(() => null)
   process.exit(1)

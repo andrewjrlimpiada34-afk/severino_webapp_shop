@@ -11,6 +11,8 @@
     "start": "node src/index.js",
     "db:check": "node scripts/check-postgres.js",
     "db:schema": "node scripts/apply-schema.js",
+    "db:enhance": "node scripts/migrate-enhancements.js",
+    "db:preflight": "node scripts/migrate-enhancements.js --check",
     "db:migrate": "node scripts/migrate-mongo-to-postgres.js"
   },
   "dependencies": {

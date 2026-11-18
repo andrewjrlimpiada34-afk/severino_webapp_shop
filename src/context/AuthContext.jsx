@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
     applyFontPreference(readFontPreference())
     sessionStorage.removeItem('admin_session')
     Object.keys(sessionStorage)
-      .filter((key) => key.startsWith('severino_login_popup_seen_'))
+      .filter((key) => key.startsWith('severino_login_popup_seen_') || key.startsWith('severino_checkout_attempt_'))
       .forEach((key) => sessionStorage.removeItem(key))
   }, [])
 

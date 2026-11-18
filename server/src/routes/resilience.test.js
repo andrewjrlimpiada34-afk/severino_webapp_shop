@@ -36,9 +36,9 @@ test('database outages return HTTP errors without taking down other API requests
   })
   const logs = []
   context.mock.method(console, 'error', (entry) => logs.push(entry))
-  context.mock.method(passport, 'authenticate', (strategy, options, callback) => (req, res, next) => {
+  context.mock.method(passport, 'authenticate', (strategy, options, callback) => () => {
     assert.equal(strategy, 'google')
-    callback(null, { emails: [{ value: 'test@example.com' }], _json: { email_verified: true } })
+    callback(null, { id: 'google-test-subject', emails: [{ value: 'test@example.com' }], _json: { email_verified: true } })
   })
 
   const app = express()

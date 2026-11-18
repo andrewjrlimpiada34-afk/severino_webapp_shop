@@ -6,6 +6,7 @@ import { compressImageFile } from '../lib/image.js'
 import { CardSkeleton } from '../components/Skeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import StoreIcon from '../components/StoreIcon.jsx'
+import AddressBook from '../components/AddressBook.jsx'
 import { FONT_OPTIONS, applyFontPreference, readFontPreference, saveFontPreference } from '../lib/fontPreference.js'
 
 function Account() {
@@ -97,19 +98,14 @@ function Account() {
     event.preventDefault()
     if (
       !form.name ||
-      !form.phone ||
-      !form.barangay ||
-      !form.city ||
-      !form.province ||
-      !form.zip ||
-      !form.country
+      !form.phone
     ) {
       setStatus({ loading: false, error: 'Please complete all fields.', success: '' })
       return
     }
     try {
       setStatus({ loading: true, error: '', success: '' })
-      const updated = await api.updateProfile(form)
+      const updated = await api.updateProfile({ name: form.name, email: form.email, phone: form.phone, profileImage: form.profileImage })
       updateUser(updated)
       setStatus({ loading: false, error: '', success: '' })
       setProfileUpdatedOpen(true)
@@ -190,7 +186,7 @@ function Account() {
           <section className="store-account-section">
             <h2>Personal information</h2><p className="store-section-description">The details that make this account yours.</p>
             <div className="store-field"><label htmlFor="account-name">Full name</label><input className="input" id="account-name" autoComplete="name" required value={form.name} onChange={(event) => updateField('name', event.target.value)} /></div>
-            <div className="store-field"><label htmlFor="account-email">Email</label><input className="input" id="account-email" type="email" autoComplete="email" readOnly={canManageSecurity} value={form.email} onChange={(event) => updateField('email', event.target.value)} /></div>
+            <div className="store-field"><label htmlFor="account-email">Email</label><input className="input" id="account-email" type="email" autoComplete="email" readOnly aria-describedby="account-email-help" value={form.email} /><p id="account-email-help" className="store-section-description">Contact Severino to verify an email change.</p></div>
             <div className="store-field"><label htmlFor="account-phone">Mobile number</label><input className="input" id="account-phone" type="tel" autoComplete="tel" required value={form.phone} onChange={(event) => updateField('phone', event.target.value)} /></div>
             <div className="store-account-preferences">
               <div className="store-preference-row"><StoreIcon name="palette" /><label htmlFor="account-theme">Theme</label><select className="input" id="account-theme" value={theme} onChange={(event) => handleThemeChange(event.target.value)}>{['Default', 'Daylight', 'Pink Splush', 'Blazing Maroon', 'Forest Brown', 'Beach Blue', 'Luxurious Gold', 'Shadow Dark Mode'].map((option) => <option key={option}>{option}</option>)}</select></div>
@@ -199,23 +195,13 @@ function Account() {
               {canManageSecurity && <div className="store-preference-row"><StoreIcon name="shield" /><span>Security</span><button className="store-text-link" type="button" aria-expanded={securityOpen} aria-controls="account-password-form" onClick={() => setSecurityOpen((open) => !open)}>{securityOpen ? 'Close password settings' : 'Change password'}</button></div>}
             </div>
           </section>
-          <section className="store-account-section">
-            <h2>Delivery address</h2><p className="store-section-description">Help your next favorite find its way to you.</p>
-            <div className="store-field"><label htmlFor="account-street">Street address <span>(optional)</span></label><input className="input" id="account-street" autoComplete="address-line1" value={form.addressLine} onChange={(event) => updateField('addressLine', event.target.value)} /></div>
-            <div className="store-field-pair">
-              <div className="store-field"><label htmlFor="account-barangay">Barangay</label><input className="input" id="account-barangay" autoComplete="address-level3" required value={form.barangay} onChange={(event) => updateField('barangay', event.target.value)} /></div>
-              <div className="store-field"><label htmlFor="account-city">City / Municipality</label><input className="input" id="account-city" autoComplete="address-level2" required value={form.city} onChange={(event) => updateField('city', event.target.value)} /></div>
-            </div>
-            <div className="store-field-pair">
-              <div className="store-field"><label htmlFor="account-province">Province / State</label><input className="input" id="account-province" autoComplete="address-level1" required value={form.province} onChange={(event) => updateField('province', event.target.value)} /></div>
-              <div className="store-field"><label htmlFor="account-zip">ZIP code</label><input className="input" id="account-zip" autoComplete="postal-code" required value={form.zip} onChange={(event) => updateField('zip', event.target.value)} /></div>
-            </div>
-            <div className="store-field"><label htmlFor="account-country">Country</label><input className="input" id="account-country" autoComplete="country-name" required value={form.country} onChange={(event) => updateField('country', event.target.value)} /></div>
-            <div className="store-field"><label htmlFor="account-backup">Backup address <span>(optional)</span></label><input className="input" id="account-backup" value={form.backupAddress} onChange={(event) => updateField('backupAddress', event.target.value)} /></div>
-          </section>
+
         </fieldset>
         <div className="store-account-save"><span>Keep your details up to date for smooth deliveries.</span><button className="button" type="submit" disabled={status.loading || photoUploading}>{status.loading ? 'Saving...' : 'Save changes'}</button></div>
       </form>
+
+      <AddressBook />
+      {form.backupAddress && <details className="card"><summary>Previous backup address</summary><p>{form.backupAddress}</p><p>Use Add New Address to save this location for checkout.</p></details>}
 
       {canManageSecurity && securityOpen && (
         <form className="card form store-password-form" id="account-password-form" onSubmit={handlePasswordChange}>

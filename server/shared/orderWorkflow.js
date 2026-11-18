@@ -7,6 +7,9 @@ const aliases = {
 
 export const normalizeOrderStatus = (value) => aliases[String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')] || ''
 
+const statusLabels = { 'Pending COD': 'Awaiting approval', Approved: 'Approved', 'To Ship': 'Preparing shipment', 'To Receive': 'In transit', 'To Review': 'Delivered' }
+export const getOrderStatusLabel = (value) => statusLabels[normalizeOrderStatus(value)] || value || 'Unavailable'
+
 export function getOrderItemStatus(order, item) {
   const parent = normalizeOrderStatus(order?.status)
   if (parent === 'Cancelled' || parent === 'Removed') return parent

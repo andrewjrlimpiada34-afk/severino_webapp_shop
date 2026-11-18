@@ -11,14 +11,16 @@ const compactAmount = (value) => `₱${new Intl.NumberFormat('en-PH', { notation
 
 function SalesWeekChart({ data }) {
   const max = Math.max(...data.map((day) => day.total), 100)
-  const points = data.map((day, index) => ({ ...day, x: 14 + index / 6 * 572, y: 174 - day.total / max * 142 }))
+  const min = Math.min(...data.map((day) => day.total), 0)
+  const baseline = 174 - (0 - min) / (max - min) * 142
+  const points = data.map((day, index) => ({ ...day, x: 14 + index / 6 * 572, y: 174 - (day.total - min) / (max - min) * 142 }))
   const line = points.map((point) => `${point.x},${point.y}`).join(' ')
   return (
     <div className="sales-chart-card">
       <div className="sales-chart-heading"><span className="sales-eyebrow">Sales per day</span><span>Last 7 days</span></div>
-      <svg className="sales-week-chart" viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="Order value over the last seven days">
+      <svg className="sales-week-chart" viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="Net verified collections over the last seven days">
         {[0, 0.25, 0.5, 0.75, 1].map((ratio) => <line key={ratio} x1="14" x2="586" y1={174 - ratio * 142} y2={174 - ratio * 142} className="sales-chart-gridline" />)}
-        <polygon points={`14,174 ${line} 586,174`} className="sales-chart-area" />
+        <polygon points={`14,${baseline} ${line} 586,${baseline}`} className="sales-chart-area" />
         <polyline points={line} className="sales-chart-line" />
         {points.map((point) => <circle key={point.key} cx={point.x} cy={point.y} r="4" className="sales-chart-point"><title>{formatSalesDate(point.key)}: {formatSalesCurrency(point.total)}</title></circle>)}
       </svg>
@@ -60,7 +62,7 @@ function AdminSalesReport() {
     const load = async () => {
       setStatus({ loading: true, error: '' })
       try {
-        const data = await api.orders()
+        const data = await api.salesHistory()
         if (!active) return
         setOrders(Array.isArray(data) ? data : [])
         setStatus({ loading: false, error: '' })
@@ -98,7 +100,9 @@ function AdminSalesReport() {
             <SalesWeekChart data={analytics.week} />
             <div className="sales-metrics">
               <SalesMetric label="Total orders · all time" value={analytics.summary.count.toLocaleString()} icon="orders" />
-              <SalesMetric label="Revenue · all time" value={formatSalesCurrency(analytics.summary.revenue)} icon="sales" />
+              <SalesMetric label="Net collected · all time" value={formatSalesCurrency(analytics.summary.revenue)} icon="sales" />
+              <SalesMetric label="Gross collected" value={formatSalesCurrency(analytics.summary.gross)} icon="sales" />
+              <SalesMetric label="Verified refunds" value={formatSalesCurrency(analytics.summary.refunds)} icon="sales" />
               <SalesMetric label="Sales · last 7 days" value={formatSalesCurrency(analytics.weeklyTotal)} icon="calendar" />
               <SalesMetric label="Average per day" value={formatSalesCurrency(analytics.averageDaily)} icon="overview" />
             </div>
@@ -113,13 +117,13 @@ function AdminSalesReport() {
               <div className="sales-month-total"><span>This month</span><strong>{formatSalesCurrency(monthSummary.revenue)}</strong><small>{monthSummary.count} {monthSummary.count === 1 ? 'order' : 'orders'}</small></div>
             </div>
             <div className="card sales-history-card">
-              <div className="sales-history-heading"><div><h3>{historyScope === 'day' ? formatSalesDate(selectedDate, { month: 'long', day: 'numeric' }) : 'Monthly orders'}</h3><p>{historyScope === 'day' ? 'Orders for the selected date' : 'All orders in the selected month'}</p></div><div className="sales-scope-switch" role="group" aria-label="Sales history period">{['month', 'day'].map((scope) => <button key={scope} type="button" aria-pressed={historyScope === scope} onClick={() => { setHistoryScope(scope); setPage(0) }}>{scope === 'month' ? 'Month' : 'Day'}</button>)}</div></div>
-              <div className="sales-history-totals" aria-live="polite"><div><span className="sales-eyebrow">Order value</span><strong>{formatSalesCurrency(historySummary.revenue)}</strong></div><div><span className="sales-eyebrow">Orders</span><strong>{historySummary.count}</strong></div><div><span className="sales-eyebrow">Units</span><strong>{historySummary.units}</strong></div></div>
-              {history.length === 0 ? <div className="sales-empty"><AdminIcon name="orders" /><h4>No orders for this {historyScope === 'day' ? 'date' : 'month'}</h4><p>Choose another date to explore your sales.</p></div> : <>
-                <ol className="sales-order-list">{visibleOrders.map((order) => <li key={order.id} className="sales-order-row"><span className="sales-order-symbol" aria-hidden="true"><AdminIcon name="orders" /></span><div className="sales-order-info"><strong>{order.contactName || 'Customer order'}</strong><span>{formatSalesDate(order.dateKey, { month: 'short', day: 'numeric' })}<i aria-hidden="true">·</i>{order.units} {order.units === 1 ? 'unit' : 'units'}</span><small title={String(order.id)}>#{String(order.id).slice(-8).toUpperCase()}</small></div><div className="sales-order-amount"><strong>{formatSalesCurrency(order.revenue)}</strong><span>{order.status || 'Recorded'}</span></div></li>)}</ol>
-                <div className="sales-history-pagination"><span>{page * pageSize + 1}–{Math.min((page + 1) * pageSize, history.length)} of {history.length} orders</span><div><button type="button" className="sales-icon-button" aria-label="Previous sales history page" disabled={page === 0} onClick={() => setPage((value) => value - 1)}><AdminIcon name="left" /></button><button type="button" className="sales-icon-button" aria-label="Next sales history page" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}><AdminIcon name="right" /></button></div></div>
+              <div className="sales-history-heading"><div><h3>{historyScope === 'day' ? formatSalesDate(selectedDate, { month: 'long', day: 'numeric' }) : 'Collections and refunds'}</h3><p>{historyScope === 'day' ? 'Verified transactions for the selected date' : 'All verified transactions in the selected month'}</p></div><div className="sales-scope-switch" role="group" aria-label="Sales history period">{['month', 'day'].map((scope) => <button key={scope} type="button" aria-pressed={historyScope === scope} onClick={() => { setHistoryScope(scope); setPage(0) }}>{scope === 'month' ? 'Month' : 'Day'}</button>)}</div></div>
+              <div className="sales-history-totals" aria-live="polite"><div><span className="sales-eyebrow">Net collected</span><strong>{formatSalesCurrency(historySummary.revenue)}</strong></div><div><span className="sales-eyebrow">Orders</span><strong>{historySummary.count}</strong></div><div><span className="sales-eyebrow">Units</span><strong>{historySummary.units}</strong></div></div>
+              {history.length === 0 ? <div className="sales-empty"><AdminIcon name="orders" /><h4>No verified transactions for this {historyScope === 'day' ? 'date' : 'month'}</h4><p>Choose another date to explore your sales.</p></div> : <>
+                <ol className="sales-order-list">{visibleOrders.map((order) => <li key={order.id} className="sales-order-row"><span className="sales-order-symbol" aria-hidden="true"><AdminIcon name="orders" /></span><div className="sales-order-info"><strong>{order.contactName || 'Customer order'}</strong><span>{formatSalesDate(order.dateKey, { month: 'short', day: 'numeric' })}<i aria-hidden="true">·</i>{order.units} {order.units === 1 ? 'unit' : 'units'}</span><small>{order.reference || 'Verified transaction'}</small></div><div className="sales-order-amount"><strong>{formatSalesCurrency(order.revenue)}</strong><span>{order.kind === 'refund' ? 'Verified refund' : 'Verified collection'}</span></div></li>)}</ol>
+                <div className="sales-history-pagination"><span>{page * pageSize + 1}–{Math.min((page + 1) * pageSize, history.length)} of {history.length} transactions</span><div><button type="button" className="sales-icon-button" aria-label="Previous sales history page" disabled={page === 0} onClick={() => setPage((value) => value - 1)}><AdminIcon name="left" /></button><button type="button" className="sales-icon-button" aria-label="Next sales history page" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}><AdminIcon name="right" /></button></div></div>
               </>}
-              <p className="sales-data-note">Order totals exclude cancelled and removed orders. Dates use Philippine time.</p>
+          <p className="sales-data-note">Verified collections and refunds use their verification dates in Philippine time. Canceled orders are excluded from sales.</p>
             </div>
           </div>
         </section>

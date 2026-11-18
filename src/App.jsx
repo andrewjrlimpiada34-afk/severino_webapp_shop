@@ -21,6 +21,7 @@ import Notifications from './pages/Notifications.jsx'
 import EmailConfirmation from './pages/EmailConfirmation.jsx'
 import Login from './pages/Login.jsx'
 import CreateAccount from './pages/CreateAccount.jsx'
+import GoogleOnboarding from './pages/GoogleOnboarding.jsx'
 import VerifyEmail from './pages/VerifyEmail.jsx'
 import AdminLogin from './pages/AdminLogin.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
@@ -200,6 +201,7 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/google-onboarding" element={<MinimalLayout><GoogleOnboarding /></MinimalLayout>} />
       <Route
         path="/"
         element={

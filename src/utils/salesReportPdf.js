@@ -14,8 +14,7 @@ function escapeHtml(value) {
 }
 
 function formatCurrency(value) {
-  const amount = Math.round(Number(value) || 0)
-  return `₱${amount.toLocaleString()}`
+  return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value) || 0)
 }
 
 function formatPrintedDate(value = new Date()) {
@@ -53,6 +52,7 @@ function createChartSvg(chartData = []) {
     : [{ label: '-', total: 0, amount: formatCurrency(0) }]
   const maxTotal = Math.max(...data.map((item) => Number(item.total) || 0), 100)
   const maxAxis = Math.max(100, Math.ceil(maxTotal / 100) * 100)
+  const minAxis = Math.min(0, ...data.map((item) => Number(item.total) || 0))
   const left = 96
   const right = 598
   const top = 44
@@ -61,7 +61,7 @@ function createChartSvg(chartData = []) {
   const height = bottom - top
   const points = data.map((item, index) => {
     const x = left + (index / Math.max(data.length - 1, 1)) * width
-    const y = bottom - ((Number(item.total) || 0) / maxAxis) * height
+    const y = bottom - (((Number(item.total) || 0) - minAxis) / (maxAxis - minAxis)) * height
     const amount = formatCurrency(item.total)
     const labelWidth = Math.max(46, amount.length * 7 + 18)
     const labelAbove = y > top + 24
@@ -140,7 +140,9 @@ export function createSalesReportPdfHtml({
   }
   const metrics = [
     createMetric('TOTAL ORDERS', Number(summary.count || 0).toLocaleString(), 'orders'),
-    createMetric('TOTAL REVENUE', formatCurrency(summary.revenue), 'revenue'),
+    createMetric('NET COLLECTED', formatCurrency(summary.revenue), 'revenue'),
+    createMetric('GROSS COLLECTED', formatCurrency(summary.gross), 'revenue'),
+    createMetric('VERIFIED REFUNDS', formatCurrency(summary.refunds), 'revenue'),
     createMetric('SUMMARY OF SALES (WEEK)', formatCurrency(weeklyTotal), 'weekly'),
     createMetric('AVERAGE PER DAY', formatCurrency(averageDaily), 'average'),
   ].join('')

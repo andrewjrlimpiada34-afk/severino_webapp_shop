@@ -1,6 +1,6 @@
 # Render backend with Supabase PostgreSQL
 
-The React frontend and API contract are unchanged. Supabase is used only as the hosted PostgreSQL database; Supabase Auth, Storage, and generated APIs are not used.
+The Express backend owns authentication and application data access. Supabase supplies the hosted PostgreSQL database. The current release adds versioned account, inventory, payment, and address migrations. Follow [the enhancement rollout guide](../docs/ENHANCEMENT_ROLLOUT.md) for an existing PostgreSQL installation.
 
 ## 1. Create the free Supabase database
 
@@ -28,9 +28,10 @@ Keep `MONGODB_URI`, `MONGODB_DB`, and `MIGRATION_DNS_SERVERS` temporarily so the
 Run from `server`:
 
 ```powershell
-npm run db:check
-npm run db:schema
-npm run db:migrate
+npm.cmd run db:check
+npm.cmd run db:schema -- --base-only
+npm.cmd run db:migrate
+npm.cmd run db:enhance
 ```
 
 The schema enables Row Level Security without public policies. The Express backend connects directly with the Supabase Postgres database user and remains the only application data-access layer.
@@ -90,36 +91,32 @@ the frontend to reuse profile data without extra session/profile requests.
 Deploy the Node backend and frontend changes together. No Python OTP service
 changes or environment updates are required for this login/request cleanup.
 
-## Approval workflow and live inventory
+## Order workflow and live inventory
 
-Deploy the Node backend before the matching frontend. Item actions use
-`PATCH /api/orders/:orderId/items/:itemId/progress`, which validates the next
-stage and deducts approval stock transactionally. The UI no longer disables an
-otherwise valid action when an order response omits `workflowVersion`.
-If Render still runs the older code, this dedicated endpoint returns 404 and the
-frontend displays a backend deployment instruction. It never falls back to the
-older unrestricted status endpoint. The existing `/status` route remains as a
-compatibility alias with the same checks on the updated backend.
+The fulfillment stages are `Pending COD -> Approved -> To Ship -> To Receive -> To Review`.
+Checkout reserves available stock in the order transaction. Approval and shipment
+preparation retain that reservation. Moving an item to `To Receive` deducts physical
+stock and consumes its reservation once. Eligible cancellations release reservations.
+Accepted returned goods restore their recorded quantities through a separate action.
 
-The item workflow is `Pending COD -> Approved -> To Ship -> To Receive -> To Review`.
-Approval deducts stock once in the same transaction as the item update. Deduction
-metadata is stored in the existing JSONB order items; no schema migration or new
-environment variables are required. Retried approvals are safe. Cancelling an
-already-approved item and skipping or reversing delivery stages are rejected.
+COD payment confirmation is an administrator action after actual collection has been
+verified. Payment and refund records drive collected-sales reports. Inventory and
+payment actions write audit records. Historical deduction markers are retained;
+advanced items missing deduction evidence use the reconciliation action.
 
-`GET /api/products/stock-events` streams public stock notifications. Each Node
-instance listens on PostgreSQL channel `severino_inventory`; keep the Session
-Pooler connection described above, since notifications need a persistent session.
-Customer pages share one stream and refresh stock after a notification, reconnect,
-or return to the tab. Stock-bearing product responses use `Cache-Control: no-store`.
+`GET /api/products/stock-events` streams inventory notifications. Each Node instance
+listens on PostgreSQL channel `severino_inventory`. Keep a persistent connection
+suitable for LISTEN/NOTIFY. Storefront clients refetch stock after committed events,
+reconnects, and return to the tab. Stock-bearing responses use `Cache-Control: no-store`.
 
-Previously shipped/review-ready items are not automatically deducted again.
-Check those older items against actual inventory before any manual correction.
-The Python OTP service does not need changes or redeployment for this workflow.
+The enhancement migration is required before this backend starts. The tracked Render
+blueprint runs `npm run db:schema` before deployment. Its migration history prevents a
+repeat deployment from replaying the backfill. Review [migration and recovery steps](../docs/ENHANCEMENT_ROLLOUT.md)
+when the service is configured manually.
 
 ## 4. Cut over safely
 
-Disable Render Auto-Deploy before pushing the PostgreSQL code. During a quiet period, run `npm run db:migrate` one final time locally, push the code, save the Supabase environment variables, and manually deploy the latest commit.
+Disable Render Auto-Deploy before pushing the PostgreSQL code. For a legacy MongoDB cutover, complete the final import into the base-schema target before enhancement migration 001. For an existing PostgreSQL installation, use the coordinated enhancement rollout, then deploy the matching backend and frontend commit.
 
 Verify:
 

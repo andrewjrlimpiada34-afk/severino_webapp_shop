@@ -135,10 +135,10 @@ function AdaptiveScentFloating({
       <button
         className={`adaptive-floating-button ${adaptive.enabled ? 'active' : ''} mood-${mood}`}
         type="button"
-        aria-label="Open Adaptive Scent"
+        aria-label="View weather and scent suggestions"
         aria-describedby={introductionVisible ? introductionId : undefined}
         aria-haspopup="dialog"
-        title="Find my scent · Drag to move"
+        title="View weather and scent suggestions · Drag to move"
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -147,6 +147,7 @@ function AdaptiveScentFloating({
         onClick={(event) => { if (event.detail === 0 || !dragRef.current.moved) openPanel() }}
       >
         <span className="adaptive-floating-button__icon">{weatherIcon}</span>
+        <span className="adaptive-weather-label" style={{ ...(position.x < 80 ? { left: 0, right: 'auto' } : {}), ...(position.y > window.innerHeight - 120 ? { top: 'auto', bottom: 'calc(100% + 5px)' } : {}) }}>View weather</span>
         {adaptive.enabled && <span className="adaptive-floating-button__pulse" />}
       </button>
 

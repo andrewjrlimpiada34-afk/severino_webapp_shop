@@ -16,7 +16,7 @@ import { getDb } from '../db/postgres.js'
 
 const router = express.Router()
 
-const productSchema = z
+const productFields = z
   .object({
     name: z.string().min(2),
     price: z.number().min(0),
@@ -29,7 +29,7 @@ const productSchema = z
     category: z.enum(['Men', 'Women', 'Unisex', 'Signature', 'Fresh', 'Floral', 'Amber']).optional(),
     active: z.boolean().default(true),
   })
-  .refine((data) => !isDataUrl(data.imageUrl), {
+const productSchema = productFields.refine((data) => !isDataUrl(data.imageUrl), {
     message: 'Inline images are not allowed',
   })
   .refine((data) => assertNoDataUrls(data.imageUrls || []), {
@@ -38,7 +38,7 @@ const productSchema = z
 
 router.get('/', asyncRoute(async (req, res) => {
   const soldCounts = await getProductSoldCounts()
-  const products = normalizeList(await getProducts()).map((product) => ({
+  const products = normalizeList(await getProducts()).filter((product) => product.active).map((product) => ({
     ...product,
     soldCount: soldCounts[product.id] || 0,
   }))
@@ -64,7 +64,7 @@ router.get('/stock-events', (req, res) => {
 router.get('/:id', asyncRoute(async (req, res) => {
   res.set('Cache-Control', 'no-store')
   const product = await getProductById(req.params.id)
-  if (!product) return res.status(404).json({ message: 'Not found' })
+  if (!product || !product.active) return res.status(404).json({ message: 'Not found' })
   return res.json(normalizeId(product))
 }))
 
@@ -73,7 +73,7 @@ router.post('/', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ message: parsed.error.errors?.[0]?.message || 'Invalid input' })
   }
-  const product = await createProduct(parsed.data)
+  const product = await createProduct(parsed.data, req.user.id)
   const event = inventoryChange([{ id: product.id, legacyId: product.legacyId || null, stock: product.stock }])
   publishInventoryChange(event)
   await notifyInventoryChange(getDb(), event).catch(() => console.error('Inventory notification unavailable; clients will resync on reconnect.'))
@@ -81,14 +81,13 @@ router.post('/', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
 }))
 
 router.patch('/:id', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
-  if (isDataUrl(req.body.imageUrl) || !assertNoDataUrls(req.body.imageUrls || [])) {
+  const parsed = productFields.partial().extend({ expectedStock: z.number().int().min(0).optional(), stockReason: z.string().trim().max(500).optional() }).safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ message: parsed.error.issues[0].message })
+  if (isDataUrl(parsed.data.imageUrl) || !assertNoDataUrls(parsed.data.imageUrls || [])) {
     return res.status(400).json({ message: 'Inline images are not allowed' })
   }
-  const product = await updateProduct(req.params.id, req.body)
+  const product = await updateProduct(req.params.id, parsed.data, req.user.id)
   if (!product) return res.status(404).json({ message: 'Not found' })
-  const event = inventoryChange([{ id: product.id, legacyId: product.legacyId || null, stock: product.stock }])
-  publishInventoryChange(event)
-  await notifyInventoryChange(getDb(), event).catch(() => console.error('Inventory notification unavailable; clients will resync on reconnect.'))
   return res.json(normalizeId(product))
 }))
 

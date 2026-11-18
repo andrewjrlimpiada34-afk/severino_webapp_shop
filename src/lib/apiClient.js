@@ -40,6 +40,7 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, now = D
           ...options,
           method,
           headers: {
+            ...(!isRead ? { 'X-Severino-Request': '1' } : {}),
             ...(options.body ? { 'Content-Type': 'application/json' } : {}),
             ...options.headers,
           },
@@ -71,6 +72,7 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, now = D
       formData.append(fieldName, file, file?.name || 'upload.jpg')
       const response = await fetchImpl(`${baseUrl}${path}`, {
         method: 'POST', credentials: 'include', body: formData,
+        headers: { 'X-Severino-Request': '1' },
       })
       return await readResponse(response)
     } finally {

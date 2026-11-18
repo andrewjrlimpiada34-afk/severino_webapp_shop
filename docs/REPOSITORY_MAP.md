@@ -6,13 +6,15 @@
 .
 |-- .github/                  Issue and pull request templates
 |-- build/                    Vite public-asset plugin and its tests
-|-- docs/                     Documentation index and repository map
+|-- docs/                     Manuals, schema, design, rollout, validation
+|   |-- diagrams/             Editable DOT sources and SVG diagrams
+|   `-- images/               Final application screenshots for the manual
 |-- public/                   Static images, logos, fonts, and media
 |-- server/
 |   |-- otp_service/          Python FastAPI OTP service and unittest suite
 |   |-- scripts/              Database checks, schema setup, legacy migration
 |   |-- shared/               Helpers imported by both frontend and backend
-|   |-- sql/                  PostgreSQL schema
+|   |-- sql/                  PostgreSQL base schema and ordered migrations
 |   |-- src/
 |   |   |-- db/               PostgreSQL access and domain persistence
 |   |   |-- lib/              Server helpers, schemas, cache, inventory events
@@ -56,7 +58,7 @@ PostgreSQL and sends OTP email through Gmail API. Both services use the same
 database and shared service key.
 
 `server/shared/` contains dependency-free login validation, banner content,
-and order workflow helpers used by both JavaScript applications. Its location
+order workflow, and policy-version helpers used by both JavaScript applications. Its location
 inside `server/` does not mean it is backend-only. Vercel deployment rules
 explicitly include the shared runtime helpers.
 

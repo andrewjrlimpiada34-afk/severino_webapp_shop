@@ -22,7 +22,9 @@ python -m venv .venv-otp
 ```
 
 The automated regression suites below use fixtures and mocked database/email
-operations. They do not require the deployed services or a live database.
+operations. Database integration suites additionally require `TEST_DATABASE_URL`
+or `TEST_PGLITE_MODULE`; otherwise they report a skip. Their configuration is
+described below. The tests do not require deployed application services.
 Backend route tests start temporary servers on the local loopback interface.
 
 ## Security Test
@@ -112,6 +114,53 @@ Runs the JavaScript suites above together. Run the Python and browser commands
 separately; this command does not include them.
 
 **Expected:** no failed tests and exit code `0`.
+
+## PostgreSQL integration tests
+
+Use a dedicated test PostgreSQL database with a role allowed to create schemas.
+The harness creates a unique `test_enhancements_...` schema, runs the real schema
+and migrations, exercises API and database behavior, and removes that test schema.
+It uses `TEST_DATABASE_URL` explicitly. The application `DATABASE_URL` is replaced
+with an intercepted placeholder inside the test process.
+
+```powershell
+$env:TEST_DATABASE_URL = 'postgresql://TEST_USER:TEST_PASSWORD@127.0.0.1:5432/severino_test'
+node --test server/src/db/orders.test.js server/src/db/migrations.test.js server/src/routes/google.test.js
+Remove-Item Env:TEST_DATABASE_URL
+```
+
+For isolated validation without a PostgreSQL server, install PGlite in the ignored
+temporary tools directory and point the same suites to its module.
+
+```powershell
+npm.cmd install --prefix tmp/validation @electric-sql/pglite --no-audit --no-fund --ignore-scripts
+$env:TEST_PGLITE_MODULE = (Resolve-Path 'tmp/validation/node_modules/@electric-sql/pglite/dist/index.js').Path
+node --test "build/*.test.js" "src/**/*.test.js" "server/shared/*.test.js" "server/src/**/*.test.js"
+Remove-Item Env:TEST_PGLITE_MODULE
+```
+
+PGlite runs PostgreSQL in one embedded session. Its test adapter serializes
+transactions. Use `TEST_DATABASE_URL` for multiple-session row-lock contention
+verification. Both adapters test the actual SQL, constraints, triggers, rollback,
+checkout retries, inventory lifecycle, payment/refund limits, ownership checks,
+Google onboarding, and legacy migration behavior.
+
+## Enhancement browser tests
+
+```powershell
+node tools/test_enhancements.mjs
+```
+
+Exercises registration acceptance, password-free Google onboarding, stock limits,
+saved-address editing and checkout selection, uncertain-checkout recovery,
+order-level tracking, explicit payment confirmation, inventory/reporting displays,
+and speech controls at 1440, 768, 390, and 320 pixels. Uses production components
+with synthetic API records and a stubbed speech engine. Screenshots and reports
+are saved to `tmp/enhancement-qa/`.
+
+Use `--width=390` for a focused check. `--previews-only` captures screenshots and
+skips assertions, so it does not verify the scenarios. Selected maintained
+screenshots are copied to `docs/images/` for the user manual after visual review.
 
 ## Browser UI Test
 

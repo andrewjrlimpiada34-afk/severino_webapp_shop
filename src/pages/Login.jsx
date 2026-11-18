@@ -24,7 +24,6 @@ function Login() {
   })
   const [announcements, setAnnouncements] = useState([])
   const [announcementOpen, setAnnouncementOpen] = useState(false)
-  const [termsAccepted, setTermsAccepted] = useState(false)
   const [termsOpen, setTermsOpen] = useState('')
   const { startLogin } = useAuth()
   const navigate = useNavigate()
@@ -63,14 +62,6 @@ function Login() {
       setStatus({ loading: false, error: 'Check the highlighted fields.', success: '' })
       const invalidField = errors.identifier ? identifierRef : passwordRef
       invalidField.current?.focus()
-      return
-    }
-    if (!termsAccepted) {
-      setStatus({
-        loading: false,
-        error: 'Please accept the terms and conditions before signing in.',
-        success: '',
-      })
       return
     }
     pendingRef.current = true
@@ -176,29 +167,6 @@ function Login() {
             </div>
             {touched.password && errors.password && <p className="auth-field-error" id="login-password-error">{errors.password}</p>}
           </div>
-          <label className="terms-check">
-            <input
-              type="checkbox"
-              disabled={status.loading}
-              checked={termsAccepted}
-              onChange={(event) => {
-                setTermsAccepted(event.target.checked)
-                if (event.target.checked) {
-                  setStatus((prev) => ({ ...prev, error: '' }))
-                }
-              }}
-            />
-            <span>
-              I accept the{' '}
-              <button
-                className="terms-link"
-                type="button"
-                onClick={() => setTermsOpen('terms')}
-              >
-                terms and conditions
-              </button>
-            </span>
-          </label>
           {status.error && <div className="auth-message" role="alert">{status.error}</div>}
           {status.success && <div className="pill" role="status">{status.success}</div>}
           <button className="button" type="submit" disabled={status.loading}>
@@ -207,20 +175,12 @@ function Login() {
           <div className="store-auth-divider"><span>or</span></div>
           <a
             className="button secondary"
-            href={termsAccepted && !status.loading ? googleUrl : undefined}
-            aria-disabled={!termsAccepted || status.loading}
+            href={!status.loading ? googleUrl : undefined}
+            aria-disabled={status.loading}
             onClick={(event) => {
               if (status.loading) {
                 event.preventDefault()
                 return
-              }
-              if (!termsAccepted) {
-                event.preventDefault()
-                setStatus({
-                  loading: false,
-                  error: 'Please accept the terms and conditions before continuing with Google.',
-                  success: '',
-                })
               }
             }}
           >
@@ -228,6 +188,7 @@ function Login() {
             Continue with Google
           </a>
           <p className="store-signup-prompt">New to Severino? <Link to="/create-account" className="store-text-link">Create an account</Link></p>
+          <div className="address-actions"><button className="terms-link" type="button" onClick={() => setTermsOpen('terms')}>Terms and Conditions</button><button className="terms-link" type="button" onClick={() => setTermsOpen('privacy')}>Privacy Notice</button></div>
           <button className="store-text-link store-login-policy-link" type="button" onClick={() => setTermsOpen('cookies')}>Cookie Policy</button>
         </form>
         </div>

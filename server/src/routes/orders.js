@@ -1,129 +1,278 @@
 import express from 'express'
-import { asyncRoute } from '../lib/asyncRoute.js'
 import { z } from 'zod'
+import { asyncRoute } from '../lib/asyncRoute.js'
 import {
   cancelOrder,
   createOrder,
   getOrderById,
   getOrders,
   getOrdersByUserId,
+  reconcileOrderItem,
+  returnOrderItem,
+  serializeOrder,
   updateOrderItemStatus,
   updateOrderStatus,
-  verifyOrder,
+  verifyOrder
 } from '../db/orders.js'
-import { recordSale } from '../db/inventory.js'
-import { getProductById } from '../db/products.js'
+import { getPaymentHistory, recordPayment } from '../db/payments.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
-import { normalizeId, normalizeList } from '../db/util.js'
 import { orderSteps } from '../../shared/orderWorkflow.js'
+import { normalizePhilippineMobile } from '../../shared/loginValidation.js'
 
 const router = express.Router()
 const statusSchema = z.object({ status: z.enum(orderSteps) })
-
 const orderSchema = z.object({
-  items: z.array(
-    z.object({
-      productId: z.string(),
-      name: z.string().min(2).optional(),
-      quantity: z.number().int().min(1),
-      price: z.number().min(0),
-    })
-  ).min(1),
-  address: z.string().min(5),
-  contactName: z.string().min(2),
-  phone: z.string().min(7),
-  email: z.string().email(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1).max(191),
+        quantity: z.number().int().min(1).max(100)
+      })
+    )
+    .min(1)
+    .max(100),
+  addressId: z.string().max(24).optional(),
+  address: z.string().trim().min(5).max(1500),
+  contactName: z.string().trim().min(2).max(150),
+  phone: z
+    .string()
+    .transform(normalizePhilippineMobile)
+    .refine(Boolean, 'Enter a valid Philippine mobile number.'),
+  email: z.string().trim().email().max(320),
   paymentMethod: z.literal('COD'),
+  checkoutKey: z.string().min(16).max(100).optional(),
+  fromCart: z.boolean().default(false),
+  notes: z.string().trim().max(500).default('')
 })
+const paymentSchema = z.object({
+  kind: z.enum(['collection', 'refund']),
+  status: z.enum(['Pending Verification', 'Paid', 'Failed']),
+  amount: z
+    .number()
+    .positive()
+    .max(9999999999.99)
+    .refine(
+      (value) => Math.abs(value * 100 - Math.round(value * 100)) < 0.0001,
+      'Use at most two decimal places.'
+    ),
+  method: z.string().trim().min(2).max(40),
+  reference: z.string().trim().min(3).max(150),
+  reason: z.string().trim().max(500).default(''),
+  requestKey: z.string().min(16).max(100),
+  collectionVerified: z.boolean().default(false)
+})
+router.use(requireAuth)
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store')
+  next()
+})
+const respond = (req, res, order, status = 200) =>
+  order
+    ? res.status(status).json(serializeOrder(order, req.user.role === 'admin'))
+    : res.status(404).json({ message: 'Order unavailable.' })
 
-router.get('/', requireAuth, asyncRoute(async (req, res) => {
-  if (req.user.role === 'admin') {
-    return res.json(normalizeList(await getOrders()))
-  }
-  return res.json(normalizeList(await getOrdersByUserId(req.user.id)))
-}))
-
-router.post('/', requireAuth, asyncRoute(async (req, res) => {
-  const parsed = orderSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ message: 'Invalid input' })
-  if (parsed.data.items.some((item) => item.quantity > 100)) {
-    return res.status(400).json({ message: 'Item quantity exceeds limit' })
-  }
-  for (const item of parsed.data.items) {
-    const product = await getProductById(item.productId)
-    if (!product) return res.status(400).json({ message: 'Product not found' })
-    if (item.quantity > product.stock) {
-      return res.status(400).json({ message: 'Quantity exceeds stock' })
-    }
-  }
-  const total = parsed.data.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const order = await createOrder({
-    userId: req.user.id,
-    total,
-    status: 'Pending COD',
-    ...parsed.data,
+router.get(
+  '/',
+  asyncRoute(async (req, res) => {
+    const admin = req.user.role === 'admin'
+    const orders = admin
+      ? await getOrders()
+      : await getOrdersByUserId(req.user.id)
+    return res.json(orders.map((order) => serializeOrder(order, admin)))
   })
-  await recordSale(order.id, total)
-  return res.status(201).json(normalizeId(order))
-}))
-
-router.patch('/:id/cancel', requireAuth, asyncRoute(async (req, res) => {
-  const order = await getOrderById(req.params.id)
-  if (!order) return res.status(404).json({ message: 'Not found' })
-  if (order.userId !== req.user.id) return res.status(403).json({ message: 'Forbidden' })
-  const updated = await cancelOrder(req.params.id, req.user.id)
-  if (!updated) return res.status(400).json({ message: 'Order already processed' })
-  return res.json(normalizeId(updated))
-}))
-
-router.patch('/:id/status', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
-  const parsed = statusSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ message: 'Invalid order status.' })
-  const order = await updateOrderStatus(req.params.id, parsed.data.status)
-  if (!order) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(order))
-}))
-
-router.patch('/:orderId/items/:itemId/cancel', requireAuth, asyncRoute(async (req, res) => {
-  const { orderId, itemId } = req.params
-  const order = await getOrderById(orderId)
-  if (!order || order.userId !== req.user.id) {
-    return res.status(404).json({ message: 'Not found' })
-  }
-  const updated = await updateOrderItemStatus(orderId, itemId, 'Cancelled', req.user.id)
-  if (!updated) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(updated))
-}))
-
-// /progress is the guarded workflow endpoint used by the current frontend.
-// Keep /status for existing clients; both run the same transactional checks.
-router.patch(['/:orderId/items/:itemId/progress', '/:orderId/items/:itemId/status'], requireAuth, requireAdmin, asyncRoute(async (req, res) => {
-  const parsed = statusSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ message: 'Invalid order status.' })
-  const { orderId, itemId } = req.params
-  const updated = await updateOrderItemStatus(orderId, itemId, parsed.data.status)
-  if (!updated) return res.status(404).json({ message: 'Order item no longer exists. Refresh orders.' })
-  return res.json(normalizeId(updated))
-}))
-
-router.patch('/:id/verify', requireAuth, requireAdmin, asyncRoute(async (req, res, next) => {
-  const order = await getOrderById(req.params.id)
-  if (!order) return res.status(404).json({ message: 'Not found' })
-  try {
-    const updated = await verifyOrder(req.params.id)
-    return res.json(normalizeId(updated))
-  } catch (error) {
-    if (error.statusCode === 400) {
-      return res.status(400).json({ message: error.message })
+)
+router.post(
+  '/',
+  asyncRoute(async (req, res) => {
+    const parsed = orderSchema.safeParse(req.body)
+    if (!parsed.success)
+      return res.status(400).json({ message: parsed.error.issues[0].message })
+    // Both browser and API clients must retain this key across uncertain retries.
+    const checkoutKey = parsed.data.checkoutKey || req.get('Idempotency-Key')
+    if (!checkoutKey || checkoutKey.length < 16 || checkoutKey.length > 100)
+      return res
+        .status(400)
+        .json({ message: 'Refresh checkout before placing your order.' })
+    return respond(
+      req,
+      res,
+      await createOrder({ ...parsed.data, checkoutKey, userId: req.user.id }),
+      201
+    )
+  })
+)
+router.patch(
+  '/:id/cancel',
+  asyncRoute(async (req, res) =>
+    respond(req, res, await cancelOrder(req.params.id, req.user.id))
+  )
+)
+router.patch(
+  '/:orderId/items/:itemId/cancel',
+  asyncRoute(async (req, res) =>
+    respond(
+      req,
+      res,
+      await updateOrderItemStatus(
+        req.params.orderId,
+        req.params.itemId,
+        'Cancelled',
+        req.user.id
+      )
+    )
+  )
+)
+router.patch(
+  '/:id/status',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const parsed = statusSchema.safeParse(req.body)
+    if (!parsed.success)
+      return res.status(400).json({ message: 'Invalid order status.' })
+    return respond(
+      req,
+      res,
+      await updateOrderStatus(req.params.id, parsed.data.status, req.user.id)
+    )
+  })
+)
+router.patch(
+  ['/:orderId/items/:itemId/progress', '/:orderId/items/:itemId/status'],
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const parsed = statusSchema.safeParse(req.body)
+    if (!parsed.success)
+      return res.status(400).json({ message: 'Invalid order status.' })
+    return respond(
+      req,
+      res,
+      await updateOrderItemStatus(
+        req.params.orderId,
+        req.params.itemId,
+        parsed.data.status,
+        null,
+        req.user.id
+      )
+    )
+  })
+)
+router.patch(
+  '/:id/verify',
+  requireAdmin,
+  asyncRoute(async (req, res) =>
+    respond(req, res, await verifyOrder(req.params.id, req.user.id))
+  )
+)
+router.patch(
+  '/:id/admin-cancel',
+  requireAdmin,
+  asyncRoute(async (req, res) =>
+    respond(
+      req,
+      res,
+      await updateOrderStatus(req.params.id, 'Cancelled', req.user.id)
+    )
+  )
+)
+router.delete(
+  '/:id',
+  requireAdmin,
+  asyncRoute(async (req, res) =>
+    respond(
+      req,
+      res,
+      await updateOrderStatus(req.params.id, 'Removed', req.user.id)
+    )
+  )
+)
+router.get(
+  '/:id/payments',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const order = await getOrderById(req.params.id)
+    if (!order) return res.status(404).json({ message: 'Order unavailable.' })
+    return res.json(await getPaymentHistory(order.id))
+  })
+)
+router.post(
+  '/:id/payments',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const parsed = paymentSchema.safeParse(req.body)
+    if (!parsed.success)
+      return res.status(400).json({ message: parsed.error.issues[0].message })
+    try {
+      return respond(
+        req,
+        res,
+        await recordPayment(req.params.id, parsed.data, req.user.id)
+      )
+    } catch (error) {
+      if (
+        error.code === '23505' &&
+        error.constraint === 'payments_verified_reference'
+      )
+        return res
+          .status(409)
+          .json({
+            message: 'This payment or refund reference was already recorded.'
+          })
+      throw error
     }
-    return next(error)
-  }
-}))
-
-router.delete('/:id', requireAuth, requireAdmin, asyncRoute(async (req, res) => {
-  const updated = await updateOrderStatus(req.params.id, 'Removed')
-  if (!updated) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(updated))
-}))
-
+  })
+)
+router.post(
+  '/:id/items/:itemId/reconcile',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const parsed = z
+      .object({ alreadyDeducted: z.boolean(), confirmed: z.literal(true) })
+      .safeParse(req.body)
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: 'Confirm your inventory inspection.' })
+    return respond(
+      req,
+      res,
+      await reconcileOrderItem(
+        req.params.id,
+        req.params.itemId,
+        parsed.data.alreadyDeducted,
+        req.user.id
+      )
+    )
+  })
+)
+router.post(
+  '/:id/items/:itemId/return',
+  requireAdmin,
+  asyncRoute(async (req, res) => {
+    const parsed = z
+      .object({
+        quantity: z.number().int().min(1).max(100),
+        requestKey: z.string().min(16).max(100),
+        received: z.literal(true)
+      })
+      .safeParse(req.body)
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({
+          message:
+            'Enter the received quantity and confirm inspection of the returned goods.'
+        })
+    return respond(
+      req,
+      res,
+      await returnOrderItem(
+        req.params.id,
+        req.params.itemId,
+        parsed.data.quantity,
+        parsed.data.requestKey,
+        req.user.id
+      )
+    )
+  })
+)
 export default router

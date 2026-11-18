@@ -106,10 +106,15 @@ function AdminDashboard() {
           api.adminFeaturedBanners().catch(() => defaultFeaturedBanners),
         ])
 
-        const lowStock = inventory.filter((item) => item.stock < 12).length
+        const lowStock = inventory.filter((item) => (item.availableStock ?? item.stock) < 12).length
         setStats([
           { label: 'Total Orders', value: sales.count },
-          { label: 'Revenue (₱)', value: sales.revenue.toLocaleString() },
+          { label: 'Net collected (₱)', value: sales.revenue.toLocaleString() },
+          { label: 'Gross collected (₱)', value: Number(sales.gross || 0).toLocaleString() },
+          { label: 'Verified refunds (₱)', value: Number(sales.refunds || 0).toLocaleString() },
+          { label: 'Unpaid orders', value: sales.unpaid || 0 },
+          { label: 'Pending orders', value: sales.pending || 0 },
+          { label: 'Refunds awaiting confirmation (₱)', value: Number(sales.refundLiability || 0).toLocaleString() },
           { label: 'Low Stock', value: lowStock },
           { label: 'Active SKUs', value: inventory.length },
         ])

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Modal from '../components/Modal.jsx'
+import TermsAcceptance from '../components/TermsAcceptance.jsx'
+import { TERMS_VERSION } from '../../server/shared/policyVersions.js'
+import { API_URL } from '../lib/api.js'
 import { normalizePhilippineMobile, registrationProgress, registrationSteps, registrationStepFields } from '../lib/registration.js'
 
 const OTP_LENGTH = 6
@@ -38,7 +41,7 @@ function PasswordIcon() {
 
 function CreateAccount() {
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', mobile: '', password: '', confirmPassword: '',
+    firstName: '', lastName: '', email: '', mobile: '', password: '', confirmPassword: '', termsAccepted: false,
     addressLine: '', barangay: '', city: '', province: '', zip: '', country: 'Philippines',
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -211,6 +214,8 @@ function CreateAccount() {
         zip: form.zip.trim(),
         country: form.country.trim(),
         verificationId: otpState.challengeId,
+        termsAccepted: form.termsAccepted,
+        termsVersion: TERMS_VERSION,
       })
       setStatus({ loading: false, error: '', success: '' })
       setCreatedOpen(true)
@@ -256,6 +261,7 @@ function CreateAccount() {
         <div className="create-heading">
           <h1 className="section-title">Create <span>Severino</span> Account</h1>
           <p className="section-subtitle">Join us and begin your premium scented experience.</p>
+          <a className="button secondary" href={`${API_URL}/api/auth/google`}>Continue with Google</a>
         </div>
 
         <nav aria-label="Registration progress">
@@ -380,6 +386,7 @@ function CreateAccount() {
                 <p>{[form.addressLine, form.barangay, form.city, form.province, form.zip, form.country].map((value) => value.trim()).filter(Boolean).join(', ')}</p>
                 <div className="create-review-heading"><h3>Account Security</h3><button className="terms-link" type="button" onClick={() => goToStep(3)}>Edit password</button></div>
                 <p>Password is set.</p>
+                <TermsAcceptance checked={form.termsAccepted} onChange={(value) => updateField('termsAccepted', value)} disabled={busy} />
               </div>
             )}
           </div>
@@ -392,7 +399,6 @@ function CreateAccount() {
               {status.loading ? 'Please wait...' : activeStep === 5 ? 'Create Account' : 'Continue'}
             </button>
           </div>
-          <div className="pill create-status-pill">Data is encrypted at rest</div>
         </form>
       </div>
 

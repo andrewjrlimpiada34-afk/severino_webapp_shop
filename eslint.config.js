@@ -5,9 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'tmp', 'deliverables', '**/node_modules/**', '.venv-otp']),
   {
-    files: ['server/**/*.js'],
+    files: ['server/**/*.js', 'build/**/*.js', 'tools/**/*.mjs'],
     languageOptions: {
       globals: globals.node,
     },
@@ -30,6 +30,7 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'react-refresh/only-export-components': ['error', { allowExportNames: ['useAuth'] }],
     },
   },
 ])

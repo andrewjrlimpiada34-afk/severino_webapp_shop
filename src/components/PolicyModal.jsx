@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Modal from './Modal.jsx'
 import { policies, policyUpdated } from '../data/policies.js'
+import SpeechControls from './SpeechControls.jsx'
 
 export default function PolicyModal({ initialPolicy = 'terms', onClose }) {
   const [selected, setSelected] = useState(initialPolicy in policies ? initialPolicy : 'terms')
@@ -35,6 +36,7 @@ export default function PolicyModal({ initialPolicy = 'terms', onClose }) {
                 <h2 id="terms-title">{policy.title}</h2>
                 <span className="terms-updated">Last updated: {policyUpdated}</span>
                 <p>{policy.summary}</p>
+                <SpeechControls label={policy.title} text={[policy.title, policy.summary, ...policy.sections.flatMap((section) => [section.title, section.body, ...section.items.map(([label, description]) => `${label}. ${description}`)]), policy.footer].join('. ')} />
               </div>
             </header>
             <div className="terms-section-stack">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { CardSkeleton } from '../components/Skeleton.jsx'
+import { getOrderStatusLabel } from '../../server/shared/orderWorkflow.js'
 
 const tabs = [
   { id: 'all', label: 'All' },
@@ -53,7 +54,7 @@ function Notifications() {
         const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
         const mapped = orders.map((order) => ({
           id: order.id,
-          text: `Order ${order.id} is ${order.status}`,
+          text: `Order ${order.reference || order.id} is ${getOrderStatusLabel(order.status)}`,
           opened: openedIds.includes(order.id),
           createdAt: order.createdAt,
         }))

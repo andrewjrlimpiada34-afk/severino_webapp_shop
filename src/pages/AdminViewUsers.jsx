@@ -58,7 +58,7 @@ function AdminViewUsers() {
                       type="button"
                       onClick={async () => {
                         try {
-                          const ok = window.confirm('Remove this user? This cannot be undone.')
+                          const ok = window.confirm('Disable this account and retain its transaction history?')
                           if (!ok) return
                           await api.deleteUser(user.id)
                           setUsers((prev) => prev.filter((entry) => entry.id !== user.id))
@@ -67,7 +67,7 @@ function AdminViewUsers() {
                         }
                       }}
                     >
-                      Remove
+                      Disable account
                     </button>
                   )}
                 </td>

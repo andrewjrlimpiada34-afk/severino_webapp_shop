@@ -17,10 +17,14 @@ an Express API, PostgreSQL storage, and a separate Python email OTP service.
   PostgreSQL `app_settings` table, starting with ten editable answers about
   existing app features.
 - **Store administrators:** manage products and inventory, advance order
-  fulfillment, view customers and feedback, customize storefront content, and
-  inspect sales reports.
+  fulfillment, verify COD collections and refunds, inspect inventory movements,
+  view customers and feedback, customize storefront content, and inspect verified collection reports.
 - **Account access:** email/mobile login, Google sign-in when configured, and
-  email OTP verification during registration.
+  email OTP verification during registration. New accounts accept versioned terms during registration or initial Google onboarding.
+- **Delivery and tracking:** multiple labeled saved addresses, default-address selection,
+  immutable delivery snapshots, and expandable tracking for each complete order.
+- **Accessible information:** optional read-aloud controls on product descriptions,
+  FAQs, and policies, with visible weather access and semantic status badges.
 - **Storefront tools:** shared live inventory updates, scent suggestions, and
   weather-based scent information.
 
@@ -106,7 +110,7 @@ npm --prefix server run db:schema
 ```
 
 `db:schema` writes tables, indexes, and database policies to the configured
-database. Use your development database for local setup. The legacy
+database and applies versioned enhancement migrations. Use your development database for local setup. Existing PostgreSQL installations use `db:preflight` and `db:enhance` as described in the [rollout guide](docs/ENHANCEMENT_ROLLOUT.md). The legacy
 `db:migrate` command is for the documented MongoDB-to-PostgreSQL migration;
 it is not part of a fresh installation or a test run.
 
@@ -196,4 +200,5 @@ backend, shared helpers, database scripts, and test files. The
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Use the
 bug report and feature request templates for new GitHub issues. Keep local
-credentials, generated documents, and browser QA output out of commits.
+credentials and temporary browser QA output out of commits. Maintained manuals,
+system diagrams, and selected demonstration screenshots live under `docs/`.

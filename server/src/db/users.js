@@ -28,6 +28,7 @@ const mapUser = (row) =>
         profileImage: row.profile_image || '',
         preferredTheme: row.preferred_theme || 'Default',
         createdAt: row.created_at,
+        deletedAt: row.deleted_at,
       }
     : null
 
@@ -69,7 +70,7 @@ const ensureAdmin = () => {
 export const getUsers = async () => {
   await ensureAdmin()
   const db = getDb()
-  const { rows } = await db.query('SELECT * FROM users ORDER BY created_at DESC')
+  const { rows } = await db.query('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC')
   return rows.map(mapUser)
 }
 
@@ -105,8 +106,7 @@ export const getUserById = async (id) => {
   return findUser('id', id)
 }
 
-export const createUser = async (data) => {
-  const db = getDb()
+export const createUser = async (data, db = getDb()) => {
   const user = {
     id: createId(),
     name: data.name,
@@ -141,7 +141,7 @@ export const createUser = async (data) => {
       user.preferredTheme, user.createdAt,
     ]
   )
-  return getUserById(user.id)
+  return user
 }
 
 const userColumns = {
@@ -185,7 +185,7 @@ export const removeUser = async (id) => {
   const user = await getUserById(id)
   if (!user) return null
   const db = getDb()
-  await db.query('DELETE FROM users WHERE id = $1', [id])
+  await db.query("UPDATE users SET deleted_at = CURRENT_TIMESTAMP, password_hash = NULL, verified = FALSE WHERE id = $1", [id])
   return user
 }
 

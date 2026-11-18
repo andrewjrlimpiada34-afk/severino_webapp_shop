@@ -4,7 +4,7 @@ function Billing() {
       <div>
         <h1 className="section-title">Billing Page</h1>
         <p className="section-subtitle">
-          Cash on Delivery only. Receipts are emailed after delivery confirmation.
+          Cash on Delivery. An administrator records payment confirmation after verifying collection.
         </p>
       </div>
 

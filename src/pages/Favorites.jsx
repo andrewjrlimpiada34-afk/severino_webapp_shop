@@ -1,5 +1,5 @@
 import StoreIcon from '../components/StoreIcon.jsx'
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
 import { getFavorites, toggleFavorite } from '../lib/favorites.js'
 import { useNavigate } from 'react-router-dom'

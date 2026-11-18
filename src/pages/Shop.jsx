@@ -1,5 +1,6 @@
 import Modal from '../components/Modal.jsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import QuantityControl from '../components/QuantityControl.jsx'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -78,9 +79,13 @@ function Shop() {
   }
 
   const [cartModal, setCartModal] = useState({ open: false, product: null, quantity: 1 })
+  const [cartQuantity, setCartQuantity] = useState(0)
+  const [cartBusy, setCartBusy] = useState(false)
+  const cartPending = useRef(false)
   const modalProduct = withInventoryStock(cartModal.product, stocks)
 
-  const openAddToCartModal = (productId) => {
+  const openAddToCartModal = async (productId) => {
+    if (cartPending.current) return
     const product = items.find((item) => item.id === productId)
     if (!product || product.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
@@ -92,13 +97,22 @@ function Shop() {
       product,
       quantity: 1,
     })
+    cartPending.current = true
+    setCartBusy(true)
+    try {
+      const cart = user ? await api.cart() : { items: [] }
+      setCartQuantity(cart.items.filter((item) => item.productId === product.id || item.productId === product.legacyId).reduce((sum, item) => sum + item.quantity, 0))
+    } catch (error) { setStatus((previous) => ({ ...previous, error: error.message })); setCartModal({ open: false, product: null, quantity: 1 }) }
+    finally { cartPending.current = false; setCartBusy(false) }
   }
 
   const closeAddToCartModal = () => {
+    if (cartPending.current) return
     setCartModal({ open: false, product: null, quantity: 1 })
   }
 
   const addToCartWithQuantity = async () => {
+    if (cartPending.current) return
     if (!user) {
       navigate('/login')
       return
@@ -111,11 +125,16 @@ function Shop() {
     }
 
     const desiredQty = Number(cartModal.quantity) || 1
-    const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+    const qtyToAdd = Math.max(1, Math.min(Math.max(0, Math.min(100, product.stock) - cartQuantity), desiredQty))
 
+    cartPending.current = true
+    setCartBusy(true)
     try {
       const cart = await api.cart()
       const existing = cart.items.find((item) => item.productId === product.id)
+      const remaining = Math.min(100, product.stock) - (existing?.quantity || 0)
+      setCartQuantity(existing?.quantity || 0)
+      if (qtyToAdd > remaining || remaining < 1) throw new Error('Maximum stock reached. Review the quantity already in your cart.')
       const nextItems = existing
         ? cart.items.map((item) =>
             item.productId === product.id
@@ -125,11 +144,12 @@ function Shop() {
         : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
 
       await api.updateCart(nextItems)
-      closeAddToCartModal()
+      setCartModal({ open: false, product: null, quantity: 1 })
+      setStatus((previous) => ({ ...previous, success: `${product.name} added to your cart.` }))
       playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
-    }
+    } finally { cartPending.current = false; setCartBusy(false) }
   }
 
 
@@ -141,7 +161,7 @@ function Shop() {
     setFavorites(getFavorites(user?.id))
   }, [user])
 
-  const maxQty = modalProduct ? Math.min(100, modalProduct.stock ?? 100) : 1
+  const maxQty = modalProduct ? Math.max(0, Math.min(100, modalProduct.stock) - cartQuantity) : 0
 
   const updateSearchParam = (key, value) => setSearchParams((previous) => {
     const next = new URLSearchParams(previous)
@@ -207,6 +227,7 @@ function Shop() {
 
       {status.loading && <StoreCatalogSkeleton view={view} count={8} />}
       {status.error && <div className="store-notice" role="alert"><span>{status.error}</span><button className="store-text-link" type="button" onClick={loadProducts}>Try again</button></div>}
+      {status.success && <div className="store-notice" role="status">{status.success}</div>}
       {!status.loading && filtered.length > 0 && <div className={`store-catalog store-${view}`}>
         {filtered.map((product) => <StoreProductCard key={product.id} product={product} view={view} favorite={favorites.includes(product.id)} adaptivePick={adaptive.enabled && adaptive.adaptiveData.recommendationIds.has(product.id)} onAdd={() => openAddToCartModal(product.id)} onFavorite={() => {
           if (!user) { navigate('/login'); return }
@@ -237,30 +258,15 @@ function Shop() {
             <p className="section-subtitle">{maxQty > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>
 
             <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
-              <div>
-                <div className="label">Quantity</div>
-                <select
-                  className="input"
-                  value={Math.min(cartModal.quantity, maxQty)}
-                  disabled={maxQty <= 0}
-                  onChange={(e) =>
-                    setCartModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
-                  }
-                >
-                  {Array.from({ length: maxQty }, (_, i) => i + 1).map((qty) => (
-                    <option key={qty} value={qty}>
-                      {qty}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <QuantityControl value={cartModal.quantity} maximum={maxQty} disabled={cartBusy} onChange={(quantity) => setCartModal((previous) => ({ ...previous, quantity }))} />
+              {cartQuantity > 0 && <p>{cartQuantity} already in your cart.</p>}
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button className="button secondary" type="button" onClick={closeAddToCartModal}>
                   Cancel
                 </button>
-                <button className="button" type="button" disabled={maxQty <= 0} onClick={addToCartWithQuantity}>
-                  Add
+                <button className="button" type="button" disabled={cartBusy || maxQty <= 0} onClick={addToCartWithQuantity}>
+                  {cartBusy ? 'Please wait…' : 'Add to Cart'}
                 </button>
               </div>
             </div>

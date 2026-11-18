@@ -41,6 +41,7 @@ window.qaAuth = { user: profile, logout: async () => {}, updateUser: () => {}, s
 window.EventSource = class { addEventListener() {} close() {} }
 Object.assign(api, {
   products: async () => { if (window.failCatalog) throw new Error('Collection temporarily unavailable'); return products },
+  addresses: async () => [],
   orders: async () => window.qaOrders || [], profile: async () => window.qaProfile || profile,
   product: async (id) => products.find(item => item.id === id),
   checkDeliveryPhone: async (phone) => {
@@ -127,7 +128,7 @@ const noOverflow = () => {
 const render = async (page, route = page === 'home' ? '/' : '/' + page) => {
   window.qaAuth.user = page === 'login' ? null : profile
   flushSync(() => root.render(<React.StrictMode><MemoryRouter key={++renderNumber} initialEntries={[route]}><ActionAnimationProvider><div className="app-shell storefront-shell"><NavBar /><main className="page"><Routes><Route path="/" element={<Home />} /><Route path="/shop" element={<Shop />} /><Route path="/search" element={<ShopSearchRedirect />} /><Route path="/login" element={<Login />} /><Route path="/account" element={<Account />} /><Route path="/checkout" element={<Checkout />} /><Route path="/orders" element={<OrderHistory />} /><Route path="/notifications" element={<Notifications />} /><Route path="/popup" element={<OfferPreview />} /></Routes></main>{!['account', 'notifications', 'checkout', 'orders'].includes(page) && <Footer />}</div></ActionAnimationProvider></MemoryRouter></React.StrictMode>))
-  await waitFor(() => page === 'checkout' ? document.getElementById('checkout-name') : page === 'orders' ? document.querySelector('.orders-empty-state, .table tbody .badge') : page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
+  await waitFor(() => page === 'checkout' ? document.getElementById('checkout-name') : page === 'orders' ? document.querySelector('.orders-empty-state, .order-card .badge') : page === 'account' ? document.getElementById('account-name')?.value === profile.name : page === 'login' ? document.getElementById('login-identifier') : page === 'notifications' ? document.querySelector('.notif-list') : page === 'shop' ? document.querySelector('.store-results-row')?.textContent.includes('fragrance') && !document.querySelector('.store-product-skeleton') : page === 'popup' ? document.querySelector('.welcome-offer img')?.naturalWidth > 0 : document.querySelectorAll('.store-product').length === 4 && !document.querySelector('.store-product-skeleton'))
   await document.fonts.ready
   await Promise.all(Array.from(document.images).map(async (image) => { image.loading = 'eager'; try { await image.decode() } catch { /* Missing optional media is covered by page fallbacks. */ } }))
   await settle()
@@ -172,7 +173,7 @@ if (preview) {
   if (preview === 'checkout-errors') await click(button('Next'))
   if (preview === 'checkout-contact') { await fillShipping(); await click(button('Next')) }
   if (preview === 'checkout-phone') { await click(button('Next')); await click(button('Next')); await click(button('Confirm Order')) }
-  if (preview === 'cancel-order') await click(button('Cancel'))
+  if (preview === 'cancel-order') { await click(document.querySelector('.order-details > summary')); await click(button('Cancel item')) }
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
   if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
   if (preview === 'font-fashion') { await select('account-font', 'fashion'); await document.fonts.ready }
@@ -285,7 +286,7 @@ if (preview) {
     await click(document.querySelector('[aria-label="Dismiss Adaptive Scent tip"]'))
     await render('home')
     assert(!document.querySelector('.adaptive-scent-hint'), 'Dismissal is remembered across pages in this tab')
-    const floating = document.querySelector('[aria-label="Open Adaptive Scent"]')
+    const floating = document.querySelector('[aria-label="View weather and scent suggestions"]')
     floating.setPointerCapture = () => {}
     floating.hasPointerCapture = () => false
     const origin = floating.getBoundingClientRect()
@@ -439,26 +440,27 @@ if (preview) {
   await run('Cancellation identifies one item, handles failures, and submits once with a safe default', async () => {
     window.qaOrders = [sampleOrder]
     await render('orders')
+    await click(document.querySelector('.order-details > summary'))
     const originalFont = document.documentElement.dataset.font || 'editorial'
     applyFontPreference('fashion')
     await document.fonts.ready
     const initialCount = calls.cancellations.length
-    await click(button('Cancel'))
+    await click(button('Cancel item'))
     let modal = document.querySelector('.order-cancel-modal')
-    assert(modal?.textContent.includes('Cucumber Melon') && modal.textContent.includes('Other items') && modal.textContent.includes('\u20b1'), 'Confirmation names the item, displays its price, and explains its scope')
+    assert(modal?.textContent.includes('Cucumber Melon') && modal.textContent.includes('Reserved stock'), 'Confirmation names the item, displays its price, and explains its scope')
     assert(document.activeElement.textContent === 'Keep item' && document.documentElement.style.overflow === 'hidden', 'Safe action receives focus and the page is locked')
-    assert(document.elementFromPoint(innerWidth / 2, 10)?.closest('.order-cancel-backdrop'), 'Confirmation covers the sticky header')
+    assert(document.elementFromPoint(innerWidth / 2, 10)?.closest('.modal-backdrop'), 'Confirmation covers the sticky header')
     assert(getComputedStyle(modal.querySelector('h2')).fontFamily.includes('Bodoni Moda'), 'Cancellation follows the chosen font')
     await click(button('Keep item'))
     assert(!document.querySelector('.order-cancel-modal') && calls.cancellations.length === initialCount, 'Keeping an item makes no cancellation request')
-    await click(button('Cancel'))
-    window.failCancellation = true
     await click(button('Cancel item'))
-    await waitFor(() => document.querySelector('.order-cancel-error'))
+    window.failCancellation = true
+    await click(button('Confirm cancellation'))
+    await waitFor(() => document.querySelector('.order-cancel-modal [role=alert]'))
     assert(document.querySelector('.order-cancel-modal'), 'Failed cancellation remains open with an actionable error')
     window.failCancellation = false
     window.holdCancellation = true
-    await click(button('Cancel item'))
+    await click(button('Confirm cancellation'))
     await waitFor(() => window.finishCancellation)
     const pendingCount = calls.cancellations.length
     await click(button('Cancelling…'))
@@ -468,8 +470,8 @@ if (preview) {
     window.finishCancellation()
     await waitFor(() => !document.querySelector('.order-cancel-modal'))
     assert(calls.cancellations.at(-1).orderId === sampleOrder.id && calls.cancellations.at(-1).itemKey === 'first-item', 'Only the intended order item is sent to the API')
-    const rows = document.querySelectorAll('.table tbody tr')
-    assert(rows[0].textContent.includes('Cancelled') && rows[1].textContent.includes('Pending COD'), 'The other order item remains active')
+    const rows = document.querySelectorAll('.order-item')
+    assert(rows[0].textContent.includes('Cancelled') && rows[1].textContent.includes('Awaiting approval'), 'The other order item remains active')
     window.finishCancellation = null
     window.qaOrders = []
     applyFontPreference(originalFont)
@@ -487,7 +489,7 @@ if (preview) {
     assert(dialog.textContent.includes('oauth_state') && dialog.textContent.includes('local storage'), 'Actual cookies and similar storage are disclosed')
     assert(dialog.scrollHeight > dialog.clientHeight, 'Long cookie policy scrolls inside the dialog')
     assert(dialog.getBoundingClientRect().left >= 0 && dialog.getBoundingClientRect().right <= innerWidth, 'Policy fits viewport')
-    assert(!document.querySelector('.terms-check input').checked, 'Viewing policies does not accept the agreement')
+    assert(!document.querySelector('.terms-check input'), 'Login does not request registration consent again')
     applyFontPreference('fashion')
     await document.fonts.ready
     assert(getComputedStyle(document.getElementById('terms-title')).fontFamily.includes('Bodoni Moda') && getComputedStyle(dialog).fontFamily.includes('Jost'), 'Policy headings and body follow the chosen fonts')
@@ -578,15 +580,14 @@ if (preview) {
       assert(document.querySelector('.store-add-button:not(:disabled)').textContent === 'Add to Cart', 'Purchase label says Add to Cart')
       assert(document.querySelector('.store-add-button circle'), 'Purchase action uses the cart with wheels')
       await click(document.querySelector('.store-add-button:not(:disabled)'))
-      const quantity = document.querySelector('.store-cart-modal select')
-      quantity.value = '2'
-      flushSync(() => quantity.dispatchEvent(new Event('change', { bubbles: true })))
-      await click(button('Add'))
+      await waitFor(() => !document.querySelector('.store-cart-modal .quantity-stepper input').disabled)
+      await click(document.querySelector('.store-cart-modal [aria-label="Increase quantity"]'))
+      await click(Array.from(document.querySelectorAll('.store-cart-modal button')).find(item => item.textContent.trim() === 'Add to Cart'))
       await waitFor(() => !document.querySelector('.store-cart-modal'))
       assert(calls.cart.at(-1)[0].quantity === 2, 'Quantity is preserved in cart payload')
     }
   })
-  await run('Login keeps validation, password visibility and required terms', async () => {
+  await run('Login keeps validation and password visibility without repeating registration consent', async () => {
     await render('login')
     noOverflow()
     await click(document.querySelector('.terms-link'))
@@ -601,19 +602,16 @@ if (preview) {
     assert(document.getElementById('login-password').type === 'text', 'Password visibility works')
     const count = calls.login.length
     await click(button('Sign In'))
-    assert(calls.login.length === count && document.querySelector('[role="alert"]').textContent.includes('terms'), 'Consent remains required')
-    await click(document.querySelector('.terms-check input'))
-    await click(button('Sign In'))
-    assert(calls.login.length === count + 1, 'Existing login receives accepted form')
+    assert(calls.login.length === count + 1 && !document.querySelector('.terms-check input'), 'Existing login proceeds without a registration checkbox')
   })
   await run('Account keeps all profile fields, theme choices and password manager', async () => {
     await render('account')
     noOverflow()
-    assert(document.getElementById('account-backup').value === profile.backupAddress && document.getElementById('account-country').value === 'Philippines', 'Address fields are retained')
+    assert(document.querySelector('.address-book') && !document.getElementById('account-city'), 'Saved address management replaces the always-visible address form')
     await input('account-name', 'Alex Cruz Updated')
     await click(button('Save changes'))
     await waitFor(() => document.querySelector('.account-success-modal'))
-    assert(calls.profile.at(-1).name === 'Alex Cruz Updated' && calls.profile.at(-1).backupAddress === profile.backupAddress, 'Existing profile payload is preserved')
+    assert(calls.profile.at(-1).name === 'Alex Cruz Updated' && calls.profile.at(-1).phone === profile.phone, 'Existing profile payload is preserved')
     await click(button('Done'))
     await select('account-theme', 'Shadow Dark Mode')
     assert(document.documentElement.dataset.theme === 'Shadow Dark Mode' && calls.theme.at(-1) === 'Shadow Dark Mode', 'Theme applies and uses existing API')
@@ -741,7 +739,7 @@ await mkdir(artifactDir, { recursive: true })
 await mkdir('node_modules/.cache/storefront-qa', { recursive: true })
 const profileDir = await mkdtemp(path.resolve('node_modules/.cache/storefront-qa/run-'))
 const bundle = await build({ stdin: { contents: fixture, resolveDir: process.cwd(), sourcefile: 'storefront-qa.jsx', loader: 'jsx' }, loader: { '.css': 'empty' }, bundle: true, write: false, format: 'esm', jsx: 'automatic', define: { 'import.meta.env': '{}' }, plugins: [{ name: 'fixture-auth', setup(build) { build.onLoad({ filter: /AuthContext\.jsx$/ }, () => ({ contents: 'export const useAuth = () => window.qaAuth', loader: 'js' })) } }] })
-const css = (await Promise.all(['src/index.css', 'src/admin.css', 'src/customer-desktop.css', 'src/storefront.css'].map(file => readFile(file, 'utf8')))).join('\n').replace(/^@import[^\r\n]*[\r\n]*/gm, '')
+const css = (await Promise.all(['src/index.css', 'src/admin.css', 'src/customer-desktop.css', 'src/storefront.css', 'src/enhancements.css'].map(file => readFile(file, 'utf8')))).join('\n').replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const server = createServer(async (req, res) => {
   res.setHeader('Content-Security-Policy', "frame-src 'none'; connect-src 'self'")
   if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(bundle.outputFiles[0].text); return }

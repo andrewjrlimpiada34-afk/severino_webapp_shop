@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { facebookPageUrl } from '../lib/social.js'
+import SpeechControls from '../components/SpeechControls.jsx'
 
 function FAQs() {
   const [items, setItems] = useState([])
@@ -48,6 +49,7 @@ function FAQs() {
             <details className="faq-item" key={item.id}>
               <summary>{item.question}</summary>
               <p className="faq-answer">{item.answer}</p>
+              <SpeechControls text={`${item.question}. ${item.answer}`} label={item.question} />
             </details>
           ))}
         </div>

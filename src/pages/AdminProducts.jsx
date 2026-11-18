@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { compressImageFile } from '../lib/image.js'
+import InventoryLog from '../components/InventoryLog.jsx'
 
 function AdminProducts() {
   const [items, setItems] = useState([])
   const [status, setStatus] = useState({ loading: true, error: '', success: '' })
   const [editingId, setEditingId] = useState(null)
+  const [inventoryRevision, setInventoryRevision] = useState(0)
+  const [expectedStock, setExpectedStock] = useState(null)
   const [form, setForm] = useState({
     name: '',
     price: 300,
@@ -20,27 +23,19 @@ function AdminProducts() {
     imageUrl4: '',
   })
 
-  const load = async () => {
-    try {
-      setStatus({ loading: true, error: '', success: '' })
-      const data = await api.products({ fresh: true })
-      setItems(data)
-      setStatus({ loading: false, error: '', success: '' })
-    } catch (error) {
-      setStatus({ loading: false, error: error.message, success: '' })
-    }
-  }
-
   useEffect(() => {
-    load()
+    let active = true
+    api.adminInventory().then((data) => { if (active) { setItems(data); setStatus({ loading: false, error: '', success: '' }) } }).catch((error) => { if (active) setStatus({ loading: false, error: error.message, success: '' }) })
+    return () => { active = false }
   }, [])
 
   const startEdit = (product) => {
+    setExpectedStock(product.physicalStock ?? product.stock)
     setEditingId(product.id)
     setForm({
       name: product.name,
       price: product.price,
-      stock: product.stock,
+      stock: product.physicalStock ?? product.stock,
       notes: product.notes,
       size: product.size || '100ml',
       category: product.category || 'Unisex',
@@ -79,13 +74,16 @@ function AdminProducts() {
         name: form.name,
         price: Number(form.price),
         stock: Number(form.stock),
+        expectedStock,
         notes: form.notes,
         size: form.size,
         category: form.category,
         description: form.description,
         imageUrls: [form.imageUrl1, form.imageUrl2, form.imageUrl3, form.imageUrl4].filter(Boolean),
       })
-      setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      setItems((prev) => prev.map((item) => (item.id === updated.id ? { ...updated, availableStock: updated.stock, stock: updated.physicalStock } : item)))
+      setExpectedStock(updated.physicalStock)
+      setInventoryRevision((value) => value + 1)
       setStatus({ loading: false, error: '', success: 'Product updated.' })
     } catch (error) {
       setStatus({ loading: false, error: error.message, success: '' })
@@ -117,7 +115,9 @@ function AdminProducts() {
               <tr>
                 <th>Name</th>
                 <th>Price</th>
-                <th>Stock</th>
+                <th>Physical stock</th>
+                <th>Reserved</th>
+                <th>Available</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -127,6 +127,8 @@ function AdminProducts() {
                   <td>{product.name}</td>
                   <td>₱{product.price}</td>
                   <td>{product.stock}</td>
+                  <td>{product.reservedStock || 0}</td>
+                  <td>{product.availableStock ?? product.stock}</td>
                   <td>
                     <button className="button ghost" onClick={() => startEdit(product)}>
                       Modify
@@ -156,7 +158,7 @@ function AdminProducts() {
               />
             </div>
             <div>
-              <div className="label">Stock</div>
+              <div className="label">Physical stock</div>
               <input
                 className="input"
                 type="number"
@@ -258,6 +260,7 @@ function AdminProducts() {
           </button>
         </form>
       </div>
+      <InventoryLog revision={inventoryRevision} />
     </section>
   )
 }

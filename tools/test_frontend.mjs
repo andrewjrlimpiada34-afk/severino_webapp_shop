@@ -287,7 +287,7 @@ if (location.search.includes('preview=registration')) {
     assert(terms.scrollTop > 0 && terms.textContent.includes('By using this platform'), 'End of agreement remains accessible')
     await click(terms.querySelector('.modal-close'))
     assert(!document.body.style.overflowY, 'Closing agreement cleans up lock')
-    assert(document.querySelector('input[type="checkbox"]')?.checked === false, 'Opening agreement does not accept terms')
+    assert(!document.querySelector('.terms-check input'), 'Login does not repeat registration acceptance')
   })
 
   await run('Registration guards real OTP responses, preserves edits, and prevents duplicate submissions', async () => {
@@ -333,6 +333,8 @@ if (location.search.includes('preview=registration')) {
     await click(button('Continue'))
     holdRegistration = true
     const create = button('Create Account')
+    assert(create.disabled, 'Terms acceptance is required before registration')
+    await click(document.querySelector('.registration-acceptance input'))
     await click(create); await click(create)
     assert(submitted.length === 1 && create.disabled, 'Duplicate registration is prevented')
     assert(submitted[0].email === 'new@example.com' && submitted[0].phone === '+639164352483' && submitted[0].verificationId === 'challenge-2', 'Existing registration payload and latest challenge are preserved')
@@ -360,7 +362,7 @@ const bundle = await build({
     build.onLoad({ filter: /apiClient\.js$/ }, async ({ path }) => ({ contents: (await readFile(path, 'utf8')).replace('fetchImpl = globalThis.fetch', 'fetchImpl = (...args) => globalThis.fetch(...args)'), loader: 'js' }))
   } }],
 })
-const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
+const css = ((await readFile('src/index.css', 'utf8')) + '\n' + (await readFile('src/admin.css', 'utf8')) + '\n' + (await readFile('src/enhancements.css', 'utf8'))).replace(/^@import[^\r\n]*[\r\n]*/gm, '')
 const logo = await readFile('public/logo.svg')
 const introImage = await readFile('public/logooff.png')
 const server = createServer(async (req, res) => {

@@ -16,6 +16,7 @@ test('FAQ publishing preserves saved content and restricts management to admins'
   const queries = []
 
   context.mock.method(getDb(), 'query', async (sql, values) => {
+    if (sql.startsWith('SELECT * FROM users')) return { rows: [{ id: values[0], role: values[0].startsWith('admin') ? 'admin' : 'customer', verified: true }] }
     queries.push(sql)
     assert.match(sql, /^SELECT setting_value/)
     assert.deepEqual(values, ['faqs'])

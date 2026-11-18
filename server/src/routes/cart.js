@@ -12,7 +12,7 @@ const cartSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string(),
-      quantity: z.number().min(1).max(100),
+      quantity: z.number().int().min(1).max(100),
     })
   ),
 })
@@ -28,13 +28,18 @@ router.put('/', requireAuth, asyncRoute(async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ message: 'Invalid input' })
   }
+  const quantities = new Map()
   for (const item of parsed.data.items) {
     const product = await getProductById(item.productId)
-    if (product && item.quantity > product.stock) {
+    if (!product || !product.active) return res.status(400).json({ message: 'A selected product is unavailable.' })
+    const quantity = (quantities.get(product.id) || 0) + item.quantity
+    if (quantity > product.stock || quantity > 100) {
       return res.status(400).json({ message: 'Quantity exceeds stock' })
     }
+    quantities.set(product.id, quantity)
   }
-  const cart = await updateCart(req.user.id, parsed.data.items)
+  await createCart(req.user.id)
+  const cart = await updateCart(req.user.id, Array.from(quantities, ([productId, quantity]) => ({ productId, quantity })))
   if (!cart) return res.status(404).json({ message: 'Cart not found' })
   return res.json(normalizeId(cart))
 }))

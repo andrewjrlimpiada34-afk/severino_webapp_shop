@@ -21,6 +21,11 @@ const dateOf = (value) => (value ? new Date(value) : new Date())
 const jsonOf = (value, fallback) => JSON.stringify(value ?? fallback)
 
 const migrate = async () => {
+  const migrationTable = await postgres.query("SELECT to_regclass('schema_migrations') AS name")
+  if (migrationTable.rows[0].name) {
+    const applied = await postgres.query("SELECT version FROM schema_migrations WHERE version='001_system_enhancements'")
+    if (applied.rows.length) throw new Error('Import legacy MongoDB records into a base-schema target before applying enhancement migration 001. See docs/ENHANCEMENT_ROLLOUT.md.')
+  }
   await mongoClient.connect()
   const mongo = mongoClient.db(process.env.MONGODB_DB || 'severino')
   const connection = await postgres.connect()

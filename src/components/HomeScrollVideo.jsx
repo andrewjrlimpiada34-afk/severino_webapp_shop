@@ -228,8 +228,6 @@ function HomeScrollVideo() {
     lastFrameRef.current = -1
     targetProgressRef.current = 0
     currentProgressRef.current = 0
-    setFrameCount(0)
-    setLoadProgress(0)
     updateProgressUi(0, 0, '---')
 
     let cancelled = false
@@ -238,6 +236,10 @@ function HomeScrollVideo() {
     const images = []
 
     const loadSequence = async () => {
+      await Promise.resolve()
+      if (cancelled || preloadRunRef.current !== runId) return
+      setFrameCount(0)
+      setLoadProgress(0)
       for (let index = 1; index <= MAX_DISCOVERY_FRAMES; index += 1) {
         if (cancelled || preloadRunRef.current !== runId) return
 

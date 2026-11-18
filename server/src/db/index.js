@@ -15,13 +15,11 @@ import {
   getOrdersByUserId,
   createOrder,
   updateOrderStatus,
-  removeOrderById,
-  removeOrdersByUserId,
 } from './orders.js'
 import { getFeedback, createFeedback } from './feedback.js'
 import { getReviewsByProductId, createReview } from './reviews.js'
 import { getBanners, updateBanners, getLoginPopup, updateLoginPopup } from './banners.js'
-import { recordSale, getSalesSummary } from './inventory.js'
+import { getSalesSummary } from './inventory.js'
 import { createOtp, getOtpById, consumeOtp } from './otps.js'
 
 export {
@@ -42,8 +40,6 @@ export {
   getOrdersByUserId,
   createOrder,
   updateOrderStatus,
-  removeOrderById,
-  removeOrdersByUserId,
   getFeedback,
   createFeedback,
   getReviewsByProductId,
@@ -52,7 +48,6 @@ export {
   updateBanners,
   getLoginPopup,
   updateLoginPopup,
-  recordSale,
   getSalesSummary,
   createOtp,
   getOtpById,

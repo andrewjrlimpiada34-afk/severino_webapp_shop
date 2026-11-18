@@ -2,6 +2,8 @@
 import { asyncRoute } from '../lib/asyncRoute.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { getSalesSummary } from '../db/inventory.js'
+import { getCollectedSales } from '../db/payments.js'
+import { getDb } from '../db/postgres.js'
 import { getUserById, getUsers, removeUser } from '../db/users.js'
 import { getProducts } from '../db/products.js'
 import {
@@ -20,12 +22,10 @@ import {
 } from '../db/banners.js'
 
 import { removeCartByUserId } from '../db/carts.js'
-import { removeOrdersByUserId } from '../db/orders.js'
 import { z } from 'zod'
 import { normalizeList } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { createCache } from '../lib/cache.js'
-import { inventoryCache } from '../lib/inventoryEvents.js'
 import { bannerStoriesSchema } from '../lib/bannerStorySchema.js'
 import { createFaq, deleteFaq, getFaqs, updateFaq } from '../db/faqs.js'
 
@@ -71,6 +71,16 @@ router.delete('/faqs/:id', asyncRoute(async (req, res) => {
 router.get('/sales', asyncRoute(async (req, res) => {
   res.json(await getSalesSummary())
 }))
+router.get('/sales/history', asyncRoute(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  return res.json(await getCollectedSales())
+}))
+router.get('/inventory/logs', asyncRoute(async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  const page = Math.max(0, Math.min(10000, Number.parseInt(req.query.page, 10) || 0))
+  const { rows } = await getDb().query(`SELECT l.*, p.name AS product_name, u.name AS actor_name FROM inventory_logs l JOIN products p ON p.id=l.product_id LEFT JOIN users u ON u.id=l.actor_id ORDER BY l.created_at DESC, l.id DESC LIMIT 100 OFFSET $1`, [page * 100])
+  return res.json(rows)
+}))
 
 router.get('/users', asyncRoute(async (req, res) => {
   const users = await getUsers()
@@ -92,15 +102,12 @@ router.delete('/users/:id', asyncRoute(async (req, res) => {
   const removed = await removeUser(req.params.id)
   if (!removed) return res.status(404).json({ message: 'Not found' })
   await removeCartByUserId(req.params.id)
-  await removeOrdersByUserId(req.params.id)
   return res.json({ success: true })
 }))
 
 router.get('/inventory', asyncRoute(async (req, res) => {
-  const cached = inventoryCache.get()
-  if (cached) return res.json(cached)
-  const items = normalizeList(await getProducts())
-  inventoryCache.set(items)
+  res.set('Cache-Control', 'no-store')
+  const items = normalizeList(await getProducts()).map((product) => ({ ...product, availableStock: product.stock, stock: product.physicalStock }))
   return res.json(items)
 }))
 

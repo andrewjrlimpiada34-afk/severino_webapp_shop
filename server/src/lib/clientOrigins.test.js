@@ -56,7 +56,8 @@ test('credentialed CORS permits configured frontends and rejects other sites and
     assert.equal(response.status, 403)
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), null)
     assert.deepEqual(await response.json(), { message: 'Not allowed by CORS' })
-    assert.equal(logs.at(-1).origin, origin)
+    assert.equal(logs.at(-1).origin, undefined)
+    assert.equal(logs.at(-1).status, 403)
   }
   assert.equal((await request()).status, 200, 'health checks and server clients without Origin still work')
 })

@@ -56,7 +56,7 @@ export const policies = {
   terms: {
     label: 'Terms of Service',
     title: 'Terms of Service',
-    summary: 'Please read our terms and privacy information before signing in or placing an order.',
+    summary: 'Read the terms and privacy information before creating your account or placing an order.',
     sections: termsSections,
     footer: 'By using this platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms of Service and Privacy Agreement.',
   },
@@ -81,7 +81,12 @@ export const policies = {
         items: [['Your device', 'You can clear cookies and stored site data in your browser. This may sign you out or remove locally saved preferences and favorites.'], ['Account records', 'Clearing browser data does not delete server-side account, order, review, or feedback records.']],
       },
       {
-        number: '4', title: 'Your choices and requests',
+        number: '4', title: 'Protection and transaction history',
+        body: 'The backend verifies signed-in accounts and restricts addresses and orders to their owners. Administrator access is required for payment confirmation, refunds, and inventory adjustments.',
+        items: [['Account security', 'Passwords for email registration are hashed. Google sign-in uses Google identity verification.'], ['Transaction evidence', 'We record the policy version you accept, payment verification, refunds, and inventory actions. Order delivery snapshots preserve the address used for a purchase.'], ['Retention', 'Removing account access preserves transaction and audit records needed for fulfillment, refunds, and security. Contact Severino about your personal data requests.']],
+      },
+      {
+        number: '5', title: 'Your choices and requests',
         body: 'You can update account details from your account page, sign out, decline location access, or leave optional third-party content unopened.',
         items: [['Contact us', 'For questions or requests about access, correction, or deletion of your personal information, contact uvervidallonguevara@gmail.com. Requests are handled subject to applicable law and any records that must be retained for transactions or security.']],
       },
@@ -101,12 +106,12 @@ export const policies = {
       {
         number: '2', title: 'Essential sign-in cookies',
         body: 'These cookies allow the service to recognize your signed-in account and protect the Google sign-in process.',
-        items: [['token', 'A session cookie used to authenticate requests. The sign-in token is valid for up to two hours and the cookie is cleared when you sign out. Browser session restoration may preserve a session cookie.'], ['oauth_state', 'A security cookie used when you start Google sign-in. It expires after ten minutes and is cleared when the sign-in callback is processed.']],
+        items: [['token', 'A session cookie used to authenticate requests. The sign-in token is valid for up to two hours and the cookie is cleared when you sign out. Browser session restoration may preserve a session cookie.'], ['oauth_state', 'A security cookie used when you start Google sign-in. It expires after ten minutes and is cleared when the sign-in callback is processed.'], ['google_onboarding', 'A short-lived cookie links your browser to the verified Google profile while you complete account creation. It expires after ten minutes and is cleared when onboarding is completed or you sign out.']],
       },
       {
         number: '3', title: 'Shopping preferences on this device',
         body: 'Local storage remembers your font, theme, grid or list view, saved favorites, notification read or hidden states, and checkout selections. A cached profile is stored while signed in and removed at sign-out.',
-        items: [['Local preferences', 'These remain until you clear site data, change the setting, or the app removes the relevant entry. Checkout selections are removed as purchases are completed.'], ['Tab preferences', 'Session storage remembers Adaptive Scent settings, the floating panel position, dismissed introductory tips, sign-in navigation, administrator session status, and whether a welcome offer has been shown during the tab session.']],
+        items: [['Local preferences', 'These remain until you clear site data, change the setting, or the app removes the relevant entry. Checkout selections are removed as purchases are completed.'], ['Tab preferences', 'Session storage remembers Adaptive Scent settings, the floating panel position, dismissed introductory tips, sign-in navigation, administrator session status, and whether a welcome offer has been shown during the tab session.'], ['Pending checkout', 'A checkout reference and the submitted delivery details are kept in this tab to recover an interrupted order request. They are cleared after confirmation or sign-out.']],
       },
       {
         number: '4', title: 'Optional third-party content',
@@ -123,4 +128,4 @@ export const policies = {
   },
 }
 
-export const policyUpdated = 'November 6, 2026'
+export const policyUpdated = 'November 19, 2026'

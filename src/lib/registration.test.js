@@ -4,7 +4,7 @@ import { normalizePhilippineMobile, registrationProgress } from './registration.
 
 const form = {
   firstName: 'Ana', lastName: 'Cruz', email: 'ANA@example.com', mobile: '0916 435 2483',
-  password: 'test-password', confirmPassword: 'test-password', addressLine: '',
+  password: 'test-password', confirmPassword: 'test-password', addressLine: '', termsAccepted: true,
   barangay: 'Poblacion', city: 'Manila', province: 'Metro Manila', zip: '1000', country: 'Philippines',
 }
 const verified = { verified: true, email: 'ana@example.com', challengeId: 'server-challenge' }
@@ -39,6 +39,7 @@ test('security and required delivery fields block review until valid', () => {
   const progress = registrationProgress(form, verified)
   assert.equal(progress.furthestStep, 5)
   assert.equal(progress.canCreate, true)
+  assert.equal(registrationProgress({ ...form, termsAccepted: false }, verified).canCreate, false)
 })
 
 test('editing a verified email invalidates progression and account submission', () => {

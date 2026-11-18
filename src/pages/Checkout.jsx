@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useActionAnimation } from '../context/useActionAnimation.js'
 import { checkoutErrors, checkoutStepFields, firstInvalidCheckoutStep, normalizeCheckout } from '../lib/checkoutValidation.js'
 import Modal from '../components/Modal.jsx'
+import AddressBook from '../components/AddressBook.jsx'
 
 const steps = ['Shipping', 'Contact', 'Review']
 
@@ -35,6 +36,18 @@ function Checkout() {
     }
   }, [directPurchaseKey])
   const [stepIndex, setStepIndex] = useState(0)
+  const [selectedAddress, setSelectedAddress] = useState(null)
+  const [initialAttempt] = useState(() => {
+    const key = `severino_checkout_attempt_${user?.id || 'guest'}`
+    let stored
+    try { stored = JSON.parse(sessionStorage.getItem(key) || 'null') } catch { /* A fresh attempt replaces invalid local data. */ }
+    const attempt = { key: stored?.key || crypto.randomUUID(), payload: stored?.payload || null }
+    sessionStorage.setItem(key, JSON.stringify(attempt))
+    return attempt
+  })
+  const checkoutKey = useRef(initialAttempt.key)
+  const recoveryPayload = useRef(initialAttempt.payload)
+  const [recoveryRequest, setRecoveryRequest] = useState(initialAttempt.payload)
   const [touched, setTouched] = useState({})
   const formRef = useRef(null)
   const headingRef = useRef(null)
@@ -144,8 +157,36 @@ function Checkout() {
     }
   }, [directPurchase])
 
+  const finishCheckout = async () => {
+    orderPlacedRef.current = true
+    recoveryPayload.current = null
+    setRecoveryRequest(null)
+    sessionStorage.removeItem(`severino_checkout_attempt_${user?.id || 'guest'}`)
+    if (directPurchase) localStorage.removeItem(directPurchaseKey)
+    localStorage.removeItem(selectionKey)
+    setStatus({ loading: false, error: '', success: 'Order placed successfully.' })
+    await playActionAnimation('checkout', { duration: 650 })
+    navigate('/orders')
+  }
+
   const confirmOrder = async (confirmedPhone = '') => {
     if (submittingRef.current || orderPlacedRef.current) return
+    if (recoveryPayload.current) {
+      submittingRef.current = true
+      setStatus({ loading: true, error: '', success: '' })
+      try {
+        await api.createOrder(recoveryPayload.current)
+        await finishCheckout()
+      } catch (error) {
+        if (error.status >= 400 && error.status < 500) {
+          recoveryPayload.current = null
+          setRecoveryRequest(null)
+          sessionStorage.setItem(`severino_checkout_attempt_${user?.id || 'guest'}`, JSON.stringify({ key: checkoutKey.current }))
+        } else setRecoveryRequest(recoveryPayload.current)
+        setStatus({ loading: false, error: error.message, success: '' })
+      } finally { submittingRef.current = false }
+      return
+    }
     const invalidStep = firstInvalidCheckoutStep(form)
     if (invalidStep !== -1) {
       validateStep(invalidStep)
@@ -225,28 +266,28 @@ function Checkout() {
         })
         return
       }
-      await api.createOrder({
+      const payload = {
         items,
         address: [clean.addressLine, clean.barangay, clean.city, clean.province, clean.zip, clean.country].filter(Boolean).join(', '),
         contactName: clean.name,
         phone: clean.mobile,
         email: clean.email,
         paymentMethod: 'COD',
-      })
-      orderPlacedRef.current = true
-      if (directPurchase) {
-        localStorage.removeItem(directPurchaseKey)
-      } else if (selectedItems.length) {
-        const remaining = cart.items.filter(
-          (item) => !selectedItems.includes(String(item.productId))
-        )
-        await api.updateCart(remaining).catch(() => {})
-        localStorage.removeItem(selectionKey)
+        addressId: selectedAddress?.id,
+        checkoutKey: checkoutKey.current,
+        fromCart: !directPurchase,
+        notes: clean.notes || '',
       }
-      setStatus({ loading: false, error: '', success: 'Order placed successfully.' })
-      await playActionAnimation('checkout', { duration: 650 })
-      navigate('/orders')
+      recoveryPayload.current = payload
+      sessionStorage.setItem(`severino_checkout_attempt_${user?.id || 'guest'}`, JSON.stringify({ key: checkoutKey.current, payload }))
+      await api.createOrder(payload)
+      await finishCheckout()
     } catch (error) {
+      if (error.status >= 400 && error.status < 500) {
+        recoveryPayload.current = null
+        setRecoveryRequest(null)
+        sessionStorage.setItem(`severino_checkout_attempt_${user?.id || 'guest'}`, JSON.stringify({ key: checkoutKey.current }))
+      } else setRecoveryRequest(recoveryPayload.current)
       setStatus({ loading: false, error: error.message, success: '' })
     } finally {
       submittingRef.current = false
@@ -278,7 +319,18 @@ function Checkout() {
         <p className="section-subtitle">Your delivery details, then a final review. Payment is cash on delivery.</p>
       </div>
 
-      <form className="card checkout-card" ref={formRef} noValidate onSubmit={(event) => {
+      {recoveryRequest && <section className="card form" aria-label="Previous checkout confirmation"><h2>Check your previous checkout</h2><p>The previous request is awaiting confirmation. Retry its original delivery details to retrieve the result.</p><p>{recoveryRequest.contactName}<br />{recoveryRequest.address}<br />{recoveryRequest.phone}</p>{status.error && <p role="alert">{status.error}</p>}<button className="button" type="button" disabled={busy} onClick={() => confirmOrder()}>{busy ? 'Checking order…' : 'Retry previous order confirmation'}</button></section>}
+
+      <AddressBook selectedId={selectedAddress?.id} disabled={busy || Boolean(recoveryRequest)} onSelect={(address) => {
+        setSelectedAddress(address)
+        if (address) {
+          Object.keys(form).forEach((key) => editedFields.current.add(key))
+          setForm((previous) => ({ ...previous, ...address, mobile: address.phone, email: previous.email || user?.email || '' }))
+          setTouched({})
+        }
+      }} />
+
+      <form className="card checkout-card" hidden={Boolean(recoveryRequest)} ref={formRef} noValidate onSubmit={(event) => {
         event.preventDefault()
         if (submittingRef.current || busy || orderPlacedRef.current) return
         if (stepIndex === steps.length - 1) confirmOrder()
@@ -294,7 +346,8 @@ function Checkout() {
         <div className="checkout-step-content" key={stepIndex} role="group" aria-labelledby="checkout-step-title">
           <h2 id="checkout-step-title" className="section-title checkout-step-title" ref={headingRef} tabIndex={-1}>{['Shipping details', 'Contact details', 'Review your order'][stepIndex]}</h2>
           {stepIndex < 2 && <p className="checkout-field-help">Fields marked * are required.</p>}
-          {stepIndex === 0 && <div className="form">
+          {stepIndex === 0 && selectedAddress && <div className="checkout-review-block"><h3>{selectedAddress.label}</h3><p>{form.name}<br />{[form.addressLine, form.barangay, form.city, form.province, form.zip, form.country].filter(Boolean).join(', ')}</p><p>Select Edit address above to change delivery details.</p></div>}
+          {stepIndex === 0 && !selectedAddress && <div className="form">
             {field('name', 'Full name', { placeholder: 'Juan Dela Cruz', autoComplete: 'shipping name' })}
             {field('addressLine', 'Street address (optional)', { required: false, placeholder: 'House no., street', autoComplete: 'shipping street-address' })}
             <div className="grid two">

@@ -33,14 +33,15 @@ router.post('/', requireAuth, asyncRoute(async (req, res) => {
     return res.status(400).json({ message: 'Invalid input' })
   }
   const orders = await getOrdersByUserId(req.user.id)
-  const order = orders.find((item) => item.id === parsed.data.orderId)
+  const order = orders.find((item) => item.reference === parsed.data.orderId || item.id === parsed.data.orderId)
   if (!order || order.status !== 'To Review') {
     return res.status(400).json({ message: 'Order is not ready for feedback' })
   }
   const user = await getUserById(req.user.id)
-  const entry = await createFeedback({ userId: req.user.id, ...parsed.data })
+  const entry = await createFeedback({ userId: req.user.id, ...parsed.data, orderId: order.id })
   entry.userName = user?.name || 'Customer'
-  entry.userEmail = user?.email || ''
+  delete entry.userId
+  entry.orderId = order.reference
   return res.status(201).json(normalizeId(entry))
 }))
 

@@ -5,6 +5,11 @@
 | [Project README](../README.md) | Features, technology, local setup, service addresses, and build/deployment overview |
 | [Test commands](../TESTCMD.md) | Security regression checks, JavaScript/Python tests, browser QA, lint, build, dependency audits, and health checks |
 | [Repository map](REPOSITORY_MAP.md) | Main directories, entry points, shared helpers, and generated/local files |
+| [Customer and administrator manual](USER_MANUAL.md) | Numbered procedures with screenshots of the enhanced application |
+| [System design and diagrams](SYSTEM_DESIGN.md) | ERD, architecture, authentication, inventory, payment, and responsive behavior |
+| [Database reference](DATABASE_SCHEMA.md) | Actual migrated attributes, keys, defaults, and indexes |
+| [Enhancement rollout](ENHANCEMENT_ROLLOUT.md) | Versioned migration, preflight, deployment order, data reconciliation, and recovery |
+| [Implementation and validation](IMPLEMENTATION_VALIDATION.md) | Changed areas, acceptance coverage, commands, results, and remaining deployment verification |
 | [Contributing](../CONTRIBUTING.md) | Issues, branches, commits, pull requests, and validation expectations |
 | [Backend deployment](../server/RENDER_DEPLOYMENT.md) | Render API configuration, Supabase PostgreSQL, migration, inventory workflow, and deployment verification |
 | [Python OTP service](../server/otp_service/README.md) | Gmail sender authorization, Python environment settings, deployment, and email verification |

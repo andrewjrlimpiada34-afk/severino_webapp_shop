@@ -44,10 +44,10 @@ function Feedback() {
       <div className="grid two">
         <form className="card form" onSubmit={handleSubmit}>
           <div>
-            <div className="label">Order ID</div>
+            <div className="label">Order reference</div>
             <input
               className="input"
-              placeholder="ORD-2026-0012"
+              placeholder="SV-…"
               value={form.orderId}
               onChange={(event) => updateField('orderId', event.target.value)}
             />

@@ -12,15 +12,15 @@ const router = express.Router()
 
 const profileSchema = z
   .object({
-    name: z.string().min(2),
+    name: z.string().trim().min(2).max(150),
     email: z.string().email().optional().or(z.literal('')),
-    phone: z.string().min(7),
+    phone: z.string().transform(normalizePhilippineMobile).refine(Boolean, 'Enter a valid Philippine mobile number.'),
   addressLine: z.string().optional(),
-  barangay: z.string().min(2),
-  city: z.string().min(2),
-  province: z.string().min(2),
-  zip: z.string().min(3),
-  country: z.string().min(2),
+  barangay: z.string().max(150).optional(),
+  city: z.string().max(150).optional(),
+  province: z.string().max(150).optional(),
+  zip: z.string().max(20).optional(),
+  country: z.string().max(100).optional(),
   backupAddress: z.string().optional(),
     profileImage: z.string().optional(),
     preferredTheme: z.string().optional(),
@@ -63,10 +63,11 @@ router.patch('/me', requireAuth, asyncRoute(async (req, res) => {
   const currentUser = await getUserById(req.user.id)
   if (!currentUser) return res.status(404).json({ message: 'Not found' })
   const nextData = { ...parsed.data }
+  if (Object.hasOwn(nextData, 'email') && nextData.email.trim().toLowerCase() !== currentUser.email.toLowerCase()) return res.status(400).json({ message: 'Contact support to verify a change to your sign-in email.' })
   if (currentUser.passwordHash && !currentUser.email) {
     delete nextData.email
   }
-  const address = `${parsed.data.addressLine || ''}, ${parsed.data.barangay}, ${parsed.data.city}, ${parsed.data.province}, ${parsed.data.zip}, ${parsed.data.country}`
+  const address = ['addressLine','barangay','city','province','zip','country'].map((key) => nextData[key] ?? currentUser[key] ?? '').filter(Boolean).join(', ')
   let user
   try {
     user = await updateUser(req.user.id, { ...nextData, address })

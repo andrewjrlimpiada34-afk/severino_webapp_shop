@@ -4,9 +4,15 @@ import { z } from 'zod'
 import { createReview, deleteReview, getReviewById, getReviewsByProductId } from '../db/reviews.js'
 import { getUserById } from '../db/users.js'
 import { requireAuth } from '../middleware/auth.js'
-import { normalizeId, normalizeList } from '../db/util.js'
+import { normalizeId } from '../db/util.js'
+import jwt from 'jsonwebtoken'
 
 const router = express.Router()
+function publicReview(review, userId) {
+  const { userId: owner, userEmail, ...safe } = normalizeId(review)
+  void userEmail
+  return { ...safe, canDelete: Boolean(userId && owner === userId) }
+}
 
 const reviewSchema = z.object({
   rating: z.preprocess((val) => Number(val), z.number().min(1).max(5)),
@@ -22,7 +28,10 @@ const reviewSchema = z.object({
 
 router.get('/:productId', asyncRoute(async (req, res) => {
   const reviews = await getReviewsByProductId(req.params.productId)
-  res.json(normalizeList(reviews))
+  let userId
+  try { userId = jwt.verify(req.cookies?.token || req.headers.authorization?.replace('Bearer ', ''), process.env.JWT_SECRET).id } catch { /* Public reviews remain available to guests. */ }
+  res.set('Cache-Control', 'no-store')
+  res.json(reviews.map((review) => publicReview(review, userId)))
 }))
 
 router.post('/:productId', requireAuth, asyncRoute(async (req, res) => {
@@ -40,7 +49,7 @@ router.post('/:productId', requireAuth, asyncRoute(async (req, res) => {
     comment: parsed.data.comment,
     attachment: parsed.data.attachment || null,
   })
-  return res.status(201).json(normalizeId(review))
+  return res.status(201).json(publicReview(review, req.user.id))
 }))
 
 router.delete('/:reviewId', requireAuth, asyncRoute(async (req, res) => {
@@ -50,7 +59,7 @@ router.delete('/:reviewId', requireAuth, asyncRoute(async (req, res) => {
     return res.status(403).json({ message: 'Forbidden' })
   }
   const removed = await deleteReview(req.params.reviewId)
-  return res.json(normalizeId(removed))
+  return res.json(publicReview(removed, req.user.id))
 }))
 
 export default router

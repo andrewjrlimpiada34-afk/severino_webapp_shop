@@ -1,0 +1,28 @@
+digraph lifecycle {
+ graph [rankdir=LR,bgcolor="white",pad=0.4,nodesep=0.6,ranksep=0.8,fontname="Arial",fontsize=20,label="Order, inventory and payment transactions",labelloc=t];
+ node [shape=box,style="rounded,filled",fillcolor="#F4F7F0",color="#71846A",fontname="Arial",fontsize=12,margin="0.17,0.13"]; edge [fontname="Arial",fontsize=10,color="#536B59"];
+ subgraph cluster_fulfillment { label="Fulfillment and physical inventory"; color="#A0B391"; checkout [label="Checkout transaction
+Resolve product identities and prices
+Lock products / reserve stock
+Create immutable delivery snapshot"]; approved [label="Approved
+Keep reservation"]; packing [label="To Ship
+Prepare shipment"]; dispatch [label="To Receive / in transit
+Deduct physical stock
+Consume reservation once\nWrite inventory log"]; delivered [label="To Review / delivered"]; release [label="Cancellation before dispatch
+Release reserved quantities
+Restore documented legacy deductions"]; returned [label="Inspected returned goods
+Restore accepted quantity once
+Record return reference"]; checkout -> approved; approved -> packing; packing -> dispatch; dispatch -> delivered; checkout -> release; approved -> release; packing -> release; dispatch -> returned; delivered -> returned; }
+ subgraph cluster_money { label="Payment evidence and collection reporting"; color="#C6B67F"; verify [label="Administrator verifies actual collection
+Method, amount and reference
+Review and confirm"]; paid [label="Paid collection record
+Verifier and timestamp\nWrite administrator audit
+Unique order / idempotency key"]; refunds [label="Verified full or partial refund
+Limit to remaining collection
+Record reason and transaction reference"]; sales [label="Sales queries
+Gross verified collections
+Verified refunds and net collections
+Use payment verification dates"]; verify -> paid; paid -> refunds; paid -> sales; refunds -> sales; }
+ checkout -> verify [style=dashed,label="separate administrator action"];
+
+}

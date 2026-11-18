@@ -1,5 +1,6 @@
 import Modal from '../components/Modal.jsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import QuantityControl from '../components/QuantityControl.jsx'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -10,6 +11,7 @@ import { useActionAnimation } from '../context/useActionAnimation.js'
 import MediaAttachmentField, { MediaAttachmentDisplay } from '../components/MediaAttachmentField.jsx'
 import RatingStars from '../components/RatingStars.jsx'
 import useInventoryStock from '../hooks/useInventoryStock.js'
+import SpeechControls from '../components/SpeechControls.jsx'
 import { withInventoryStock } from '../lib/inventoryStore.js'
 
 function ProductDetail() {
@@ -27,6 +29,9 @@ function ProductDetail() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [activeImage, setActiveImage] = useState('')
   const [isFav, setIsFav] = useState(false)
+  const [cartQuantity, setCartQuantity] = useState(0)
+  const [cartBusy, setCartBusy] = useState(false)
+  const cartPending = useRef(false)
 
   useEffect(() => {
     const load = async () => {
@@ -56,16 +61,25 @@ function ProductDetail() {
   })
 
   const closeQuantityModal = () => {
+    if (cartPending.current) return
     setQuantityModal({ open: false, action: 'cart', quantity: 1 })
   }
 
-  const openAddToCartModal = () => {
+  const openAddToCartModal = async () => {
+    if (cartPending.current) return
     if (product?.stock <= 0) {
       setStatus((prev) => ({ ...prev, error: 'Out of stock.' }))
       return
     }
     setStatus((prev) => ({ ...prev, error: '', success: '' }))
     setQuantityModal({ open: true, action: 'cart', quantity: 1 })
+    cartPending.current = true
+    setCartBusy(true)
+    try {
+      const cart = user ? await api.cart() : { items: [] }
+      setCartQuantity(cart.items.filter((item) => item.productId === product.id || item.productId === product.legacyId).reduce((sum, item) => sum + item.quantity, 0))
+    } catch (error) { setStatus((previous) => ({ ...previous, error: error.message })); setQuantityModal({ open: false, action: 'cart', quantity: 1 }) }
+    finally { cartPending.current = false; setCartBusy(false) }
   }
 
   const openBuyNowModal = () => {
@@ -78,6 +92,7 @@ function ProductDetail() {
   }
 
   const addToCartWithQuantity = async () => {
+    if (cartPending.current) return
     if (!user) {
       navigate('/login')
       return
@@ -89,11 +104,16 @@ function ProductDetail() {
     }
 
     const desiredQty = Number(quantityModal.quantity) || 1
-    const qtyToAdd = Math.max(1, Math.min(100, Math.min(product.stock, desiredQty)))
+    const qtyToAdd = Math.max(1, Math.min(Math.max(0, Math.min(100, product.stock) - cartQuantity), desiredQty))
 
+    cartPending.current = true
+    setCartBusy(true)
     try {
       const cart = await api.cart()
       const existing = cart.items.find((item) => item.productId === product.id)
+      const remaining = Math.min(100, product.stock) - (existing?.quantity || 0)
+      setCartQuantity(existing?.quantity || 0)
+      if (qtyToAdd > remaining || remaining < 1) throw new Error('Maximum stock reached. Review the quantity already in your cart.')
       const nextItems = existing
         ? cart.items.map((item) =>
             item.productId === product.id
@@ -102,12 +122,12 @@ function ProductDetail() {
           )
         : [...cart.items, { productId: product.id, quantity: qtyToAdd }]
       await api.updateCart(nextItems)
-      setStatus((prev) => ({ ...prev, success: 'Added to cart.' }))
-      closeQuantityModal()
+      setQuantityModal({ open: false, action: 'cart', quantity: 1 })
+      setStatus((previous) => ({ ...previous, success: `${product.name} added to your cart.` }))
       playActionAnimation('cart')
     } catch (error) {
       setStatus((prev) => ({ ...prev, error: error.message }))
-    }
+    } finally { cartPending.current = false; setCartBusy(false) }
   }
 
 
@@ -245,6 +265,7 @@ function ProductDetail() {
             {reviews.length ? `${average.toFixed(1)} / 5 · ${reviews.length} ${reviews.length === 1 ? 'review' : 'reviews'}` : 'Be the first to review'}
           </a>
           <p className="section-subtitle">{product.description || product.notes}</p>
+          <SpeechControls text={`${product.name}. ${product.description || product.notes || ''}`} label="product description" />
           {product.notes && (
             <div className="product-desktop-only product-detail-notes">
               <div className="tag">Scent notes</div>
@@ -272,7 +293,7 @@ function ProductDetail() {
               <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
-              <span className="product-desktop-only">Add to Cart</span>
+              <span>Add to Cart</span>
             </button>
             <button
               className={`icon-button ${isFav ? 'favorited' : ''}`}
@@ -331,25 +352,7 @@ function ProductDetail() {
             <p className="section-subtitle">{product.stock > 0 ? 'Select quantity' : 'This item is now out of stock.'}</p>
 
             <div style={{ marginTop: '14px', display: 'grid', gap: '12px' }}>
-              <div>
-                <div className="label">Quantity</div>
-                <select
-                  className="input"
-                  value={Math.min(quantityModal.quantity, product.stock, 100)}
-                  disabled={product.stock <= 0}
-                  onChange={(e) =>
-                    setQuantityModal((prev) => ({ ...prev, quantity: Number(e.target.value) }))
-                  }
-                >
-                  {Array.from({ length: Math.min(100, product.stock ?? 100) }, (_, i) => i + 1).map(
-                    (qty) => (
-                      <option key={qty} value={qty}>
-                        {qty}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
+              <QuantityControl value={quantityModal.quantity} maximum={Math.max(0, Math.min(100, product.stock) - (quantityModal.action === 'cart' ? cartQuantity : 0))} disabled={cartBusy} onChange={(quantity) => setQuantityModal((previous) => ({ ...previous, quantity }))} />
 
               <div
                 style={{
@@ -365,14 +368,14 @@ function ProductDetail() {
                 <button
                   className="button"
                   type="button"
-                  disabled={product.stock <= 0}
+                  disabled={cartBusy || product.stock <= 0 || (quantityModal.action === 'cart' && cartQuantity >= Math.min(100, product.stock))}
                   onClick={
                     quantityModal.action === 'buy-now'
                       ? buyNowWithQuantity
                       : addToCartWithQuantity
                   }
                 >
-                  {quantityModal.action === 'buy-now' ? 'Continue to Checkout' : 'Add'}
+                  {cartBusy ? 'Please wait…' : quantityModal.action === 'buy-now' ? 'Continue to Checkout' : 'Add to Cart'}
                 </button>
               </div>
             </div>
@@ -429,7 +432,7 @@ function ProductDetail() {
               <RatingStars value={review.rating} readOnly />
               <p>{review.comment}</p>
               <MediaAttachmentDisplay attachment={review.attachment} />
-              {user?.id === review.userId && (
+              {review.canDelete && (
                 <button className="button ghost" type="button" onClick={() => removeReview(review.id)}>
                   Delete Review
                 </button>

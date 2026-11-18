@@ -1,0 +1,61 @@
+digraph architecture {
+ graph [rankdir=LR, bgcolor="white", pad=0.4, nodesep=0.65, ranksep=1.25, splines=polyline, fontname="Arial", fontsize=22, label="Severino system architecture", labelloc=t];
+ node [shape=box, style="rounded,filled", fillcolor="#F5F7F2", color="#80947B", fontname="Arial", fontsize=12, margin="0.2,0.15"];
+ edge [fontname="Arial", fontsize=10, color="#536B59", arrowsize=0.7];
+ subgraph cluster_browser { label="Customer / administrator browser"; style=rounded; color="#97A9BE"; react [label="React 18 + React Router
+Catalog and product pages
+Saved addresses and checkout
+Order tracking and admin tools"]; speech [label="Web Speech API
+User-initiated reading controls"]; react -> speech [label="selected text"]; }
+ vercel [label="Vercel
+Vite-built HTML, CSS, JS and public assets"];
+ vercel -> react [label="HTTPS static assets"];
+ subgraph cluster_api { label="Render Node service / server security boundary"; style=rounded; color="#80947B"; api [label="Express API
+
+Passport Google OAuth / bcrypt / JWT
+Current-user and administrator checks
+Customer ownership and input validation
+Trusted origins and mutation header
+
+Transactional checkout and inventory
+Payment verification and refund audit
+Verified collections reporting
+Inventory SSE notification stream
+Authorized media uploads"]; }
+ subgraph cluster_database { label="Supabase-hosted PostgreSQL"; style=rounded; color="#B4A16C"; db [label="Users / Google identities / terms
+Addresses / orders / item snapshots
+Products / reserved stock / inventory logs
+Payments / refunds / admin audit logs
+Reviews / feedback / OTPs / settings
+
+Foreign keys, unique/check constraints
+RLS enabled / server database credentials"]; }
+ react -> api [dir=both,label="HTTPS API and OAuth callback
+JWT / onboarding HttpOnly cookies
+Mutation header / SSE stock events"];
+ api -> db [dir=both,label="TLS SQL queries and transactions
+Ordered row locks / idempotency checks
+Committed LISTEN / NOTIFY events"];
+ google [label="Google OAuth
+Verified profile, email and stable subject"];
+ react -> google [label="browser authorization / account choice"];
+ api -> google [dir=both,label="HTTPS code exchange
+and verified profile response"];
+ python [label="Render Python / FastAPI
+OTP service authentication
+Code digests, expiry and attempt limits"];
+ api -> python [label="HTTPS internal OTP contract
+OTP_SERVICE_KEY"];
+ python -> db [label="TLS SQL OTP state"];
+ gmail [label="Gmail API
+OTP email delivery"];
+ python -> gmail [label="HTTPS / server OAuth credentials"];
+ weather [label="Open-Meteo forecast API"];
+ react -> weather [label="direct HTTPS forecast
+Optional coordinates / default location"];
+ cloud [label="Cloudinary media hosting"];
+ react -> cloud [label="direct HTTPS media reads"];
+ api -> cloud [label="server-authenticated uploads"];
+ embeds [label="Optional Facebook / Drive embeds"];
+ react -> embeds [label="direct browser connection when opened"];
+}

@@ -101,8 +101,7 @@ test('authentication routes validate input, protect credentials, and preserve th
       assert.equal(data.requires2fa, false)
       assert.equal(data.user.id, 'customer-one')
       assert.equal(data.user.preferredTheme, 'Olive')
-      assert.equal(data.user.passwordHash, undefined)
-      assert.equal(data.user.password, undefined)
+      assert.deepEqual(Object.keys(data.user).sort(), ['id', 'preferredTheme', 'profileImage', 'role'])
       assert.equal(data.token, undefined)
     }
     assert.equal(queries.length, 3, 'existing users do not trigger default admin provisioning')

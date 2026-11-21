@@ -74,13 +74,12 @@ function NavBar() {
     let active = true
     const load = async () => {
       try {
-        const orders = await api.orders()
+        const orders = await api.orderNotifications({ recent: true })
         if (!active) return
         const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${userId}`) || '[]')
         const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${userId}`) || '[]')
-        const list = orders.slice(0, 5).map((order) => ({
+        const list = orders.map((order) => ({
           id: order.id,
-          text: `Order ${order.id} is ${order.status}`,
           opened: openedIds.includes(order.id),
         }))
         setNotifications(list.filter((item) => !deletedIds.includes(item.id)))

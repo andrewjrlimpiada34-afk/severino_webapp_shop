@@ -40,6 +40,7 @@ export const api = {
   cart: () => request('/api/cart'),
   updateCart: (items) => request('/api/cart', { method: 'PUT', body: JSON.stringify({ items }) }),
   orders: () => request('/api/orders'),
+  orderNotifications: ({ recent = false } = {}) => request(`/api/orders/notifications${recent ? '?recent=1' : ''}`),
   createOrder: (data) => request('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
   cancelOrder: (id) => request(`/api/orders/${id}/cancel`, { method: 'PATCH' }),
   cancelOrderItem: (orderId, itemId) =>

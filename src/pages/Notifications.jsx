@@ -49,14 +49,13 @@ function Notifications() {
       if (!user) return
       try {
         setStatus({ loading: true, error: '' })
-        const orders = await api.orders()
+        const orders = await api.orderNotifications()
         const openedIds = JSON.parse(localStorage.getItem(`severino_notif_opened_${user.id}`) || '[]')
         const deletedIds = JSON.parse(localStorage.getItem(`severino_notif_deleted_${user.id}`) || '[]')
         const mapped = orders.map((order) => ({
           id: order.id,
-          text: `Order ${order.reference || order.id} is ${getOrderStatusLabel(order.status)}`,
+          text: `Order ${order.id} is ${getOrderStatusLabel(order.status)}`,
           opened: openedIds.includes(order.id),
-          createdAt: order.createdAt,
         }))
         setItems(mapped.filter((item) => !deletedIds.includes(item.id)))
         setStatus({ loading: false, error: '' })

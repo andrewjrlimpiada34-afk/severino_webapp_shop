@@ -455,11 +455,34 @@ test(
         const app = express()
         app.use(express.json())
         app.use('/api/orders', routes)
+        app.use('/api/products', (await import('../routes/products.js')).default)
+        app.use('/api/admin', (await import('../routes/admin.js')).default)
         app.use(errorHandler)
         const server = await new Promise((done) => {
           const instance = app.listen(0, '127.0.0.1', () => done(instance))
         })
         try {
+          const base = `http://127.0.0.1:${server.address().port}/api`
+          const customerHeaders = { Authorization: `Bearer ${jwt.sign({ id: customer }, process.env.JWT_SECRET)}` }
+          const inbox = await fetch(`${base}/orders/notifications`, { headers: customerHeaders })
+          assert.equal(inbox.status, 200)
+          const expected = (await database.query(
+            "SELECT reference AS id, status FROM orders WHERE user_id=$1 AND status <> 'Removed' ORDER BY created_at DESC, reference DESC",
+            [customer]
+          )).rows
+          assert.ok(expected.length > 0)
+          assert.deepEqual(await inbox.json(), expected)
+          const recent = await fetch(`${base}/orders/notifications?recent=1`, { headers: customerHeaders })
+          assert.deepEqual(await recent.json(), expected.slice(0, 5))
+          assert.equal((await fetch(`${base}/orders/notifications`)).status, 401)
+          assert.equal((await fetch(`${base}/admin/inventory`, { headers: customerHeaders })).status, 403)
+          const catalog = await (await fetch(`${base}/products`)).json()
+          const detail = await (await fetch(`${base}/products/${productId}`)).json()
+          for (const product of [detail, catalog.find(entry => entry.id === productId)]) {
+            assert.equal(typeof product.stock, 'number')
+            assert.equal(product.physicalStock, undefined)
+            assert.equal(product.reservedStock, undefined)
+          }
           const token = jwt.sign(
             { id: other, role: 'admin' },
             process.env.JWT_SECRET

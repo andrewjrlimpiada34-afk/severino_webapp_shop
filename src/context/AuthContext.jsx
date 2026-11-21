@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
-import { clearLocalProfile, setLocalProfile } from '../lib/auth.js'
 import { loginErrors, normalizeLoginIdentifier } from '../../server/shared/loginValidation.js'
 import { applyFontPreference, readFontPreference } from '../lib/fontPreference.js'
 
@@ -66,14 +65,12 @@ export function AuthProvider({ children }) {
     currentUserId.current = resolved.id
     transferPendingBuyNow(resolved)
     setUser(resolved)
-    setLocalProfile(resolved)
     return resolved
   }, [])
 
   const clearSession = useCallback(() => {
     currentUserId.current = null
     setUser(null)
-    clearLocalProfile()
     api.clearCache()
     document.documentElement.removeAttribute('data-theme')
     applyFontPreference(readFontPreference())
@@ -98,6 +95,8 @@ export function AuthProvider({ children }) {
   }, [acceptUser, clearSession])
 
   useEffect(() => {
+    // Remove the full profile cached by earlier storefront versions.
+    localStorage.removeItem('severino_profile')
     refresh()
   }, [refresh])
 

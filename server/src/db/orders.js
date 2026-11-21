@@ -74,6 +74,16 @@ export const getOrdersByUserId = async (userId) => {
   return rows.map(mapOrder)
 }
 
+export async function getOrderNotifications(userId, recent) {
+  const { rows } = await getDb().query(
+    `SELECT reference AS id, status FROM orders
+     WHERE user_id = $1 AND status <> 'Removed'
+     ORDER BY created_at DESC, reference DESC LIMIT $2`,
+    [userId, recent ? 5 : null]
+  )
+  return rows
+}
+
 export function serializeOrder(order, admin = false) {
   if (!order) return null
   const { requestFingerprint, userId, ...safe } = order

@@ -43,6 +43,10 @@ Object.assign(api, {
   products: async () => { if (window.failCatalog) throw new Error('Collection temporarily unavailable'); return products },
   addresses: async () => [],
   orders: async () => window.qaOrders || [], profile: async () => window.qaProfile || profile,
+  orderNotifications: async ({ recent } = {}) => {
+    const list = (window.qaOrders || []).map(({ id, status }) => ({ id, status }))
+    return recent ? list.slice(0, 5) : list
+  },
   product: async (id) => products.find(item => item.id === id),
   checkDeliveryPhone: async (phone) => {
     calls.phones.push(phone)

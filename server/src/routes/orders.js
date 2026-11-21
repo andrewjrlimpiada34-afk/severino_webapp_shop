@@ -5,6 +5,7 @@ import {
   cancelOrder,
   createOrder,
   getOrderById,
+  getOrderNotifications,
   getOrders,
   getOrdersByUserId,
   reconcileOrderItem,
@@ -75,6 +76,10 @@ const respond = (req, res, order, status = 200) =>
   order
     ? res.status(status).json(serializeOrder(order, req.user.role === 'admin'))
     : res.status(404).json({ message: 'Order unavailable.' })
+
+router.get('/notifications', asyncRoute(async (req, res) => {
+  res.json(await getOrderNotifications(req.user.id, req.query.recent === '1'))
+}))
 
 router.get(
   '/',

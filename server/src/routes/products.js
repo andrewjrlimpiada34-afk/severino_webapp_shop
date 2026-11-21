@@ -9,12 +9,30 @@ import {
   updateProduct,
 } from '../db/products.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
-import { normalizeId, normalizeList } from '../db/util.js'
+import { normalizeId } from '../db/util.js'
 import { assertNoDataUrls, isDataUrl } from '../lib/images.js'
 import { inventoryChange, inventoryEvents, notifyInventoryChange, publishInventoryChange } from '../lib/inventoryEvents.js'
 import { getDb } from '../db/postgres.js'
 
 const router = express.Router()
+
+function publicProduct(product) {
+  return {
+    id: product.id,
+    legacyId: product.legacyId,
+    name: product.name,
+    price: product.price,
+    stock: product.stock,
+    notes: product.notes,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    imageUrls: product.imageUrls,
+    size: product.size,
+    category: product.category,
+    active: product.active,
+    createdAt: product.createdAt,
+  }
+}
 
 const productFields = z
   .object({
@@ -38,8 +56,8 @@ const productSchema = productFields.refine((data) => !isDataUrl(data.imageUrl), 
 
 router.get('/', asyncRoute(async (req, res) => {
   const soldCounts = await getProductSoldCounts()
-  const products = normalizeList(await getProducts()).filter((product) => product.active).map((product) => ({
-    ...product,
+  const products = (await getProducts()).filter((product) => product.active).map((product) => ({
+    ...publicProduct(product),
     soldCount: soldCounts[product.id] || 0,
   }))
   res.set('Cache-Control', 'no-store')
@@ -50,8 +68,9 @@ router.get('/stock-events', (req, res) => {
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' })
   res.flushHeaders()
   res.write(': connected\n\n')
-  const send = (event) => {
-    if (!res.destroyed && !res.writableEnded) res.write(`event: stock\ndata: ${JSON.stringify(event)}\n\n`)
+  const send = () => {
+    // Storefront clients fetch current availability when they receive this signal.
+    if (!res.destroyed && !res.writableEnded) res.write('event: stock\ndata: {"products":[]}\n\n')
   }
   const end = () => res.end()
   inventoryEvents.on('change', send)
@@ -65,7 +84,7 @@ router.get('/:id', asyncRoute(async (req, res) => {
   res.set('Cache-Control', 'no-store')
   const product = await getProductById(req.params.id)
   if (!product || !product.active) return res.status(404).json({ message: 'Not found' })
-  return res.json(normalizeId(product))
+  return res.json(publicProduct(product))
 }))
 
 router.post('/', requireAuth, requireAdmin, asyncRoute(async (req, res) => {

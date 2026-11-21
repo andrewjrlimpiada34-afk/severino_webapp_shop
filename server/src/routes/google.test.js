@@ -112,9 +112,10 @@ test(
         const completed = await complete(onboardingCookie)
         assert.equal(completed.status, 200)
         const user = await completed.json()
-        assert.equal(user.hasPassword, false)
-        assert.equal(user.passwordHash, undefined)
-        assert.equal(user.email, 'google@example.com')
+        assert.deepEqual(Object.keys(user).sort(), ['id', 'preferredTheme', 'profileImage', 'role'])
+        const account = (await database.query('SELECT email, password_hash FROM users WHERE id = $1', [user.id])).rows[0]
+        assert.equal(account.email, 'google@example.com')
+        assert.ok(!account.password_hash)
         assert.equal(
           (
             await database.query(
@@ -206,15 +207,10 @@ test(
             .match(/google_onboarding=([^;]+)/)[1]
         const completed = await complete(onboarding)
         assert.equal(completed.status, 200)
-        assert.equal((await completed.json()).hasPassword, false)
-        assert.equal(
-          (
-            await database.query('SELECT verified FROM users WHERE id=$1', [
-              legacy
-            ])
-          ).rows[0].verified,
-          true
-        )
+        assert.equal((await completed.json()).id, legacy)
+        const account = (await database.query('SELECT verified, password_hash FROM users WHERE id=$1', [legacy])).rows[0]
+        assert.equal(account.verified, true)
+        assert.ok(!account.password_hash)
         const tokenCookie =
           'token=' +
           completed.headers.get('Set-Cookie').match(/(?:^|, )token=([^;]+)/)[1]

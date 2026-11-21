@@ -33,6 +33,11 @@ const allowedOrigins = getClientOrigins()
 app.set('trust proxy', 1)
 app.disable('x-powered-by')
 app.use(helmet())
+app.use('/api', (req, res, next) => {
+  // A public route may explicitly opt into caching.
+  res.set('Cache-Control', 'no-store')
+  next()
+})
 app.use(cors(createCorsOptions()))
 app.use(express.json({ limit: '30mb' }))
 app.use(cookieParser())

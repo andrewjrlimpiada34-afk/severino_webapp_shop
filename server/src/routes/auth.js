@@ -23,11 +23,11 @@ import {
   getUserById,
   getUserByPhone,
   updateUser,
-  sanitizeUser,
 } from '../db/users.js'
 
 
 const router = express.Router()
+const sessionUser = ({ id, role, profileImage, preferredTheme }) => ({ id, role, profileImage, preferredTheme })
 const invalidCredentials = 'Invalid email, mobile number, or password.'
 const dummyPasswordHash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12)
 const loginLimiter = rateLimit({
@@ -209,7 +209,7 @@ router.post('/login', loginLimiter, decryptAuthPayload, asyncRoute(async (req, r
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
     })
-    return res.json({ requires2fa: false, user: sanitizeUser(user) })
+    return res.json({ requires2fa: false, user: sessionUser(user) })
   } catch (error) {
     return next(error)
   }
@@ -309,9 +309,10 @@ router.get('/me', asyncRoute(async (req, res) => {
   } catch {
     return res.status(401).json({ message: 'Invalid token' })
   }
+  if (typeof payload?.id !== 'string') return res.status(401).json({ message: 'Invalid token' })
   const user = await getUserById(payload.id)
-  if (!user || user.deletedAt) return res.status(401).json({ message: 'Unauthorized' })
-  return res.json(sanitizeUser(user))
+  if (!user || user.deletedAt || (!user.verified && user.role !== 'admin')) return res.status(401).json({ message: 'Unauthorized' })
+  return res.json(sessionUser(user))
 }))
 
 router.get('/google/onboarding', asyncRoute(async (req, res) => {
@@ -331,7 +332,7 @@ router.post('/google/complete', asyncRoute(async (req, res) => {
   const cookieOptions = { httpOnly: true, sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', secure: process.env.NODE_ENV === 'production' }
   res.cookie('token', token, cookieOptions)
   res.clearCookie('google_onboarding', cookieOptions)
-  return res.json(sanitizeUser(user))
+  return res.json(sessionUser(user))
 }))
 
 export default router

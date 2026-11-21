@@ -8,6 +8,14 @@ export default defineConfig({
   build: {
     // Copy active public assets through the plugin; leave disabled frame sequences out.
     copyPublicDir: false,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[hash].js',
+        chunkFileNames: 'assets/[hash].js',
+        assetFileNames: 'assets/[hash][extname]',
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['server'],

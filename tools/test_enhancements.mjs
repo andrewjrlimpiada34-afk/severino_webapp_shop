@@ -36,6 +36,7 @@ Object.assign(api, {
   deleteAddress: async (id) => { addresses = addresses.filter(item => item.id !== id); if (addresses.length && !addresses.some(item => item.isDefault)) addresses[0].isDefault = true; return { success: true } },
   cart: async () => structuredClone(cart), updateCart: async (items) => { calls.cart.push(items); cart = { items }; return cart },
   orders: async () => [structuredClone(currentOrder)],
+  orderNotifications: async () => [{ id: currentOrder.reference, status: currentOrder.status }],
   checkDeliveryPhone: async () => ({ registeredToAnotherUser: false }),
   createOrder: async (data) => { calls.checkout.push(data); if(window.loseCheckoutResponse){ window.loseCheckoutResponse=false; throw new Error('Connection interrupted while confirming the order.') } return { ...currentOrder, id: currentOrder.reference } },
   googleOnboarding: async () => ({ name: profile.name, email: profile.email, needsLinkLogin: false }), completeGoogle: async (data) => { calls.google.push(data); return profile },

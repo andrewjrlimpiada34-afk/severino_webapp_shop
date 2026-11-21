@@ -14,6 +14,7 @@ function Footer() {
           <p className="footer-description">
             Premium scent studio blending elegance with modern craftsmanship.
           </p>
+          <a href="/preview.html" referrerPolicy="no-referrer">Public preview</a>
         </div>
 
         <div className="footer-grid">

@@ -11,15 +11,19 @@ import './customer-desktop.css'
 import './storefront.css'
 import './accessibility-layout.css'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <ActionAnimationProvider>
-          <BrandIntro />
-          <App />
-        </ActionAnimationProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
-)
+export function mountStorefront() {
+  const root = ReactDOM.createRoot(document.getElementById('root'))
+  root.render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <AuthProvider>
+          <ActionAnimationProvider>
+            <BrandIntro />
+            <App />
+          </ActionAnimationProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </React.StrictMode>,
+  )
+  return root
+}

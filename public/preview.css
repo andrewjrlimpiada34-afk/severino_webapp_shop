@@ -1,0 +1,97 @@
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('/fonts/cormorant-garamond-latin.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Manrope;
+  src: url('/fonts/manrope-latin.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 clamp(1.5rem, 6vw, 6rem) 2rem;
+  max-width: 90rem;
+  color: #1a1f14;
+  background: #f6f3ea;
+  font-family: Manrope, Arial, sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d8cdb7;
+  padding: 0.5rem 0;
+  color: #4a5b36;
+  font-size: 0.8rem;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  gap: clamp(2rem, 6vw, 6rem);
+  padding-top: clamp(2.5rem, 7vw, 6rem);
+}
+
+h1 {
+  margin: 0;
+  max-width: 9ch;
+  font: 500 clamp(3.5rem, 7vw, 7rem)/0.96 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: -0.04em;
+}
+
+h1 em { color: #4a5b36; }
+
+p {
+  margin: 1.5rem 0;
+  max-width: 32ch;
+  color: #3b472d;
+  line-height: 1.65;
+}
+
+a {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 2.875rem;
+  padding: 0.6rem 1.35rem;
+  border-radius: 0.4rem;
+  background: #2b3422;
+  color: #f6f3ea;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a:hover { background: #4a5b36; }
+a:focus-visible { outline: 2px solid #4a5b36; outline-offset: 4px; }
+
+small {
+  display: block;
+  margin-top: 1rem;
+  max-width: 36ch;
+  color: #4a5b36;
+  line-height: 1.5;
+}
+
+.portrait {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+  object-position: 60% center;
+  border-radius: 45% 45% 0.4rem 0.4rem;
+}
+
+@media (max-width: 700px) {
+  main { grid-template-columns: 1fr; }
+  .portrait { aspect-ratio: 3 / 2; }
+}

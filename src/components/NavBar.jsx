@@ -170,18 +170,7 @@ function NavBar() {
               aria-label="Cart"
               onClick={(event) => goToPage(event, '/cart')}
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
-                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
-              </svg>
+              <StoreIcon name="cart" className="icon" />
             </button>
             <div className="notif-wrapper">
               <button
@@ -190,23 +179,7 @@ function NavBar() {
                 aria-label="Notifications"
                 onClick={(event) => goToPage(event, '/notifications')}
               >
-                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    d="M6 17h12l-1.2-2.4a6.5 6.5 0 0 1-.7-2.9V10a5 5 0 1 0-10 0v1.7a6.5 6.5 0 0 1-.7 2.9L6 17Z"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9.5 18.5a2.5 2.5 0 0 0 5 0"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                <StoreIcon name="bell" className="icon" />
                 {notifications.some((item) => !item.opened) && <span className="badge-dot" />}
               </button>
             </div>
@@ -292,18 +265,7 @@ function NavBar() {
               aria-label="Cart"
               onClick={(event) => goToPage(event, '/cart')}
             >
-              <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M6 6h14l-1.6 7.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L5.4 4.5H3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
-                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
-              </svg>
+              <StoreIcon name="cart" className="icon" />
             </button>
           </div>
           </div>

@@ -8,7 +8,7 @@ import { checkoutErrors, checkoutStepFields, firstInvalidCheckoutStep, normalize
 import Modal from '../components/Modal.jsx'
 import AddressBook from '../components/AddressBook.jsx'
 
-const steps = ['Shipping', 'Contact', 'Review']
+const steps = ['Shipping', 'Review']
 
 function Checkout() {
   const { user } = useAuth()
@@ -58,6 +58,7 @@ function Checkout() {
   const editedFields = useRef(new Set())
   const [directProduct, setDirectProduct] = useState(null)
   const [phoneConfirmation, setPhoneConfirmation] = useState('')
+  const [editDeliveryPhone, setEditDeliveryPhone] = useState(false)
   const [status, setStatus] = useState({ loading: false, error: '', success: '' })
   const [form, setForm] = useState({
     name: '',
@@ -82,7 +83,8 @@ function Checkout() {
   const busy = status.loading || Boolean(status.success) || Boolean(phoneConfirmation)
   const declinePhoneConfirmation = useCallback(() => {
     setPhoneConfirmation('')
-    setStepIndex(1)
+    setEditDeliveryPhone(true)
+    setStepIndex(0)
     window.requestAnimationFrame(() => {
       const target = formRef.current?.elements.namedItem('mobile')
       target?.focus({ preventScroll: true })
@@ -116,7 +118,11 @@ function Checkout() {
     setTouched((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, true])) }))
     const invalidField = fields.find((field) => errors[field])
     if (invalidField) {
-      setStatus({ loading: false, error: 'Check the highlighted fields before continuing.', success: '' })
+      if (invalidField === 'mobile') setEditDeliveryPhone(true)
+      const error = selectedAddress && !['mobile', 'email'].includes(invalidField)
+        ? `Edit the selected address before continuing. ${errors[invalidField]}`
+        : 'Check the highlighted fields before continuing.'
+      setStatus({ loading: false, error, success: '' })
       changeStep(index, invalidField)
       return false
     }
@@ -331,14 +337,17 @@ function Checkout() {
 
       {recoveryRequest && <section className="card form" aria-label="Previous checkout confirmation"><h2>Check your previous checkout</h2><p>The previous request is awaiting confirmation. Retry its original delivery details to retrieve the result.</p><p>{recoveryRequest.contactName}<br />{recoveryRequest.address}<br />{recoveryRequest.phone}</p>{status.error && <p role="alert">{status.error}</p>}<button className="button" type="button" disabled={busy} onClick={() => confirmOrder()}>{busy ? 'Checking order…' : 'Retry previous order confirmation'}</button></section>}
 
-      <AddressBook selectedId={selectedAddress?.id} disabled={busy || Boolean(recoveryRequest)} onSelect={(address) => {
-        setSelectedAddress(address)
-        if (address) {
-          Object.keys(form).forEach((key) => editedFields.current.add(key))
-          setForm((previous) => ({ ...previous, ...address, mobile: address.phone, email: previous.email || user?.email || '' }))
-          setTouched({})
-        }
-      }} />
+      <div hidden={stepIndex !== 0 || Boolean(recoveryRequest)}>
+        <AddressBook selectedId={selectedAddress?.id} disabled={busy || Boolean(recoveryRequest)} onSelect={(address) => {
+          setSelectedAddress(address)
+          setEditDeliveryPhone(false)
+          if (address) {
+            for (const key of ['name', 'addressLine', 'barangay', 'city', 'province', 'zip', 'country', 'mobile']) editedFields.current.add(key)
+            setForm((previous) => ({ ...previous, ...address, mobile: address.phone, email: previous.email || user?.email || '' }))
+            setTouched({})
+          }
+        }} />
+      </div>
 
       <form className="card checkout-card" hidden={Boolean(recoveryRequest)} ref={formRef} noValidate onSubmit={(event) => {
         event.preventDefault()
@@ -354,34 +363,34 @@ function Checkout() {
         </ol>
 
         <div className="checkout-step-content" key={stepIndex} role="group" aria-labelledby="checkout-step-title">
-          <h2 id="checkout-step-title" className="section-title checkout-step-title" ref={headingRef} tabIndex={-1}>{['Shipping details', 'Contact details', 'Review your order'][stepIndex]}</h2>
-          {stepIndex < 2 && <p className="checkout-field-help">Fields marked * are required.</p>}
-          {stepIndex === 0 && selectedAddress && <div className="checkout-review-block"><h3>{selectedAddress.label}</h3><p>{form.name}<br />{[form.addressLine, form.barangay, form.city, form.province, form.zip, form.country].filter(Boolean).join(', ')}</p><p>Select Edit address above to change delivery details.</p></div>}
-          {stepIndex === 0 && !selectedAddress && <div className="form">
-            {field('name', 'Full name', { placeholder: 'Juan Dela Cruz', autoComplete: 'shipping name' })}
-            {field('addressLine', 'Street address (optional)', { required: false, placeholder: 'House no., street', autoComplete: 'shipping street-address' })}
-            <LocationFields prefix="checkout" value={form} disabled={busy} onValidity={setValidPlace} errors={errors} touched={touched}
-              onChange={patch => {
-                Object.keys(patch).forEach(key => editedFields.current.add(key))
-                setForm(previous => ({ ...previous, ...patch }))
-              }} />
-            {field('zip', 'ZIP code', { inputMode: 'numeric', maxLength: 4, autoComplete: 'shipping postal-code' })}
-            <p className="location-country">Country · Philippines</p>
-          </div>}
-          {stepIndex === 1 && <div className="form">
-            {field('mobile', 'Mobile number', { type: 'tel', inputMode: 'tel', placeholder: '09XX XXX XXXX or +63 9XX XXX XXXX', autoComplete: 'shipping tel' })}
+          <h2 id="checkout-step-title" className="section-title checkout-step-title" ref={headingRef} tabIndex={-1}>{stepIndex === 0 ? 'Shipping details' : 'Review your order'}</h2>
+          {stepIndex === 0 && <p className="checkout-field-help">Fields marked * are required.</p>}
+          {stepIndex === 0 && <div className="form">
+            {!selectedAddress && <>
+              {field('name', 'Full name', { placeholder: 'Juan Dela Cruz', autoComplete: 'shipping name' })}
+              {field('addressLine', 'Street address (optional)', { required: false, placeholder: 'House no., street', autoComplete: 'shipping street-address' })}
+              <LocationFields prefix="checkout" value={form} disabled={busy} onValidity={setValidPlace} errors={errors} touched={touched}
+                onChange={patch => {
+                  Object.keys(patch).forEach(key => editedFields.current.add(key))
+                  setForm(previous => ({ ...previous, ...patch }))
+                }} />
+              {field('zip', 'ZIP code', { inputMode: 'numeric', maxLength: 4, autoComplete: 'shipping postal-code' })}
+              <p className="location-country">Country · Philippines</p>
+            </>}
+            {(!selectedAddress || editDeliveryPhone) && field('mobile', 'Mobile number', { type: 'tel', inputMode: 'tel', placeholder: '09XX XXX XXXX or +63 9XX XXX XXXX', autoComplete: 'shipping tel' })}
             {field('email', 'Email', { type: 'email', placeholder: 'you@email.com', autoComplete: 'shipping email' })}
             <div className="checkout-field">
               <label className="label" htmlFor="checkout-notes">Delivery notes (optional)</label>
               <textarea className="input" id="checkout-notes" name="notes" rows="3" placeholder="Landmark, gate code, etc." disabled={busy} value={form.notes} onChange={(event) => updateField('notes', event.target.value)} />
             </div>
           </div>}
-          {stepIndex === 2 && <div className="checkout-review">
+          {stepIndex === 1 && <div className="checkout-review">
             <section className="checkout-review-block">
               <h3>Delivery and contact</h3>
               <p>{form.name.trim()}</p>
               <p>{[form.addressLine, form.barangay, form.city, form.province, form.zip, form.country].map((value) => value.trim()).filter(Boolean).join(', ')}</p>
               <p>{form.mobile.trim()}<br />{form.email.trim()}</p>
+              {form.notes.trim() && <p>{form.notes.trim()}</p>}
             </section>
             {directPurchase && <section className="checkout-review-block">
               <h3>{directProduct?.name || 'Selected product'}</h3>

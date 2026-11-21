@@ -1,8 +1,7 @@
 import { normalizeEmail, normalizePhilippineMobile } from '../../server/shared/loginValidation.js'
 
 export const checkoutStepFields = [
-  ['name', 'province', 'city', 'barangay', 'zip', 'country'],
-  ['mobile', 'email'],
+  ['name', 'province', 'city', 'barangay', 'zip', 'country', 'mobile', 'email'],
 ]
 
 export function normalizeCheckout(form) {

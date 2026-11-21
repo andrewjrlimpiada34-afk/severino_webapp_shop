@@ -148,7 +148,7 @@ function AdaptiveScentFloating({
       >
         <span className="adaptive-floating-button__icon">{weatherIcon}</span>
         <span className="adaptive-weather-label" style={{ ...(position.x < 80 ? { left: 0, right: 'auto' } : {}), ...(position.y > window.innerHeight - 120 ? { top: 'auto', bottom: 'calc(100% + 5px)' } : {}) }}>View weather</span>
-        {adaptive.enabled && <span className="adaptive-floating-button__pulse" />}
+        {!open && <span className="adaptive-floating-button__pulse" aria-hidden="true" />}
       </button>
 
       {introductionVisible && createPortal(

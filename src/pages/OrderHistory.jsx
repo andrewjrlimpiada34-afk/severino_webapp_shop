@@ -1,25 +1,27 @@
 import StoreIcon from '../components/StoreIcon.jsx';
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { CardSkeleton } from "../components/Skeleton.jsx";
-import {
-  getOrderStatusLabel,
-  getOrderItemStatus,
-  orderSteps,
-} from "../../server/shared/orderWorkflow.js";
-import StatusBadge from "../components/StatusBadge.jsx";
+import { normalizeOrderStatus } from "../../server/shared/orderWorkflow.js";
+import OrderTrackingCard from "../components/OrderTrackingCard.jsx";
 import Modal from "../components/Modal.jsx";
 
-const trackingSteps = ["Pending COD", ...orderSteps];
-const money = (amount) =>
-  Number(amount || 0).toLocaleString("en-PH", {
-    style: "currency",
-    currency: "PHP",
-  });
+const filters = [
+  { label: "All" },
+  { label: "Pending", stages: ["Pending COD"] },
+  { label: "To ship", stages: ["Approved", "To Ship"] },
+  { label: "To receive", stages: ["To Receive"] },
+  { label: "Delivered", stages: ["To Review"] },
+  { label: "Cancelled", stages: ["Cancelled"] },
+];
+
 export default function OrderHistory() {
   const [orders, setOrders] = useState([]);
+  const [images, setImages] = useState(() => new Map());
+  const [filter, setFilter] = useState(filters[0]);
+  const [query, setQuery] = useState("");
   const [status, setStatus] = useState({
     loading: true,
     error: "",
@@ -32,18 +34,31 @@ export default function OrderHistory() {
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
-    api
-      .orders()
-      .then((data) => {
-        if (active) {
-          setOrders(data);
-          setStatus({ loading: false, error: "", success: "" });
+    const load = async () => {
+      try {
+        const data = await api.orders();
+        if (!active) return;
+        setOrders(data);
+        setStatus({ loading: false, error: "", success: "" });
+        if (!data.length) return;
+      } catch (error) {
+        if (active) setStatus({ loading: false, error: error.message, success: "" });
+        return;
+      }
+      // Older order snapshots have no photo. Catalog availability is independent of tracking.
+      try {
+        const products = await api.products();
+        if (!active) return;
+        const byId = new Map();
+        for (const product of products) {
+          const photo = product.imageUrls?.[0] || product.imageUrl;
+          byId.set(String(product.id), photo);
+          if (product.legacyId) byId.set(String(product.legacyId), photo);
         }
-      })
-      .catch((error) => {
-        if (active)
-          setStatus({ loading: false, error: error.message, success: "" });
-      });
+        setImages(byId);
+      } catch { /* The thumbnail displays a bottle when the catalog is unavailable. */ }
+    };
+    load();
     return () => {
       active = false;
     };
@@ -99,13 +114,27 @@ export default function OrderHistory() {
       setBusy(false);
     }
   };
+  const term = query.trim().toLowerCase();
+  const visibleOrders = orders.filter(order => {
+    if (filter.stages && !filter.stages.includes(normalizeOrderStatus(order.status))) return false;
+    const names = [order.reference, ...order.items.map(item => item.name || item.productName)];
+    return !term || names.some(name => name?.toLowerCase().includes(term));
+  });
+
   return (
-    <section className="grid order-history" style={{ gap: 24 }}>
-      <div className="page-hero">
+    <section className="order-history boutique-page">
+      <header className="purchase-tools">
         <h1 className="section-title">Order Tracking</h1>
-        <p className="section-subtitle">
-          Your purchases, delivery progress, and payment status.
-        </p>
+        <label className="purchase-search">
+          <StoreIcon name="search" />
+          <span className="sr-only">Search orders by product or order reference</span>
+          <input id="order-search" type="search" placeholder="Search your orders" value={query} onChange={event => setQuery(event.target.value)} />
+        </label>
+      </header>
+      <div className="purchase-filters" role="group" aria-label="Filter orders by delivery status">
+        {filters.map(option => <button key={option.label} type="button" aria-pressed={filter === option} onClick={() => setFilter(option)}>
+          {option.label}
+        </button>)}
       </div>
       {status.loading && <CardSkeleton lines={5} />}
       {status.error && (
@@ -118,192 +147,15 @@ export default function OrderHistory() {
           {status.success}
         </p>
       )}
-      {!status.loading && orders.length === 0 && (
-        <div className="card empty-state orders-empty-state">
-          You have no orders yet.
+      {!status.loading && !status.error && visibleOrders.length === 0 && (
+        <div className="card empty-state orders-empty-state" role="status">
+          {orders.length ? "No orders match your search or filter." : "You have no orders yet."}
+          {orders.length > 0 && <button type="button" className="store-text-link" onClick={() => { setFilter(filters[0]); setQuery(""); }}>Show all orders</button>}
         </div>
       )}
-      {orders.map((order) => {
-        const activeItems = order.items.filter(
-          (item) =>
-            !["Cancelled", "Removed"].includes(getOrderItemStatus(order, item)),
-        );
-        const canCancel =
-          activeItems.length > 0 &&
-          activeItems.every(
-            (item) => getOrderItemStatus(order, item) === "Pending COD",
-          );
-        const events = Array.from(
-          new Map(
-            order.items
-              .flatMap((item) => item.trackingEvents || [])
-              .map((event) => [`${event.status}:${event.at}`, event]),
-          ).values(),
-        ).sort((a, b) => String(a.at).localeCompare(String(b.at)));
-        return (
-          <article className="card order-card" key={order.id}>
-            <header className="order-card-header">
-              <div>
-                <h2>{order.reference || "Your order"}</h2>
-                <p>
-                  {order.createdAt
-                    ? new Date(order.createdAt).toLocaleString("en-PH")
-                    : ""}
-                </p>
-              </div>
-              <strong>{money(order.total)}</strong>
-            </header>
-            <p className="order-product-names">
-              {order.items
-                .map(
-                  (item) =>
-                    item.name || item.productName || "Unavailable product",
-                )
-                .join(" · ")}
-            </p>
-            <div className="order-statuses">
-              <span>
-                Delivery <StatusBadge status={order.status} />
-              </span>
-              <span>
-                Payment <StatusBadge status={order.paymentStatus || "Unpaid"} />
-              </span>
-            </div>
-            <details className="order-details">
-              <summary>
-                View {order.items.length}{" "}
-                {order.items.length === 1 ? "product" : "products"} and tracking
-              </summary>
-              {!["Cancelled", "Removed"].includes(order.status) && (
-                <ol className="order-timeline" aria-label="Order progress">
-                  {trackingSteps.map((step, index) => (
-                    <li
-                      key={step}
-                      aria-current={step === order.status ? "step" : undefined}
-                      className={
-                        index <= trackingSteps.indexOf(order.status)
-                          ? "is-complete"
-                          : ""
-                      }
-                    >
-                      <span className="tracking-node" aria-hidden="true">{index < trackingSteps.indexOf(order.status) && <StoreIcon name="check" />}</span>
-                      <strong className="tracking-name">{getOrderStatusLabel(step)}</strong>
-                      <span className="order-timeline-label">
-                        {step === order.status
-                          ? "Current stage"
-                          : index < trackingSteps.indexOf(order.status)
-                            ? "Reached"
-                            : "Upcoming"}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-              <div className="order-items">
-                {order.items.map((item, index) => {
-                  const itemKey = item.itemId || `${index}-${item.productId}`;
-                  const itemStatus = getOrderItemStatus(order, item);
-                  return (
-                    <section className="order-item" key={itemKey}>
-                      <div>
-                        <h3>
-                          {item.name ||
-                            item.productName ||
-                            "Unavailable product"}
-                        </h3>
-                        <p>
-                          Quantity {item.quantity} · {money(item.price)} each
-                        </p>
-                        <StatusBadge status={itemStatus} />
-                        {item.returnedQuantity > 0 && (
-                          <p>{item.returnedQuantity} returned</p>
-                        )}
-                      </div>
-                      <div className="order-item-actions">
-                        <strong>{money(item.price * item.quantity)}</strong>
-                        {itemStatus === "Pending COD" && (
-                          <button
-                            className="button secondary"
-                            type="button"
-                            disabled={busy}
-                            onClick={() =>
-                              setCancellation({
-                                order,
-                                item: { ...item, itemId: itemKey },
-                              })
-                            }
-                          >
-                            Cancel item
-                          </button>
-                        )}
-                        {itemStatus === "To Review" && (
-                          <>
-                            <button
-                              className="button secondary"
-                              type="button"
-                              disabled={busy}
-                              onClick={() => buyAgain(item)}
-                            >
-                              Buy Again
-                            </button>
-                            <Link
-                              className="button secondary"
-                              to={`/product/${item.productId}`}
-                            >
-                              Rate this Product
-                            </Link>
-                          </>
-                        )}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-              <section className="order-delivery">
-                <h3>Delivery address</h3>
-                <p>
-                  {order.contactName}
-                  <br />
-                  {order.address}
-                  <br />
-                  {order.phone}
-                </p>
-                {order.addressSnapshot?.notes && (
-                  <p>{order.addressSnapshot.notes}</p>
-                )}
-              </section>
-              {events.length > 0 && (
-                <details>
-                  <summary>Tracking events</summary>
-                  <ol className="order-events">
-                    {events.map((event) => (
-                      <li key={`${event.status}:${event.at}`}>
-                        <StatusBadge status={event.status} />{" "}
-                        <time dateTime={event.at}>
-                          {new Date(event.at).toLocaleString("en-PH")}
-                        </time>
-                      </li>
-                    ))}
-                  </ol>
-                </details>
-              )}
-              {order.refundedTotal > 0 && (
-                <p>Verified refunds {money(order.refundedTotal)}</p>
-              )}
-              {canCancel && (
-                <button
-                  className="button secondary"
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setCancellation({ order })}
-                >
-                  Cancel order
-                </button>
-              )}
-            </details>
-          </article>
-        );
-      })}
+      {visibleOrders.map(order => (
+        <OrderTrackingCard key={order.id} order={order} images={images} busy={busy} onBuyAgain={buyAgain} onCancel={setCancellation} />
+      ))}
       {cancellation && (
         <Modal
           className="order-cancel-backdrop"

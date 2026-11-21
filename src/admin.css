@@ -220,6 +220,30 @@
   background: #eef0e7;
 }
 
+.admin-products { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.admin-products .grid.two { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.admin-products .grid > *, .admin-products .inventory-log { min-width: 0; }
+.admin-products input { max-width: 100%; }
+.inventory-field-label { display: none; }
+
+@media (max-width: 720px) {
+  .admin-products > .grid.two { grid-template-columns: minmax(0, 1fr); }
+  .inventory-log .table, .inventory-log tbody { display: block; }
+  .inventory-log thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .inventory-log tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    padding-block: 16px;
+    border-top: 1px solid var(--olive-200);
+  }
+  .inventory-log .table td { padding: 0; border: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .inventory-log td[data-field="product_name"] { order: -2; font-weight: 700; }
+  .inventory-log td[data-field="action"] { order: -1; text-transform: capitalize; }
+  .inventory-log td:is([data-field="created_at"], [data-field="actor_name"]) { grid-column: 1 / -1; }
+  .inventory-field-label { display: block; color: var(--olive-600); font-size: .8rem; font-weight: 500; }
+}
+
 .admin-shell .admin-nav {
   flex-shrink: 0;
   width: 230px;

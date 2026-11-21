@@ -91,7 +91,7 @@ function AdminProducts() {
   }
 
   return (
-    <section className="grid" style={{ gap: '24px' }}>
+    <section className="grid admin-products">
       <div>
         <h1 className="section-title">Modify Products</h1>
         <p className="section-subtitle">

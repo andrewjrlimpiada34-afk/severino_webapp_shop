@@ -176,8 +176,8 @@ if (preview) {
     await render(preview.startsWith('checkout') ? 'checkout' : preview === 'cancel-order' ? 'orders' : preview === 'adaptive-intro' ? 'home' : policyPreview ? 'login' : preview === 'quick-actions' ? 'home' : ['list', 'search-open'].includes(preview) ? 'shop' : preview === 'font-fashion' ? 'account' : preview)
   }
   if (preview === 'checkout-errors') await click(button('Next'))
-  if (preview === 'checkout-contact') { await fillShipping(); await click(button('Next')) }
-  if (preview === 'checkout-phone') { await click(button('Next')); await click(button('Next')); await click(button('Confirm Order')) }
+  if (preview === 'checkout-shipping') await fillShipping()
+  if (preview === 'checkout-phone') { await click(button('Next')); await click(button('Confirm Order')) }
   if (preview === 'cancel-order') { await click(document.querySelector('.order-details > summary')); await click(button('Cancel item')) }
   if (preview === 'list') await click(document.querySelector('[aria-label="List view"]'))
   if (preview === 'search-open') await click(document.querySelector('.header-search-trigger'))
@@ -292,6 +292,9 @@ if (preview) {
     await render('home')
     assert(!document.querySelector('.adaptive-scent-hint'), 'Dismissal is remembered across pages in this tab')
     const floating = document.querySelector('[aria-label="View weather and scent suggestions"]')
+    const ripple = floating.querySelector('.adaptive-floating-button__pulse')
+    const motionAllowed = !matchMedia('(prefers-reduced-motion: reduce)').matches
+    assert(ripple && (getComputedStyle(ripple).animationName === 'adaptivePulse') === motionAllowed, 'The inactive launcher ripples when motion is enabled')
     floating.setPointerCapture = () => {}
     floating.hasPointerCapture = () => false
     const origin = floating.getBoundingClientRect()
@@ -329,27 +332,24 @@ if (preview) {
     await waitFor(() => document.activeElement.id === 'checkout-name')
     assert(['name', 'province', 'city', 'barangay', 'zip'].every(field => document.getElementById('checkout-' + field)?.getAttribute('aria-invalid') === 'true') && calls.orders.length === initialOrderCount, 'Required fields are identified before any order request')
     await fillShipping()
-    await click(button('Next'))
-    assert(document.getElementById('checkout-step-title').textContent === 'Contact details', 'Valid shipping advances without an optional street address')
-    const step = document.querySelector('.checkout-step-content')
-    assert(step.getAnimations().length > 0 || matchMedia('(prefers-reduced-motion: reduce)').matches, 'Step transition is animated when motion is allowed')
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) assert(step.getAnimations().length === 0, 'Step motion respects reduced motion')
+    assert(document.querySelectorAll('.checkout-progress li').length === 2, 'Checkout only needs Shipping and Review')
     await input('checkout-mobile', '123')
     await input('checkout-email', 'invalid')
     await click(button('Next'))
-    assert(document.getElementById('checkout-step-title').textContent === 'Contact details' && document.querySelectorAll('.checkout-field-error').length === 2, 'Invalid contact details cannot advance')
+    assert(document.getElementById('checkout-step-title').textContent === 'Shipping details' && document.querySelectorAll('.checkout-field-error').length === 2, 'Invalid contact details cannot advance')
     await input('checkout-mobile', '0917 123 4567')
     await input('checkout-email', ' ANA@EXAMPLE.COM ')
     await click(button('Next'))
-    assert(document.getElementById('checkout-step-title').textContent === 'Review your order', 'Valid contact advances without optional notes')
+    assert(document.getElementById('checkout-step-title').textContent === 'Review your order', 'Valid shipping and contact details advance directly to review')
+    const step = document.querySelector('.checkout-step-content')
+    assert(step.getAnimations().length > 0 || matchMedia('(prefers-reduced-motion: reduce)').matches, 'Step transition is animated when motion is allowed')
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) assert(step.getAnimations().length === 0, 'Step motion respects reduced motion')
     await click(button('Back'))
     assert(document.getElementById('checkout-mobile').value === '0917 123 4567', 'Contact edits are preserved on Back')
-    await click(button('Back'))
     await input('checkout-zip', ' ')
     await click(button('Next'))
     assert(document.getElementById('checkout-step-title').textContent === 'Shipping details' && document.getElementById('checkout-zip').getAttribute('aria-invalid') === 'true', 'Previously completed fields must remain valid after editing')
     await input('checkout-zip', '4900')
-    await click(button('Next'))
     await click(button('Next'))
     window.holdOrder = true
     await click(button('Confirm Order'))
@@ -368,7 +368,6 @@ if (preview) {
     window.qaCart = { items: [{ productId: 'cloudy-scent', quantity: 1 }] }
     await render('checkout')
     await click(button('Next'))
-    await click(button('Next'))
     await click(button('Confirm Order'))
     await waitFor(() => document.querySelector('.checkout-notice.is-error'))
     assert(calls.orders.length === initialOrderCount + 1 && document.querySelector('.checkout-notice.is-error').textContent.includes('Stock has changed'), 'Stock is checked again before an order is created')
@@ -385,7 +384,6 @@ if (preview) {
     const initialOrderCount = calls.orders.length
     const initialProfileCount = calls.profile.length
     await render('checkout')
-    await click(button('Next'))
     await input('checkout-mobile', '0928 765 4321')
     await click(button('Next'))
     await click(button('Confirm Order'))
@@ -430,7 +428,6 @@ if (preview) {
     window.qaCart = { items: [{ productId: 'cucumber-melon', quantity: 1 }] }
     const initialOrderCount = calls.orders.length
     await render('checkout')
-    await click(button('Next'))
     await click(button('Next'))
     window.failPhoneCheck = true
     await click(button('Confirm Order'))
@@ -724,6 +721,10 @@ if (preview) {
     assert(cardNames().length === 4, 'Featured products load from existing catalog')
     assert(document.querySelector('.store-product-image').getAttribute('href') === '/product/cucumber-melon', 'Products link to real detail routes')
     assert(document.querySelector('.store-category-links a[href="/shop?category=Women"]'), 'Category shortcuts use shop filters')
+    if (innerWidth > 900) {
+      const icons = [...document.querySelectorAll('.nav-links .icon-button svg')].map(icon => icon.getBoundingClientRect())
+      assert(icons.length === 3 && icons.every(rect => Math.abs(rect.top - icons[0].top) < 1 && rect.height === icons[0].height), 'Desktop favorites, cart and notifications share a center line and size')
+    }
     if (innerWidth <= 900) {
       assert(getComputedStyle(document.querySelector('.nav-toggle')).display !== 'none', 'Menu control is visible on phone and tablet')
       await click(document.querySelector('.nav-toggle'))
@@ -811,7 +812,7 @@ async function browser(width) {
       if (report.results.some(result => !result.passed) || errors.length) process.exitCode = 1
       if (errors.length) console.log(JSON.stringify({ width, browserErrors: errors }))
     }
-    for (const preview of ['faqs', 'admin-faqs', 'login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-contact', 'checkout-phone', 'cancel-order']) {
+    for (const preview of ['faqs', 'admin-faqs', 'login', 'home', 'account', 'shop', 'list', 'notifications', 'popup', 'search-open', 'font-fashion', 'terms', 'privacy', 'cookies', 'terms-fashion', 'quick-actions', 'adaptive-intro', 'checkout-errors', 'checkout-shipping', 'checkout-phone', 'cancel-order']) {
       await navigate(`${baseUrl}/?preview=${preview}`)
       // Inspect the settled UI, rather than a partially transparent entrance animation.
       await call('Runtime.evaluate', { expression: 'Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})))', awaitPromise: true })

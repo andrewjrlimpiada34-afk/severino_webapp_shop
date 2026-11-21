@@ -22,6 +22,7 @@ const work = { ...home, id: 'work-address', label: 'Work', addressLine: '8 Marke
 const order = { id: 'internal-order-primary', reference: 'SV-BA72C590A104E68C247D', contactName: profile.name, phone: profile.phone, email: profile.email, address: '14 Sample Street, Agot, Boac, Marinduque, 4900, Philippines', addressSnapshot: { notes: 'Please call on arrival.' }, status: 'Pending COD', paymentStatus: 'Unpaid', grossCollected: 0, refundedTotal: 0, total: 900, createdAt: new Date().toISOString(), paymentMethod: 'COD', items: [{ itemId: 'first-item', productId: 'demo-fragrance', name: 'Cucumber Melon', quantity: 2, price: 300, trackingStatus: 'Pending COD', trackingEvents: [{ status: 'Pending COD', at: new Date().toISOString() }] }, { itemId: 'second-item', productId: 'demo-weekend', name: 'Burberry Weekend', quantity: 1, price: 300, trackingStatus: 'Pending COD', trackingEvents: [] }] }
 let addresses = [home, work]
 let currentOrder = structuredClone(order)
+const deliveredOrder = { ...order, id: 'older-purchase', reference: 'SV-D34068012F258B16287C', createdAt: '2026-11-01T08:00:00Z', status: 'Completed', paymentStatus: 'Paid', total: 300, items: [{ ...order.items[1], trackingStatus: 'To Review' }] }
 let cart = { items: [{ productId: 'demo-fragrance', quantity: 3 }] }
 const calls = { cart: [], payments: [], registration: [], google: [], speech: [], checkout: [] }
 window.EventSource = class { addEventListener() {} close() {} }
@@ -104,13 +105,21 @@ if (preview) {
     await selectPlace('saved', demoLocality); await input('saved-zip', '4900')
   }
   if (preview === 'checkout-saved') await render('/checkout')
-  if (preview === 'checkout-review') { await render('/checkout'); await click(button('Next')); await click(button('Next')); document.querySelector('.checkout-card').scrollIntoView({block:'start'}) }
-  if (preview === 'order-tracking') { await render('/orders'); await click(document.querySelector('.order-details > summary')) }
+  if (preview === 'checkout-review') { await render('/checkout'); await click(button('Next')); document.querySelector('.checkout-card').scrollIntoView({block:'start'}) }
+  if (preview === 'order-tracking') {
+    api.orders = async () => [order, deliveredOrder]
+    await render('/orders')
+  }
   if (preview === 'admin-orders') { await render('/admin/orders'); await click(document.querySelector('.address-groups summary')) }
   if (preview === 'accessibility') { await render('/product/demo-fragrance'); await click(document.querySelector('.access-launcher')) }
   if (preview === 'payment-confirmation') { await openPayment(); await preparePayment() }
   if (preview === 'payment-review') { await openPayment(); await preparePayment(); await click(button('Review payment action')); document.querySelector('.payment-dialog').scrollTop=document.querySelector('.payment-dialog').scrollHeight }
-  if (preview === 'inventory') { await render('/admin/products'); await click(document.querySelector('.inventory-log > summary')) }
+  if (preview === 'inventory') {
+    await render('/admin/products')
+    const log = document.querySelector('.inventory-log')
+    await click(log.querySelector('summary'))
+    log.scrollIntoView({ block: 'start' })
+  }
   if (preview === 'sales') await render('/admin/sales')
   fits()
 } else {
@@ -157,11 +166,14 @@ if (preview) {
     await render('/checkout')
     assert(document.querySelector('.address-option input:checked') && !document.getElementById('checkout-city'), 'Saved default is selected and its full form stays closed')
     await click(Array.from(document.querySelectorAll('.address-option input'))[1])
-    assert(document.querySelector('.checkout-review-block').textContent.includes('8 Market Road'), 'Another saved address can be selected')
+    assert(!document.getElementById('checkout-mobile'), 'Selecting a saved address reuses its mobile number')
+    await click(button('Next'))
+    const delivery = document.querySelector('.checkout-review-block').textContent
+    assert(delivery.includes('8 Market Road') && delivery.includes(work.phone), 'Review uses the selected address and its phone')
   })
   await run('Uncertain checkout responses recover the original request after a reload and changed stock', async () => {
     cart = { items: [{ productId:'demo-fragrance', quantity:1 }] }
-    await render('/checkout'); await click(button('Next')); await click(button('Next'))
+    await render('/checkout'); await click(button('Next'))
     window.loseCheckoutResponse=true
     await click(button('Confirm Order'))
     await waitFor(() => button('Retry previous order confirmation'))
@@ -177,13 +189,33 @@ if (preview) {
   await run('One checkout appears as one order containing named products and independent payment status', async () => {
     await render('/orders')
     assert(document.querySelectorAll('.order-card').length === 1, 'One order is shown')
-    assert(document.querySelector('.order-product-names').textContent.includes('Cucumber Melon'), 'Product names are prominent')
+    const items = [...document.querySelectorAll('.order-item')]
+    assert(items.length === 2 && items.every(item => item.getBoundingClientRect().height > 0) && items[0].textContent.includes('Cucumber Melon'), 'Both purchased products are visible before expanding tracking')
+    await click(button('Delivered'))
+    assert(!document.querySelector('.order-card') && button('Show all orders'), 'An unmatched status shows the filtered empty state')
+    await click(button('Show all orders'))
+    await input('order-search', 'MELON')
+    assert(document.querySelector('.order-card'), 'Search matches product names regardless of case')
+    await input('order-search', 'unrelated')
+    assert(!document.querySelector('.order-card'), 'Search excludes unrelated purchases')
+    await input('order-search', 'BA72C590')
+    assert(document.querySelector('.order-card'), 'Search matches part of the order reference')
     assert(!document.body.textContent.includes('internal-order-primary'), 'Internal order identifier is absent from the page')
     await click(document.querySelector('.order-details > summary'))
     assert(document.querySelectorAll('.order-item').length === 2, 'Expanding the order displays both products')
-    assert(document.querySelector('.order-statuses').textContent.includes('Unpaid'), 'Payment status is visible')
+    assert(document.querySelector('.purchase-total').textContent.includes('Unpaid'), 'Payment status is visible')
     assert(document.querySelector('.order-timeline [aria-current="step"]').textContent.includes('Awaiting approval'), 'The timeline identifies the current fulfillment stage')
     assert([...document.querySelectorAll('.order-timeline-label')].filter(label => label.textContent === 'Upcoming').length === 4, 'Future stages are clearly identified as upcoming')
+    currentOrder = structuredClone(deliveredOrder)
+    await render('/orders')
+    await click(button('Delivered'))
+    assert(document.querySelector('.purchase-heading .status-badge').textContent === 'Delivered', 'Completed orders use the delivered filter')
+    assert(document.querySelector('.purchase-item-actions a').getAttribute('href') === '/product/demo-weekend', 'Reviews open the purchased product')
+    await click(button('Buy again'))
+    await waitFor(() => document.querySelector('.checkout-card'))
+    assert(JSON.parse(localStorage.getItem('severino_direct_checkout_'+profile.id)).productId === 'demo-weekend', 'Buy again checks out the selected item')
+    localStorage.removeItem('severino_direct_checkout_'+profile.id)
+    currentOrder = structuredClone(order)
   })
   await run('Administrator payment verification requires review and a final confirmation and prevents repeated submission', async () => {
     await openPayment(); await preparePayment()
@@ -203,6 +235,13 @@ if (preview) {
   await run('Inventory shows physical, reserved, and available stock and payment reports distinguish gross, refunds, and net', async () => {
     await render('/admin/products')
     assert(document.querySelector('table').textContent.includes('Reserved') && document.querySelector('.inventory-log'), 'Inventory balances and audit history are available')
+    await click(document.querySelector('.inventory-log > summary'))
+    const log = document.querySelector('.inventory-log')
+    assert(log.getBoundingClientRect().right <= innerWidth + 1 && log.scrollWidth <= log.clientWidth + 1, 'The expanded inventory log fits its page')
+    if (innerWidth <= 720) {
+      const cells = [...log.querySelectorAll('tbody tr:first-child td')]
+      assert(cells.length === 8 && cells.every(cell => cell.getBoundingClientRect().right <= innerWidth && cell.querySelector('.inventory-field-label').getClientRects().length), 'Every transaction value has a visible label and fits on mobile')
+    }
     await render('/admin/sales')
     assert(document.querySelector('.sales-metrics').textContent.includes('Gross collected') && document.querySelector('.sales-metrics').textContent.includes('Verified refunds'), 'Sales metrics use verified collections and refunds')
   })

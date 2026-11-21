@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 
+const columns = [
+  ['created_at', 'Date'],
+  ['product_name', 'Product'],
+  ['action', 'Action'],
+  ['stock_delta', 'Physical change'],
+  ['reserved_delta', 'Reserved change'],
+  ['stock_after', 'Physical balance'],
+  ['reserved_after', 'Reserved balance'],
+  ['actor_name', 'Recorded by'],
+]
+
 export default function InventoryLog({ revision = 0 }) {
   const [page, setPage] = useState(0)
   const [entries, setEntries] = useState([])
@@ -31,29 +42,24 @@ export default function InventoryLog({ revision = 0 }) {
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Product</th>
-              <th>Action</th>
-              <th>Physical change</th>
-              <th>Reserved change</th>
-              <th>Physical balance</th>
-              <th>Reserved balance</th>
-              <th>Recorded by</th>
+              {columns.map(([key, label]) => <th key={key} scope="col">{label}</th>)}
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td>{new Date(entry.created_at).toLocaleString('en-PH')}</td>
-                <td>{entry.product_name}</td>
-                <td>{entry.action.replaceAll('_', ' ')}</td>
-                <td>{entry.stock_delta}</td>
-                <td>{entry.reserved_delta}</td>
-                <td>{entry.stock_after}</td>
-                <td>{entry.reserved_after}</td>
-                <td>{entry.actor_name || 'System migration'}</td>
+            {entries.map((entry) => {
+              const values = {
+                ...entry,
+                created_at: <time dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString('en-PH')}</time>,
+                action: entry.action.replaceAll('_', ' '),
+                actor_name: entry.actor_name || 'System migration',
+              }
+              return <tr key={entry.id}>
+                {columns.map(([key, label]) => <td key={key} data-field={key}>
+                  <span className="inventory-field-label" aria-hidden="true">{label}</span>
+                  {values[key]}
+                </td>)}
               </tr>
-            ))}
+            })}
           </tbody>
         </table>
       </div>

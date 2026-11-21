@@ -1349,10 +1349,20 @@ img {
 
 .adaptive-floating-button__pulse {
   position: absolute;
-  inset: -5px;
+  inset: -2px;
+  pointer-events: none;
   border-radius: inherit;
-  border: 1px solid color-mix(in srgb, var(--olive-500) 58%, transparent);
-  animation: adaptivePulse 1.8s ease-in-out infinite;
+  border: 2px solid var(--olive-600);
+  animation: adaptivePulse 2.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adaptive-floating-button__pulse { animation: none; opacity: .65; }
+}
+
+html[data-access-motion] .adaptive-floating-button__pulse {
+  animation: none;
+  opacity: .65;
 }
 
 .adaptive-modal-backdrop {
@@ -3278,15 +3288,8 @@ img {
 }
 
 @keyframes adaptivePulse {
-  0%,
-  100% {
-    opacity: 0.18;
-    transform: scale(0.95);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.12);
-  }
+  0% { opacity: .85; transform: scale(1); }
+  76%, 100% { opacity: 0; transform: scale(1.54); }
 }
 
 @keyframes perfumeMistText {
